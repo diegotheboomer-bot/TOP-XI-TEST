@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Salty Corner · Gift Boxes</title>
+  <meta name="description" content="Handpicked gift boxes from the Algarve, Portugal." />
+  <link rel="icon" href="assets/logo.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Josefin+Sans:wght@400;600&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Shared SVG defs: hand-drawn wobble filter + leaf sprig -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="wobble">
+        <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3" />
+        <feDisplacementMap in="SourceGraphic" scale="1.5" />
+      </filter>
+      <symbol id="sprig" viewBox="0 0 60 200">
+        <path d="M30 198 C 28 140, 34 80, 30 4" stroke="currentColor" stroke-width="1.6" fill="none" />
+        <g fill="currentColor">
+          <ellipse cx="18" cy="170" rx="11" ry="5" transform="rotate(-35 18 170)" />
+          <ellipse cx="42" cy="150" rx="11" ry="5" transform="rotate(35 42 150)" />
+          <ellipse cx="18" cy="125" rx="11" ry="5" transform="rotate(-35 18 125)" />
+          <ellipse cx="43" cy="104" rx="11" ry="5" transform="rotate(35 43 104)" />
+          <ellipse cx="19" cy="80" rx="10" ry="4.5" transform="rotate(-35 19 80)" />
+          <ellipse cx="42" cy="60" rx="10" ry="4.5" transform="rotate(35 42 60)" />
+          <ellipse cx="21" cy="38" rx="9" ry="4" transform="rotate(-35 21 38)" />
+          <ellipse cx="38" cy="20" rx="8" ry="3.5" transform="rotate(35 38 20)" />
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="announce">✿ Demo store · Handpicked gift boxes, wrapped with love in the Algarve ✿</div>
+
+  <header class="site-header">
+    <div class="awning" aria-hidden="true"></div>
+    <nav class="nav container">
+      <a href="#top" class="brand" aria-label="The Salty Corner home">
+        <img src="assets/logo.jpg" alt="" width="56" height="56" />
+        <span>
+          <strong>The Salty Corner</strong>
+          <small>Gift Boxes</small>
+        </span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#shop">Shop</a></li>
+        <li><a href="#build">Build a Box</a></li>
+        <li><a href="#story">Our Story</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <button class="cart-btn" id="cartOpen" aria-label="Open basket">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        <span class="cart-count" id="cartCount">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero">
+      <svg class="sprig sprig-l" aria-hidden="true"><use href="#sprig" /></svg>
+      <svg class="sprig sprig-r" aria-hidden="true"><use href="#sprig" /></svg>
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Algarve · Portugal</p>
+          <h1>Little boxes of joy, <em>wrapped by the sea</em></h1>
+          <p class="lede">Storybooks, music boxes, cuddly dolls and sweet Algarve treats — gathered by hand and tied with a ribbon, ready to make someone's day.</p>
+          <div class="hero-actions">
+            <a href="#shop" class="btn btn-primary">Shop gift boxes</a>
+            <a href="#build" class="btn btn-ghost">Build your own</a>
+          </div>
+          <ul class="hero-perks">
+            <li><span>🎀</span> Hand-wrapped</li>
+            <li><span>✉️</span> Personal note</li>
+            <li><span>🌿</span> Local makers</li>
+          </ul>
+        </div>
+        <div class="hero-art">
+          <div class="glow" aria-hidden="true"></div>
+          <img src="assets/logo.jpg" alt="The Salty Corner gift boxes shopfront illustration" width="520" height="520" />
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOP -->
+    <section class="section" id="shop">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">In the window</p>
+          <h2>Our gift boxes</h2>
+          <p class="sub">Ready-made boxes for every little occasion.</p>
+        </div>
+        <div class="chips" role="tablist" aria-label="Filter by occasion" id="filters">
+          <button class="chip is-active" data-filter="all">All</button>
+          <button class="chip" data-filter="birthday">Birthday</button>
+          <button class="chip" data-filter="baby">New baby</button>
+          <button class="chip" data-filter="kids">Little ones</button>
+          <button class="chip" data-filter="thanks">Thank you</button>
+        </div>
+        <div class="grid" id="productGrid"></div>
+      </div>
+    </section>
+
+    <!-- BUILD A BOX -->
+    <section class="section section-tint" id="build">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Made just for them</p>
+          <h2>Build your own box</h2>
+          <p class="sub">Pick a box, fill it with favourites, and we'll wrap it up.</p>
+        </div>
+
+        <div class="builder">
+          <div class="builder-main">
+            <h3 class="step-title"><span>1</span> Choose a size</h3>
+            <div class="sizes" id="sizes"></div>
+
+            <h3 class="step-title"><span>2</span> Fill it up <small id="fillHint"></small></h3>
+            <div class="items" id="items"></div>
+          </div>
+
+          <aside class="builder-summary">
+            <div class="window">
+              <div class="window-shelf" id="shelf"><p class="shelf-empty">Your box is empty — pick a few treasures!</p></div>
+            </div>
+            <label class="note-label" for="giftNote">Gift note <small>(optional)</small></label>
+            <textarea id="giftNote" rows="3" maxlength="160" placeholder="Happy birthday, little one! ♥"></textarea>
+            <div class="summary-total">
+              <span>Total</span>
+              <strong id="buildTotal">€0.00</strong>
+            </div>
+            <button class="btn btn-primary btn-block" id="addCustom" disabled>Add custom box to basket</button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Simple as a bow</p>
+          <h2>How it works</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <div class="step-icon">🛍️</div>
+            <h3>Choose</h3>
+            <p>Pick a ready-made box or build your own from our shelves.</p>
+          </li>
+          <li>
+            <div class="step-icon">🎀</div>
+            <h3>We wrap</h3>
+            <p>Every box is packed by hand with tissue, ribbon and your note.</p>
+          </li>
+          <li>
+            <div class="step-icon">🚲</div>
+            <h3>We deliver</h3>
+            <p>Sent to their door, ready to open and enjoy.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- STORY -->
+    <section class="section section-tint" id="story">
+      <div class="container story">
+        <div class="story-card">
+          <svg class="sprig sprig-story" aria-hidden="true"><use href="#sprig" /></svg>
+          <p class="eyebrow">Our story</p>
+          <h2>A little shop on a sunny corner</h2>
+          <p>The Salty Corner started with a simple idea: the best presents feel like a small shop window full of wonder. Books to read together, tunes that play when the lid lifts, dolls to hug, and a pinch of the Algarve in every box.</p>
+          <p>We choose each piece by hand, wrap it with care and send it on its way — so you can give something that feels thoughtful, every time.</p>
+          <a href="#shop" class="btn btn-ghost">Peek in the window</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT / NEWSLETTER -->
+    <section class="section" id="contact">
+      <div class="container">
+        <div class="newsletter">
+          <div>
+            <h2>Letters from the corner</h2>
+            <p>New boxes, seasonal treats and little surprises — straight to your inbox.</p>
+          </div>
+          <form id="newsletter" class="news-form">
+            <label class="sr-only" for="email">Email address</label>
+            <input id="email" type="email" required placeholder="your@email.com" />
+            <button class="btn btn-primary" type="submit">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="awning awning-flip" aria-hidden="true"></div>
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <img src="assets/logo.jpg" alt="" width="84" height="84" />
+        <p>Handpicked gift boxes<br />Algarve • Portugal</p>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <ul>
+          <li><a href="#shop">Gift boxes</a></li>
+          <li><a href="#build">Build a box</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>The corner</h4>
+        <ul>
+          <li><a href="#story">Our story</a></li>
+          <li><a href="#contact">Newsletter</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© <span id="year"></span> The Salty Corner · Demo website</p>
+  </footer>
+
+  <!-- CART DRAWER -->
+  <div class="overlay" id="overlay" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="Basket" aria-hidden="true">
+    <div class="drawer-head">
+      <h3>Your basket</h3>
+      <button class="icon-btn" id="cartClose" aria-label="Close basket">✕</button>
+    </div>
+    <div class="drawer-body" id="cartItems"></div>
+    <div class="drawer-foot">
+      <div class="summary-total">
+        <span>Subtotal</span>
+        <strong id="cartTotal">€0.00</strong>
+      </div>
+      <button class="btn btn-primary btn-block" id="checkout">Checkout</button>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
