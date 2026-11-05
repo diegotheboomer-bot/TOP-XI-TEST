@@ -35,8 +35,6 @@
     </defs>
   </svg>
 
-  <div class="announce">✿ Demo store · Handpicked gift boxes, wrapped with love in the Algarve ✿</div>
-
   <header class="site-header">
     <div class="awning" aria-hidden="true"></div>
     <nav class="nav container">
@@ -69,16 +67,11 @@
         <div class="hero-copy">
           <p class="eyebrow">Algarve · Portugal</p>
           <h1>Little boxes of joy, <em>wrapped by the sea</em></h1>
-          <p class="lede">Storybooks, music boxes, cuddly dolls and sweet Algarve treats — gathered by hand and tied with a ribbon, ready to make someone's day.</p>
+          <p class="lede">Handpicked gifts, wrapped with love.</p>
           <div class="hero-actions">
             <a href="#shop" class="btn btn-primary">Shop gift boxes</a>
             <a href="#build" class="btn btn-ghost">Build your own</a>
           </div>
-          <ul class="hero-perks">
-            <li><span>🎀</span> Hand-wrapped</li>
-            <li><span>✉️</span> Personal note</li>
-            <li><span>🌿</span> Local makers</li>
-          </ul>
         </div>
         <div class="hero-art">
           <div class="glow" aria-hidden="true"></div>
@@ -91,9 +84,7 @@
     <section class="section" id="shop">
       <div class="container">
         <div class="section-head">
-          <p class="eyebrow">In the window</p>
-          <h2>Our gift boxes</h2>
-          <p class="sub">Ready-made boxes for every little occasion.</p>
+          <h2>Gift boxes</h2>
         </div>
         <div class="chips" role="tablist" aria-label="Filter by occasion" id="filters">
           <button class="chip is-active" data-filter="all">All</button>
@@ -110,23 +101,21 @@
     <section class="section section-tint" id="build">
       <div class="container">
         <div class="section-head">
-          <p class="eyebrow">Made just for them</p>
-          <h2>Build your own box</h2>
-          <p class="sub">Pick a box, fill it with favourites, and we'll wrap it up.</p>
+          <h2>Build your own</h2>
         </div>
 
         <div class="builder">
           <div class="builder-main">
-            <h3 class="step-title"><span>1</span> Choose a size</h3>
+            <h3 class="step-title"><span>1</span> Size</h3>
             <div class="sizes" id="sizes"></div>
 
-            <h3 class="step-title"><span>2</span> Fill it up <small id="fillHint"></small></h3>
+            <h3 class="step-title"><span>2</span> Fill it <small id="fillHint"></small></h3>
             <div class="items" id="items"></div>
           </div>
 
           <aside class="builder-summary">
             <div class="window">
-              <div class="window-shelf" id="shelf"><p class="shelf-empty">Your box is empty — pick a few treasures!</p></div>
+              <div class="window-shelf" id="shelf"><p class="shelf-empty">Your box is empty</p></div>
             </div>
             <label class="note-label" for="giftNote">Gift note <small>(optional)</small></label>
             <textarea id="giftNote" rows="3" maxlength="160" placeholder="Happy birthday, little one! ♥"></textarea>
@@ -134,7 +123,7 @@
               <span>Total</span>
               <strong id="buildTotal">€0.00</strong>
             </div>
-            <button class="btn btn-primary btn-block" id="addCustom" disabled>Add custom box to basket</button>
+            <button class="btn btn-primary btn-block" id="addCustom" disabled>Add to basket</button>
           </aside>
         </div>
       </div>
@@ -144,24 +133,20 @@
     <section class="section">
       <div class="container">
         <div class="section-head">
-          <p class="eyebrow">Simple as a bow</p>
           <h2>How it works</h2>
         </div>
         <ol class="steps">
           <li>
             <div class="step-icon">🛍️</div>
             <h3>Choose</h3>
-            <p>Pick a ready-made box or build your own from our shelves.</p>
           </li>
           <li>
             <div class="step-icon">🎀</div>
             <h3>We wrap</h3>
-            <p>Every box is packed by hand with tissue, ribbon and your note.</p>
           </li>
           <li>
             <div class="step-icon">🚲</div>
             <h3>We deliver</h3>
-            <p>Sent to their door, ready to open and enjoy.</p>
           </li>
         </ol>
       </div>
@@ -172,11 +157,8 @@
       <div class="container story">
         <div class="story-card">
           <svg class="sprig sprig-story" aria-hidden="true"><use href="#sprig" /></svg>
-          <p class="eyebrow">Our story</p>
           <h2>A little shop on a sunny corner</h2>
-          <p>The Salty Corner started with a simple idea: the best presents feel like a small shop window full of wonder. Books to read together, tunes that play when the lid lifts, dolls to hug, and a pinch of the Algarve in every box.</p>
-          <p>We choose each piece by hand, wrap it with care and send it on its way — so you can give something that feels thoughtful, every time.</p>
-          <a href="#shop" class="btn btn-ghost">Peek in the window</a>
+          <p>Books, music boxes, dolls and a pinch of the Algarve — chosen by hand, wrapped with care.</p>
         </div>
       </div>
     </section>
@@ -186,8 +168,7 @@
       <div class="container">
         <div class="newsletter">
           <div>
-            <h2>Letters from the corner</h2>
-            <p>New boxes, seasonal treats and little surprises — straight to your inbox.</p>
+            <h2>Stay in touch</h2>
           </div>
           <form id="newsletter" class="news-form">
             <label class="sr-only" for="email">Email address</label>

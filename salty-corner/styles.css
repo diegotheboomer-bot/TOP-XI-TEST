@@ -315,7 +315,8 @@ textarea:focus, .news-form input:focus { outline: none; border-color: var(--sage
 
 /* ---------- Steps ---------- */
 .steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; counter-reset: s; }
-.steps li { text-align: center; padding: 2rem 1.5rem; position: relative; }
+.steps li { text-align: center; padding: 1.5rem 1rem; position: relative; }
+.steps h3 { margin: 0; }
 .steps li + li::before {
   content: ""; position: absolute; left: -1rem; top: 3.4rem; width: 2rem;
   border-top: 2px dashed var(--sage-300);

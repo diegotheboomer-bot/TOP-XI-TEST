@@ -44,12 +44,12 @@ const icon = (k) => `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"
 /* ---------- Data (demo content — edit freely) ---------- */
 
 const PRODUCTS = [
-  { id: "reader", name: "Little Reader", desc: "A cosy bedtime bundle for curious minds.", contents: ["Picture book", "Bookmark", "Mini blanket"], price: 34, tags: ["kids", "birthday"], art: { box: "#dfe8d2", lid: "#a9bf94", ribbon: "#c9805f" } },
-  { id: "melody", name: "Melody Box", desc: "A wind-up tune that plays when the lid lifts.", contents: ["Wooden music box", "Scented candle", "Hand-written card"], price: 48, tags: ["birthday", "thanks"], art: { box: "#fbecd3", lid: "#cfa274", ribbon: "#7a9867" } },
-  { id: "baby", name: "Hello Baby", desc: "Soft, gentle gifts to welcome someone new.", contents: ["Rag doll", "Soft blanket", "First book"], price: 56, tags: ["baby"], art: { box: "#f6e3df", lid: "#e8b4ad", ribbon: "#7a9867" }, badge: "Bestseller" },
-  { id: "algarve", name: "Taste of the Algarve", desc: "Sunshine flavours from the south of Portugal.", contents: ["Flor de sal", "Almond & fig sweets", "Cork notebook"], price: 42, tags: ["thanks"], art: { box: "#b7d0d8", lid: "#fbecd3", ribbon: "#c9805f" }, stack: true, badge: "Local" },
-  { id: "calm", name: "Seaside Calm", desc: "A slow-evening box for someone who needs a breather.", contents: ["Scented candle", "Soft blanket", "Flor de sal"], price: 38, tags: ["thanks", "birthday"], art: { box: "#eef3e6", lid: "#b7d0d8", ribbon: "#557049" } },
-  { id: "explorer", name: "Little Explorer", desc: "Stories and a new best friend for adventures.", contents: ["Picture book", "Rag doll", "Music box"], price: 45, tags: ["kids", "baby"], art: { box: "#fbe8b8", lid: "#7a9867", ribbon: "#e8b4ad" }, stack: true },
+  { id: "reader", name: "Little Reader", contents: ["Picture book", "Bookmark", "Mini blanket"], price: 34, tags: ["kids", "birthday"], art: { box: "#dfe8d2", lid: "#a9bf94", ribbon: "#c9805f" } },
+  { id: "melody", name: "Melody Box", contents: ["Wooden music box", "Scented candle", "Hand-written card"], price: 48, tags: ["birthday", "thanks"], art: { box: "#fbecd3", lid: "#cfa274", ribbon: "#7a9867" } },
+  { id: "baby", name: "Hello Baby", contents: ["Rag doll", "Soft blanket", "First book"], price: 56, tags: ["baby"], art: { box: "#f6e3df", lid: "#e8b4ad", ribbon: "#7a9867" }, badge: "Bestseller" },
+  { id: "algarve", name: "Taste of the Algarve", contents: ["Flor de sal", "Almond & fig sweets", "Cork notebook"], price: 42, tags: ["thanks"], art: { box: "#b7d0d8", lid: "#fbecd3", ribbon: "#c9805f" }, stack: true, badge: "Local" },
+  { id: "calm", name: "Seaside Calm", contents: ["Scented candle", "Soft blanket", "Flor de sal"], price: 38, tags: ["thanks", "birthday"], art: { box: "#eef3e6", lid: "#b7d0d8", ribbon: "#557049" } },
+  { id: "explorer", name: "Little Explorer", contents: ["Picture book", "Rag doll", "Music box"], price: 45, tags: ["kids", "baby"], art: { box: "#fbe8b8", lid: "#7a9867", ribbon: "#e8b4ad" }, stack: true },
 ];
 
 const SIZES = [
@@ -97,7 +97,6 @@ function renderProducts(filter = "all") {
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
-        <p>${p.desc}</p>
         <ul class="contents">${p.contents.map((c) => `<li>${c}</li>`).join("")}</ul>
         <div class="card-foot">
           <span class="price">${fmt(p.price)}</span>
@@ -130,7 +129,7 @@ function renderBuilder() {
     <button class="size ${build.size.id === s.id ? "is-active" : ""}" data-size="${s.id}">
       ${boxSVG({ ...s.art, stack: s.stack })}
       <strong>${s.name}</strong>
-      <small>Up to ${s.max} items · ${fmt(s.price)}</small>
+      <small>${s.max} items · ${fmt(s.price)}</small>
     </button>`).join("");
 
   const full = build.items.size >= build.size.max;
@@ -145,12 +144,12 @@ function renderBuilder() {
     </button>`;
   }).join("");
 
-  $("#fillHint").textContent = `${build.items.size} / ${build.size.max} chosen`;
+  $("#fillHint").textContent = `${build.items.size} / ${build.size.max}`;
 
   const chosen = ITEMS.filter((i) => build.items.has(i.id));
   $("#shelf").innerHTML = chosen.length
     ? chosen.map((i) => icon(i.id)).join("")
-    : `<p class="shelf-empty">Your box is empty — pick a few treasures!</p>`;
+    : `<p class="shelf-empty">Your box is empty</p>`;
 
   const total = build.size.price + chosen.reduce((s, i) => s + i.price, 0);
   $("#buildTotal").textContent = fmt(chosen.length ? total : 0);
@@ -197,7 +196,7 @@ function addToCart(line) {
   const found = cart.find((l) => l.key === line.key);
   found ? found.qty++ : cart.push({ ...line, qty: 1 });
   saveCart();
-  toast(`🎀 ${line.name} added to your basket`);
+  toast(`🎀 Added: ${line.name}`);
   const c = $("#cartCount");
   c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
 }
@@ -224,7 +223,7 @@ function renderCart() {
         </div>
         <span class="line-price">${fmt(l.price * l.qty)}</span>
       </div>`).join("")
-    : `<div class="empty-cart">${boxSVG({ box: "#eef3e6", lid: "#dfe8d2", ribbon: "#a9bf94" })}<p>Your basket is empty</p><small>Pop a box or two in here!</small></div>`;
+    : `<div class="empty-cart">${boxSVG({ box: "#eef3e6", lid: "#dfe8d2", ribbon: "#a9bf94" })}<p>Your basket is empty</p></div>`;
 }
 
 function escapeHTML(s) {
@@ -253,12 +252,12 @@ $("#cartClose").addEventListener("click", () => openCart(false));
 $("#overlay").addEventListener("click", () => openCart(false));
 document.addEventListener("keydown", (e) => e.key === "Escape" && openCart(false));
 
-$("#checkout").addEventListener("click", () => toast("✨ This is a demo — checkout isn't connected yet"));
+$("#checkout").addEventListener("click", () => toast("Demo — checkout not connected"));
 
 $("#newsletter").addEventListener("submit", (e) => {
   e.preventDefault();
   e.target.reset();
-  toast("💌 Thanks! (Demo — no email was sent)");
+  toast("💌 Thanks! (demo)");
 });
 
 /* ---------- Init ---------- */
