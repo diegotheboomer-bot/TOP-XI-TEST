@@ -48,7 +48,7 @@ const PRODUCTS = [
     id: "sunshine", name: "The Sunshine Box", featured: true, badge: "New",
     desc: 'A magical, curated crate for little dreamers! Built around the lovely storybook "Lilly\'s Dream" and a sweet music box playing "You Are My Sunshine".',
     contents: ['Storybook "Lilly\'s Dream"', 'Music box ("You Are My Sunshine")', "Heart-shaped jewellery box", "Colouring book & coloured pencils", "Pen & magnetic bookmark", "Thumb push puppet"],
-    price: null, // set the price here, e.g. 45
+    price: 50,
     tags: ["kids", "birthday"], img: "assets/sunshine-box.jpg",
     alt: "The Sunshine Box open, with coloured pencils, a unicorn push puppet, a wooden music box and a pink heart-shaped box",
   },
