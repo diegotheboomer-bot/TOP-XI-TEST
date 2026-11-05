@@ -45,7 +45,7 @@ const icon = (k) => `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"
 
 const PRODUCTS = [
   {
-    id: "sunshine", name: "The Sunshine Box", featured: true, badge: "New",
+    id: "sunshine", name: "The Sunshine Box", badge: "New",
     desc: 'A magical, curated crate for little dreamers! Built around the lovely storybook "Lilly\'s Dream" and a sweet music box playing "You Are My Sunshine".',
     contents: ['Storybook "Lilly\'s Dream"', 'Music box ("You Are My Sunshine")', "Heart-shaped jewellery box", "Colouring book & coloured pencils", "Pen & magnetic bookmark", "Thumb push puppet"],
     price: 50,
@@ -99,20 +99,6 @@ const buyButton = (p, cls = "add-btn") => p.price == null
   ? `<button class="btn btn-primary ${cls}" disabled>Coming soon</button>`
   : `<button class="btn btn-primary ${cls}" data-add="${p.id}">Add to basket</button>`;
 
-function renderFeatured() {
-  const p = PRODUCTS.find((x) => x.featured);
-  if (!p) return;
-  $("#featured").innerHTML = `
-    <div class="featured-photo"><img src="${p.img}" alt="${p.alt}" width="1000" height="1167" /></div>
-    <div class="featured-copy">
-      <p class="eyebrow">Featured</p>
-      <h2>${p.name}</h2>
-      <p class="featured-desc">${p.desc}</p>
-      <ul class="featured-list">${p.contents.map((c) => `<li>${c}</li>`).join("")}</ul>
-      <p class="featured-meta">Hand-wrapped with care · Shipping: all Portugal</p>
-      <div class="featured-buy"><span class="price">${priceLabel(p)}</span>${buyButton(p, "")}</div>
-    </div>`;
-}
 
 function renderProducts(filter = "all") {
   const list = PRODUCTS.filter((p) => filter === "all" || p.tags.includes(filter));
@@ -289,7 +275,6 @@ $("#newsletter").addEventListener("submit", (e) => {
 
 /* ---------- Init ---------- */
 $("#year").textContent = new Date().getFullYear();
-renderFeatured();
 renderProducts();
 renderBuilder();
 renderCart();
