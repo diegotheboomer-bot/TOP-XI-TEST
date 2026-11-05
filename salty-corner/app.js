@@ -44,12 +44,19 @@ const icon = (k) => `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"
 /* ---------- Data (demo content, edit freely) ---------- */
 
 const PRODUCTS = [
+  {
+    id: "sunshine", name: "The Sunshine Box", featured: true, badge: "New",
+    desc: 'A magical, curated crate for little dreamers! Built around the lovely storybook "Lilly\'s Dream" and a sweet music box playing "You Are My Sunshine".',
+    contents: ['Storybook "Lilly\'s Dream"', 'Music box ("You Are My Sunshine")', "Heart-shaped jewellery box", "Colouring book & coloured pencils", "Pen & magnetic bookmark", "Thumb push puppet"],
+    price: null, // set the price here, e.g. 45
+    tags: ["kids", "birthday"], img: "assets/sunshine-box.jpg",
+    alt: "The Sunshine Box open, with coloured pencils, a unicorn push puppet, a wooden music box and a pink heart-shaped box",
+  },
   { id: "reader", name: "Little Reader", contents: ["Picture book", "Bookmark", "Mini blanket"], price: 34, tags: ["kids", "birthday"], art: { box: "#dfe8d2", lid: "#a9bf94", ribbon: "#c9805f" } },
   { id: "melody", name: "Melody Box", contents: ["Wooden music box", "Scented candle", "Hand-written card"], price: 48, tags: ["birthday", "thanks"], art: { box: "#fbecd3", lid: "#cfa274", ribbon: "#7a9867" } },
   { id: "baby", name: "Hello Baby", contents: ["Rag doll", "Soft blanket", "First book"], price: 56, tags: ["baby"], art: { box: "#f6e3df", lid: "#e8b4ad", ribbon: "#7a9867" }, badge: "Bestseller" },
   { id: "algarve", name: "Taste of the Algarve", contents: ["Flor de sal", "Almond & fig sweets", "Cork notebook"], price: 42, tags: ["thanks"], art: { box: "#b7d0d8", lid: "#fbecd3", ribbon: "#c9805f" }, stack: true, badge: "Local" },
   { id: "calm", name: "Seaside Calm", contents: ["Scented candle", "Soft blanket", "Flor de sal"], price: 38, tags: ["thanks", "birthday"], art: { box: "#eef3e6", lid: "#b7d0d8", ribbon: "#557049" } },
-  { id: "explorer", name: "Little Explorer", contents: ["Picture book", "Rag doll", "Music box"], price: 45, tags: ["kids", "baby"], art: { box: "#fbe8b8", lid: "#7a9867", ribbon: "#e8b4ad" }, stack: true },
 ];
 
 const SIZES = [
@@ -87,20 +94,40 @@ const store = {
 
 /* ---------- Shop grid ---------- */
 
+const priceLabel = (p) => (p.price == null ? "Price soon" : fmt(p.price));
+const buyButton = (p, cls = "add-btn") => p.price == null
+  ? `<button class="btn btn-primary ${cls}" disabled>Coming soon</button>`
+  : `<button class="btn btn-primary ${cls}" data-add="${p.id}">Add to basket</button>`;
+
+function renderFeatured() {
+  const p = PRODUCTS.find((x) => x.featured);
+  if (!p) return;
+  $("#featured").innerHTML = `
+    <div class="featured-photo"><img src="${p.img}" alt="${p.alt}" width="1000" height="1167" /></div>
+    <div class="featured-copy">
+      <p class="eyebrow">Featured</p>
+      <h2>${p.name}</h2>
+      <p class="featured-desc">${p.desc}</p>
+      <ul class="featured-list">${p.contents.map((c) => `<li>${c}</li>`).join("")}</ul>
+      <p class="featured-meta">Hand-wrapped with care · Shipping: all Portugal</p>
+      <div class="featured-buy"><span class="price">${priceLabel(p)}</span>${buyButton(p, "")}</div>
+    </div>`;
+}
+
 function renderProducts(filter = "all") {
   const list = PRODUCTS.filter((p) => filter === "all" || p.tags.includes(filter));
   $("#productGrid").innerHTML = list.map((p, i) => `
     <article class="card" style="animation-delay:${i * 60}ms">
       <div class="card-art">
         ${p.badge ? `<span class="tag">${p.badge}</span>` : ""}
-        ${boxSVG({ ...p.art, stack: p.stack })}
+        ${p.img ? `<img src="${p.img}" alt="${p.alt}" loading="lazy" />` : boxSVG({ ...p.art, stack: p.stack })}
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
-        <ul class="contents">${p.contents.map((c) => `<li>${c}</li>`).join("")}</ul>
+        <ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>
         <div class="card-foot">
-          <span class="price">${fmt(p.price)}</span>
-          <button class="btn btn-primary add-btn" data-add="${p.id}">Add to basket</button>
+          <span class="price">${priceLabel(p)}</span>
+          ${buyButton(p)}
         </div>
       </div>
     </article>`).join("");
@@ -113,11 +140,11 @@ $("#filters").addEventListener("click", (e) => {
   renderProducts(chip.dataset.filter);
 });
 
-$("#productGrid").addEventListener("click", (e) => {
+document.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-add]");
   if (!btn) return;
   const p = PRODUCTS.find((x) => x.id === btn.dataset.add);
-  addToCart({ key: p.id, name: p.name, detail: p.contents.join(" · "), price: p.price, art: p.art, stack: p.stack });
+  addToCart({ key: p.id, name: p.name, detail: p.contents.join(" · "), price: p.price, art: p.art, stack: p.stack, img: p.img });
 });
 
 /* ---------- Build a box ---------- */
@@ -211,7 +238,7 @@ function renderCart() {
   $("#cartItems").innerHTML = cart.length
     ? cart.map((l) => `
       <div class="line">
-        <div class="line-art">${boxSVG({ ...l.art, stack: l.stack })}</div>
+        <div class="line-art">${l.img ? `<img src="${l.img}" alt="" />` : boxSVG({ ...l.art, stack: l.stack })}</div>
         <div>
           <h4>${l.name}</h4>
           <small>${escapeHTML(l.detail)}</small>
@@ -262,6 +289,7 @@ $("#newsletter").addEventListener("submit", (e) => {
 
 /* ---------- Init ---------- */
 $("#year").textContent = new Date().getFullYear();
+renderFeatured();
 renderProducts();
 renderBuilder();
 renderCart();
