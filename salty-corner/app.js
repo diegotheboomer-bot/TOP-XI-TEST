@@ -1,4 +1,4 @@
-/* The Salty Corner — demo storefront (no backend; basket saved in this browser) */
+/* The Salty Corner: demo storefront (no backend; basket saved in this browser) */
 
 const fmt = (n) => "€" + n.toFixed(2);
 
@@ -41,7 +41,7 @@ const ICONS = {
 };
 const icon = (k) => `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ICONS[k]}</svg>`;
 
-/* ---------- Data (demo content — edit freely) ---------- */
+/* ---------- Data (demo content, edit freely) ---------- */
 
 const PRODUCTS = [
   { id: "reader", name: "Little Reader", contents: ["Picture book", "Bookmark", "Mini blanket"], price: 34, tags: ["kids", "birthday"], art: { box: "#dfe8d2", lid: "#a9bf94", ribbon: "#c9805f" } },
@@ -137,7 +137,7 @@ function renderBuilder() {
     const on = build.items.has(it.id);
     return `
     <button class="item ${on ? "is-active" : ""}" data-item="${it.id}" ${full && !on ? "disabled" : ""} aria-pressed="${on}">
-      <span class="check">✓</span>
+      <span class="check"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
       ${icon(it.id)}
       <strong>${it.name}</strong>
       <small>${fmt(it.price)}</small>
@@ -196,7 +196,7 @@ function addToCart(line) {
   const found = cart.find((l) => l.key === line.key);
   found ? found.qty++ : cart.push({ ...line, qty: 1 });
   saveCart();
-  toast(`🎀 Added: ${line.name}`);
+  toast(`Added: ${line.name}`);
   const c = $("#cartCount");
   c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
 }
@@ -252,12 +252,12 @@ $("#cartClose").addEventListener("click", () => openCart(false));
 $("#overlay").addEventListener("click", () => openCart(false));
 document.addEventListener("keydown", (e) => e.key === "Escape" && openCart(false));
 
-$("#checkout").addEventListener("click", () => toast("Demo — checkout not connected"));
+$("#checkout").addEventListener("click", () => toast("Demo: checkout not connected"));
 
 $("#newsletter").addEventListener("submit", (e) => {
   e.preventDefault();
   e.target.reset();
-  toast("💌 Thanks! (demo)");
+  toast("Thanks for subscribing (demo)");
 });
 
 /* ---------- Init ---------- */
