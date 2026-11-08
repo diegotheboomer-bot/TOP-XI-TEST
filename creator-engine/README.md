@@ -12,7 +12,13 @@ npm test           # unit tests (parser, payouts, fraud rules, pHash, encryption
 npm run build
 ```
 
-With no Supabase keys the app runs in **demo mode**: pages show sample data (marked "Demo data") and actions are disabled.
+With no Supabase keys the app runs in **demo mode** (`src/lib/demo.ts`). Everything is clickable and uses fake numbers and mock money, run through the same payout, fee and fraud code as production:
+
+- **Brand** (`/brand`, as Voltline Energy): create campaigns, deposit mock escrow, go live, connect a store, approve or flag videos, pay creators (15% fee taken out). Each campaign page also has **Run 4h sync** (views grow, earnings recalculate, the velocity watchdog runs) and **Simulate sale**.
+- **Creator** (`/creator`): use **Viewing as** to switch creators, then connect TikTok, set up payouts, join campaigns and submit a TikTok link (the parser is real; view counts are made up).
+- **Reset** in the header restores the starting data. State lives in the server process, so restarting also resets it.
+
+Well-known streamer names appear only in ordinary example rows. Fraud examples use made-up handles, and every brand is fictional.
 
 ## Set up for real
 

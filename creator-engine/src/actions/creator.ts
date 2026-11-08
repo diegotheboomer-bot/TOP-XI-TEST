@@ -12,7 +12,8 @@ import { queryTikTokVideos } from '@/lib/platforms/tiktok';
 import { checkDuplicate } from '@/lib/sync';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
 import { stripe } from '@/lib/stripe';
-import { DEMO_ERROR, type ActionState } from './result';
+import * as demo from '@/lib/demo';
+import type { ActionState } from './result';
 
 async function requireCreator() {
   const viewer = await getViewer();
@@ -21,7 +22,7 @@ async function requireCreator() {
 }
 
 export async function joinCampaign(campaignId: string): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
+  if (isDemo) return refreshed(demo.joinCampaign(campaignId));
   const creatorId = await requireCreator();
   const admin = createAdminClient();
 
@@ -45,7 +46,7 @@ export async function joinCampaign(campaignId: string): Promise<ActionState> {
 }
 
 const SubmitSchema = z.object({
-  campaignId: z.string().uuid(),
+  campaignId: z.string().min(1).max(64),
   videoUrl: z.string().trim().url('Paste the full link to your live video.').max(2048),
 });
 
@@ -55,10 +56,10 @@ const SubmitSchema = z.object({
  * duplicate-asset check. Recurring sync starts once the brand approves.
  */
 export async function submitVideo(_prev: ActionState, form: FormData): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
   const parsedForm = SubmitSchema.safeParse({ campaignId: form.get('campaignId'), videoUrl: form.get('videoUrl') });
   if (!parsedForm.success) return { error: parsedForm.error.issues[0].message };
   const { campaignId, videoUrl } = parsedForm.data;
+  if (isDemo) return refreshed(demo.submitVideo(campaignId, videoUrl));
 
   const creatorId = await requireCreator();
   const admin = createAdminClient();
@@ -144,7 +145,10 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
 
 /** Stripe Connect Express onboarding for payouts. */
 export async function startPayoutOnboarding(): Promise<void> {
-  if (isDemo) return;
+  if (isDemo) {
+    demo.enablePayouts();
+    redirect('/creator?payouts=connected');
+  }
   const creatorId = await requireCreator();
   const admin = createAdminClient();
   const { data: creator } = await admin.from('creators').select('stripe_account_id').eq('id', creatorId).single();
@@ -167,4 +171,24 @@ export async function startPayoutOnboarding(): Promise<void> {
     return_url: `${appUrl()}/creator?payouts=connected`,
   });
   redirect(link.url);
+}
+
+/** TikTok Login Kit (mocked in demo mode). */
+export async function connectTikTok(): Promise<void> {
+  if (isDemo) {
+    demo.connectTikTok();
+    redirect('/creator?tiktok=connected');
+  }
+  redirect('/api/oauth/tiktok/start');
+}
+
+/** Demo only: switch which creator you are viewing as. */
+export async function viewAsCreator(form: FormData): Promise<void> {
+  if (isDemo) demo.setCurrentCreator(String(form.get('creatorId')));
+  redirect('/creator');
+}
+
+function refreshed(result: ActionState): ActionState {
+  revalidatePath('/creator');
+  return result;
 }

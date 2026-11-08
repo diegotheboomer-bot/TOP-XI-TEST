@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Store, Users } from 'lucide-react';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, payoutModelLabel, percent, termsLabel, timeAgo, usd } from '@/lib/format';
-import { releasePayout, reviewSubmission, setCampaignStatus } from '@/actions/brand';
+import { releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
+import { isDemo } from '@/lib/env';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Stat } from '@/components/ui/stat';
@@ -34,6 +35,16 @@ export default async function CampaignPage({ params, searchParams }: { params: {
         actions={<StatusActions campaign={c} />}
       />
 
+      {isDemo && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-3">
+          <p className="text-sm text-amber-800">Demo controls — fake data, mock money.</p>
+          <div className="flex flex-wrap gap-2">
+            <ActionButton action={simulateSync.bind(null, c.id)}>Run 4h sync</ActionButton>
+            <ActionButton action={simulateSale.bind(null, c.id)}>Simulate sale</ActionButton>
+          </div>
+        </div>
+      )}
+
       {searchParams.funded && (
         <p className="mb-6 rounded-xl bg-accent-50 px-4 py-3 text-sm text-accent-700">Payment received — escrow updates as soon as Stripe confirms it.</p>
       )}
@@ -61,7 +72,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Fund escrow" description="Card or ACH via Stripe. Creators are paid from this balance." />
+            <CardHeader title="Fund escrow" description={isDemo ? 'Mock money — adds to escrow instantly.' : 'Card or ACH via Stripe. Creators are paid from this balance.'} />
             <FundEscrowForm campaignId={c.id} />
           </Card>
           <Card>

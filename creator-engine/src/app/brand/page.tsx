@@ -56,7 +56,7 @@ export default async function BrandDashboardPage() {
                     {payoutModelLabel[c.payout_model]} · {termsLabel(c)}
                   </p>
                 </div>
-                <dl className="grid grid-cols-4 gap-3">
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {[
                     ['Creators', String(c.submissions)],
                     ['Views', compact(c.views)],

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { isDemo } from '@/lib/env';
-import { signOut } from '@/actions/account';
+import { resetDemoData, signOut } from '@/actions/account';
 import { Badge } from './ui/badge';
 
 export function Logo() {
@@ -22,7 +22,7 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Logo />
-          {isDemo && <Badge tone="amber" className="hidden sm:inline-flex">Demo data</Badge>}
+          {isDemo && <Badge tone="amber" className="hidden sm:inline-flex">Demo · mock money</Badge>}
         </div>
         <nav className="flex items-center gap-1 text-sm">
           <Link href="/brand" className="rounded-full px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
@@ -31,6 +31,11 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
           <Link href="/creator" className="rounded-full px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
             Creators
           </Link>
+          {isDemo && (
+            <form action={resetDemoData}>
+              <button className="rounded-full px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">Reset</button>
+            </form>
+          )}
           {signedIn && !isDemo ? (
             <form action={signOut}>
               <button className="rounded-full px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">Sign out</button>

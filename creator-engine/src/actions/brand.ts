@@ -8,7 +8,8 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
 import { splitFee } from '@/lib/payout';
-import { DEMO_ERROR, type ActionState } from './result';
+import * as demo from '@/lib/demo';
+import type { ActionState } from './result';
 
 async function requireBrand() {
   const viewer = await getViewer();
@@ -40,9 +41,12 @@ const CampaignSchema = z
   .refine((c) => c.cpm_cap >= c.base_payout, { message: 'The cap must be at least the base payout.' });
 
 export async function createCampaign(_prev: ActionState, form: FormData): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
   const parsed = CampaignSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (isDemo) {
+    const { asset_folder_url, ...rest } = parsed.data;
+    redirect(`/brand/campaigns/${demo.createCampaign({ ...rest, asset_folder_url: asset_folder_url || null })}`);
+  }
 
   const brandId = await requireBrand();
   const { asset_folder_url, ...rest } = parsed.data;
@@ -56,7 +60,7 @@ export async function createCampaign(_prev: ActionState, form: FormData): Promis
 }
 
 export async function setCampaignStatus(campaignId: string, status: 'active' | 'paused' | 'completed'): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
+  if (isDemo) return done(demo.setCampaignStatus(campaignId, status), campaignId);
   const { admin, campaign } = await requireOwnCampaign(campaignId);
   if (status === 'active' && Number(campaign.escrow_balance) <= 0) return { error: 'Fund escrow before going live.' };
   await admin.from('campaigns').update({ status }).eq('id', campaignId);
@@ -66,10 +70,10 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
 
 /** Brand deposit → Stripe Checkout (creates a PaymentIntent). Escrow is credited by the webhook. */
 export async function fundEscrow(_prev: ActionState, form: FormData): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
   const campaignId = String(form.get('campaignId'));
   const amount = z.coerce.number().min(50).max(1_000_000).safeParse(form.get('amount'));
   if (!amount.success) return { error: 'Deposit between $50 and $1,000,000.' };
+  if (isDemo) return done(demo.fundEscrow(campaignId, amount.data), campaignId);
   const { campaign } = await requireOwnCampaign(campaignId);
 
   const session = await stripe().checkout.sessions.create({
@@ -89,7 +93,6 @@ export async function fundEscrow(_prev: ActionState, form: FormData): Promise<Ac
 }
 
 export async function connectStore(_prev: ActionState, form: FormData): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
   const domain = z
     .string()
     .trim()
@@ -98,6 +101,7 @@ export async function connectStore(_prev: ActionState, form: FormData): Promise<
     .safeParse(form.get('shopDomain'));
   if (!domain.success) return { error: domain.error.issues[0].message };
   const campaignId = String(form.get('campaignId'));
+  if (isDemo) return done(demo.connectStore(campaignId, domain.data), campaignId);
   const { admin, brandId } = await requireOwnCampaign(campaignId);
 
   const { data: existing } = await admin.from('conversion_pixels').select('id').eq('brand_id', brandId).eq('shop_domain', domain.data).maybeSingle();
@@ -110,7 +114,7 @@ export async function connectStore(_prev: ActionState, form: FormData): Promise<
 }
 
 export async function reviewSubmission(submissionId: string, decision: 'approve' | 'flag'): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
+  if (isDemo) return done(demo.reviewSubmission(submissionId, decision));
   const admin = createAdminClient();
   const { data: sub } = await admin.from('submissions').select('campaign_id, status').eq('id', submissionId).single();
   if (!sub) return { error: 'Submission not found.' };
@@ -131,7 +135,7 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
  * Each failed step reverses the ones before it.
  */
 export async function releasePayout(submissionId: string): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
+  if (isDemo) return done(demo.releasePayout(submissionId));
   const admin = createAdminClient();
   const { data: sub } = await admin
     .from('submissions')
@@ -200,4 +204,20 @@ export async function releasePayout(submissionId: string): Promise<ActionState> 
 
   revalidatePath(`/brand/campaigns/${sub.campaign_id}`);
   return { success: `Paid ${net.toFixed(2)} to creator (${fee.toFixed(2)} platform fee).` };
+}
+
+// ─── Demo-only simulations ───────────────────────────────────────────────
+export async function simulateSync(campaignId: string): Promise<ActionState> {
+  if (!isDemo) return { error: 'Only available in demo mode.' };
+  return done(demo.simulateSync(campaignId), campaignId);
+}
+
+export async function simulateSale(campaignId: string): Promise<ActionState> {
+  if (!isDemo) return { error: 'Only available in demo mode.' };
+  return done(demo.simulateSale(campaignId), campaignId);
+}
+
+function done(result: ActionState, campaignId?: string): ActionState {
+  revalidatePath(campaignId ? `/brand/campaigns/${campaignId}` : '/brand', campaignId ? 'page' : 'layout');
+  return result;
 }

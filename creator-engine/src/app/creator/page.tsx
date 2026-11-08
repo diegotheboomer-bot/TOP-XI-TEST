@@ -2,14 +2,17 @@ import { BadgeCheck, CircleDollarSign, Clock, Eye, Music2, ShoppingBag, Sparkles
 import { getCreatorDashboard } from '@/lib/data';
 import { compact, termsLabel, usd } from '@/lib/format';
 import { trackingLink } from '@/lib/attribution';
-import { joinCampaign, startPayoutOnboarding } from '@/actions/creator';
+import { connectTikTok, joinCampaign, startPayoutOnboarding } from '@/actions/creator';
+import { isDemo } from '@/lib/env';
+import { currentCreatorId, demoCreators } from '@/lib/demo';
+import { CreatorSwitcher } from '@/components/creator-switcher';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Stat } from '@/components/ui/stat';
 import { Badge } from '@/components/ui/badge';
 import { Empty } from '@/components/ui/empty';
 import { Progress } from '@/components/ui/progress';
-import { Button, buttonClass } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/components/action-button';
 import { CopyField } from '@/components/copy-button';
 import { SubmissionBadge } from '@/components/status';
@@ -24,14 +27,22 @@ const tiktokMessages: Record<string, [string, boolean]> = {
   error: ['TikTok connection failed. Try again.', false],
 };
 
-export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string } }) {
+export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; payouts?: string } }) {
   const d = await getCreatorDashboard();
   const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
-  const notice = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : undefined;
+  const notice: [string, boolean] | undefined = searchParams.tiktok
+    ? tiktokMessages[searchParams.tiktok]
+    : searchParams.payouts === 'connected'
+      ? ['Payout account ready.', true]
+      : undefined;
 
   return (
     <>
-      <PageHeader title={`Hi, ${d.name}`} description="Your campaigns, codes and verified earnings." />
+      <PageHeader
+        title={`Hi, ${d.name}`}
+        description="Your campaigns, codes and verified earnings."
+        actions={isDemo ? <CreatorSwitcher creators={demoCreators()} current={currentCreatorId()} /> : undefined}
+      />
 
       {notice && (
         <p className={`mb-6 rounded-xl px-4 py-3 text-sm ${notice[1] ? 'bg-accent-50 text-accent-700' : 'bg-rose-50 text-rose-700'}`}>{notice[0]}</p>
@@ -44,9 +55,11 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
           connected={!!d.tiktok}
           detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Required to verify your videos and views.'}
           action={
-            <a href="/api/oauth/tiktok/start" className={buttonClass(d.tiktok ? 'ghost' : 'primary', 'sm')}>
-              {d.tiktok ? 'Reconnect' : 'Connect TikTok'}
-            </a>
+            <form action={connectTikTok}>
+              <Button size="sm" variant={d.tiktok ? 'ghost' : 'primary'}>
+                {d.tiktok ? 'Reconnect' : 'Connect TikTok'}
+              </Button>
+            </form>
           }
         />
         <Connection

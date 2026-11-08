@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { isDemo, appUrl } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { resetDemo } from '@/lib/demo';
 import { DEMO_ERROR, type ActionState } from './result';
 
 export async function sendMagicLink(_prev: ActionState, form: FormData): Promise<ActionState> {
@@ -35,6 +36,11 @@ export async function createProfile(_prev: ActionState, form: FormData): Promise
       : await admin.from('creators').insert({ user_id: data.user.id, display_name: input.data.name });
   if (error && error.code !== '23505') return { error: error.message };
   redirect(input.data.role === 'brand' ? '/brand' : '/creator');
+}
+
+export async function resetDemoData() {
+  if (isDemo) resetDemo();
+  redirect('/brand');
 }
 
 export async function signOut() {
