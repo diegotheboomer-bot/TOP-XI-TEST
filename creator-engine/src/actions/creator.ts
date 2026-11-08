@@ -1,0 +1,170 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+import { isDemo, appUrl } from '@/lib/env';
+import { getViewer } from '@/lib/session';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { parseVideoUrlResolving } from '@/lib/video-url';
+import { getTikTokAccessToken } from '@/lib/tokens';
+import { queryTikTokVideos } from '@/lib/platforms/tiktok';
+import { checkDuplicate } from '@/lib/sync';
+import { generateDiscountCode, refParam } from '@/lib/attribution';
+import { stripe } from '@/lib/stripe';
+import { DEMO_ERROR, type ActionState } from './result';
+
+async function requireCreator() {
+  const viewer = await getViewer();
+  if (!viewer?.creatorId) throw new Error('Sign in as a creator first.');
+  return viewer.creatorId;
+}
+
+export async function joinCampaign(campaignId: string): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const creatorId = await requireCreator();
+  const admin = createAdminClient();
+
+  const { data: campaign } = await admin.from('campaigns').select('id, status, code_prefix').eq('id', campaignId).maybeSingle();
+  if (!campaign || campaign.status !== 'active') return { error: 'This campaign is not accepting creators.' };
+
+  // Retry on the (unlikely) discount-code collision.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { error } = await admin.from('campaign_creators').insert({
+      campaign_id: campaignId,
+      creator_id: creatorId,
+      ref_param: refParam(creatorId, campaignId),
+      discount_code: generateDiscountCode(campaign.code_prefix),
+    });
+    if (!error) break;
+    if (error.code !== '23505') return { error: error.message };
+    if (!error.message.includes('discount_code')) return { error: 'You already joined this campaign.' };
+  }
+  revalidatePath('/creator');
+  return { success: 'Joined — your code and tracking link are ready.' };
+}
+
+const SubmitSchema = z.object({
+  campaignId: z.string().uuid(),
+  videoUrl: z.string().trim().url('Paste the full link to your live video.').max(2048),
+});
+
+/**
+ * Matching engine: validates a live video link, proves ownership through the
+ * creator's own TikTok token, stores a baseline metric sample and runs the
+ * duplicate-asset check. Recurring sync starts once the brand approves.
+ */
+export async function submitVideo(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const parsedForm = SubmitSchema.safeParse({ campaignId: form.get('campaignId'), videoUrl: form.get('videoUrl') });
+  if (!parsedForm.success) return { error: parsedForm.error.issues[0].message };
+  const { campaignId, videoUrl } = parsedForm.data;
+
+  const creatorId = await requireCreator();
+  const admin = createAdminClient();
+
+  const { data: enrollment } = await admin
+    .from('campaign_creators')
+    .select('id, campaigns(status)')
+    .eq('campaign_id', campaignId)
+    .eq('creator_id', creatorId)
+    .maybeSingle();
+  const campaign = enrollment?.campaigns as unknown as { status: string } | null;
+  if (!enrollment) return { error: 'Join the campaign before submitting.' };
+  if (campaign?.status !== 'active') return { error: 'This campaign is not accepting submissions.' };
+
+  const parsed = await parseVideoUrlResolving(videoUrl);
+  if (!parsed.ok) {
+    return {
+      error:
+        parsed.reason === 'unsupported_host'
+          ? 'Only TikTok, Instagram Reels and YouTube Shorts links are recognised.'
+          : 'That link does not point to a single video.',
+    };
+  }
+  const { platform, videoId, canonicalUrl } = parsed.video;
+  if (platform !== 'tiktok') return { error: 'Instagram and YouTube tracking is not live yet — submit a TikTok video.' };
+
+  let stats;
+  try {
+    const token = await getTikTokAccessToken(admin, creatorId);
+    [stats] = await queryTikTokVideos(token, [videoId]);
+  } catch (e) {
+    return { error: e instanceof Error && e.message.includes('not connected') ? 'Connect your TikTok account first.' : 'TikTok could not be reached. Try again shortly.' };
+  }
+  if (!stats) return { error: 'That video is not on your connected TikTok account.' };
+
+  const { data: submission, error } = await admin
+    .from('submissions')
+    .insert({
+      campaign_id: campaignId,
+      creator_id: creatorId,
+      platform,
+      video_url: canonicalUrl,
+      social_platform_video_id: videoId,
+      current_view_count: stats.views,
+      current_like_count: stats.likes,
+      current_comment_count: stats.comments,
+      last_synced_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+  if (error) {
+    if (error.code === '23505') {
+      return { error: error.message.includes('creator_id') ? 'You already have a submission in this campaign.' : 'This video was already submitted to this campaign.' };
+    }
+    return { error: 'Could not save the submission.' };
+  }
+
+  await admin.from('social_metrics_logs').insert({
+    submission_id: submission.id,
+    view_count: stats.views,
+    like_count: stats.likes,
+    comment_count: stats.comments,
+    share_count: stats.shares,
+  });
+
+  const dup = await checkDuplicate(admin, campaignId, submission.id, stats.coverUrl).catch(() => ({ phash: null, duplicateOf: null }));
+  if (dup.phash) {
+    await admin
+      .from('submissions')
+      .update(
+        dup.duplicateOf
+          ? { phash: dup.phash, status: 'flagged', fraud_score: 100, flag_reason: 'Duplicate content: >95% match with another submission' }
+          : { phash: dup.phash },
+      )
+      .eq('id', submission.id);
+  }
+
+  revalidatePath('/creator');
+  return dup.duplicateOf
+    ? { error: 'Submitted, but flagged: it matches another creator’s video in this campaign.' }
+    : { success: 'Submitted — the brand will review it shortly.' };
+}
+
+/** Stripe Connect Express onboarding for payouts. */
+export async function startPayoutOnboarding(): Promise<void> {
+  if (isDemo) return;
+  const creatorId = await requireCreator();
+  const admin = createAdminClient();
+  const { data: creator } = await admin.from('creators').select('stripe_account_id').eq('id', creatorId).single();
+
+  let accountId = creator?.stripe_account_id as string | null;
+  if (!accountId) {
+    const account = await stripe().accounts.create({
+      type: 'express',
+      capabilities: { transfers: { requested: true } },
+      metadata: { creator_id: creatorId },
+    });
+    accountId = account.id;
+    await admin.from('creators').update({ stripe_account_id: accountId }).eq('id', creatorId);
+  }
+
+  const link = await stripe().accountLinks.create({
+    account: accountId,
+    type: 'account_onboarding',
+    refresh_url: `${appUrl()}/creator`,
+    return_url: `${appUrl()}/creator?payouts=connected`,
+  });
+  redirect(link.url);
+}
