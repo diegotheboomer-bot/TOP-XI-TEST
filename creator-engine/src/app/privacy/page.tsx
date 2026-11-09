@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 import { LEGAL } from '@/lib/legal';
 
-export const metadata: Metadata = { title: 'Privacy Policy · Creator Engine' };
+export const metadata: Metadata = { title: 'Privacy Policy · Atlas Clips' };
 
 export default function PrivacyPage() {
   const { companyName, contactEmail, effectiveDate, minimumAge } = LEGAL;
@@ -10,7 +10,7 @@ export default function PrivacyPage() {
     <LegalPage title="Privacy Policy" updated={effectiveDate}>
       <section>
         <p>
-          Creator Engine is operated by {companyName} (“we”). It lets streamers run clipping campaigns and pays clippers for the views their clips get.
+          Atlas Clips is operated by {companyName} (“we”). It lets streamers run clipping campaigns and pays clippers for the views their clips get.
           This policy explains what we collect, why, and the choices you have. Questions: {contactEmail}.
         </p>
       </section>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
 
       <section>
         <h2>Age</h2>
-        <p>Creator Engine is for people aged {minimumAge} and over.</p>
+        <p>Atlas Clips is for people aged {minimumAge} and over.</p>
       </section>
 
       <section>

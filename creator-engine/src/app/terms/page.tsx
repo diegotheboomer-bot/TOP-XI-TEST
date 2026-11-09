@@ -3,7 +3,7 @@ import { LegalPage } from '@/components/legal-page';
 import { LEGAL } from '@/lib/legal';
 import { platformFeePercent } from '@/lib/stripe';
 
-export const metadata: Metadata = { title: 'Terms of Service · Creator Engine' };
+export const metadata: Metadata = { title: 'Terms of Service · Atlas Clips' };
 
 export default function TermsPage() {
   const { companyName, contactEmail, effectiveDate, governingLaw, minimumAge } = LEGAL;
@@ -12,7 +12,7 @@ export default function TermsPage() {
     <LegalPage title="Terms of Service" updated={effectiveDate}>
       <section>
         <p>
-          These terms are an agreement between you and {companyName} for using Creator Engine. By creating an account you accept them. If you don’t agree,
+          These terms are an agreement between you and {companyName} for using Atlas Clips. By creating an account you accept them. If you don’t agree,
           don’t use the service.
         </p>
       </section>
@@ -79,14 +79,14 @@ export default function TermsPage() {
       <section>
         <h2>The service</h2>
         <p>
-          We work to keep Creator Engine running and accurate, but it’s provided as it is. To the extent the law allows, we aren’t liable for indirect losses or for
+          We work to keep Atlas Clips running and accurate, but it’s provided as it is. To the extent the law allows, we aren’t liable for indirect losses or for
           errors in data supplied by TikTok, YouTube or Stripe.
         </p>
       </section>
 
       <section>
         <h2>Ending your account</h2>
-        <p>You can stop using Creator Engine at any time. We may suspend or close accounts that break these terms. Earned, valid payouts are still paid.</p>
+        <p>You can stop using Atlas Clips at any time. We may suspend or close accounts that break these terms. Earned, valid payouts are still paid.</p>
       </section>
 
       <section>

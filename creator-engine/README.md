@@ -1,4 +1,4 @@
-# Creator Engine
+# Atlas Clips
 
 Clipping campaigns for streamers. Streamers fund a campaign and pin moments from their streams; clippers claim moments, post clips to TikTok, YouTube Shorts and Instagram Reels, and get paid for the views the platforms report.
 Next.js 14 (App Router) · Supabase · Stripe Connect · TikTok Display API · YouTube Data API · Tailwind.

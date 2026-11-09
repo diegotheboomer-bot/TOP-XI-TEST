@@ -1,4 +1,4 @@
--- Creator Engine — initial schema (Supabase / PostgreSQL 15+)
+-- Atlas Clips — initial schema (Supabase / PostgreSQL 15+)
 --
 -- Access model:
 --   * Row Level Security is enabled on every table.

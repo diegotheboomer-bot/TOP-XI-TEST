@@ -1,4 +1,4 @@
-# Publishes the Creator Engine demo (mock data, runs in the browser) to GitHub Pages.
+# Publishes the Atlas Clips demo (mock data, runs in the browser) to GitHub Pages.
 # One-time setup: repo Settings → Pages → Build and deployment → Source: "GitHub Actions".
 name: Demo on GitHub Pages
 

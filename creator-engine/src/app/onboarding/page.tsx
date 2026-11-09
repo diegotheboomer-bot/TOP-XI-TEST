@@ -21,7 +21,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: {
         </div>
         <Card className="p-6 sm:p-7">
           <h1 className="text-lg font-semibold tracking-tight">Set up your account</h1>
-          <p className="mb-6 mt-1 text-sm text-zinc-500">Choose how you’ll use Creator Engine.</p>
+          <p className="mb-6 mt-1 text-sm text-zinc-500">Choose how you’ll use Atlas Clips.</p>
           <OnboardingForm defaultRole={searchParams.role === 'creator' ? 'creator' : 'brand'} />
         </Card>
       </div>

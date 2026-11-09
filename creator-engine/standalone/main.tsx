@@ -1,4 +1,4 @@
-// Standalone demo: the Creator Engine UI running entirely in the browser, for a
+// Standalone demo: the Atlas Clips UI running entirely in the browser, for a
 // shareable link. Uses the same components, payout/fee/fraud logic and demo core
 // as the Next.js app. State is kept in this browser's localStorage when available.
 // Build: npm run build:demo
@@ -33,7 +33,6 @@ import { trackingLink } from '@/lib/attribution';
 import { RolePicker } from '@/components/role-picker';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Logo } from '@/components/logo';
-import { LogoPicker } from '@/components/logo-picker';
 import { EarningsEstimator } from '@/components/estimator';
 import { CampaignFormBody } from '@/components/forms/campaign-form-body';
 import {
@@ -236,7 +235,6 @@ function App() {
           <RolePicker streamerHref="#brand" clipperHref="#creator" assetBase={ASSETS} />
         )}
         <Toast state={store.toast} />
-        <LogoPicker />
       </>
     );
   }
@@ -273,7 +271,6 @@ function App() {
         {route.name === 'payouts' && <Payouts store={store} />}
       </AppShell>
       <Toast state={store.toast} />
-      <LogoPicker />
     </>
   );
 }
@@ -282,7 +279,7 @@ function LandingHeader() {
   return (
     <header className="site-header sticky z-20 border-b border-zinc-200/70 bg-zinc-50/85 backdrop-blur">
       <div className="gutter mx-auto flex h-16 max-w-6xl items-center justify-between gap-3">
-        <a href="#home" aria-label="Creator Engine home">
+        <a href="#home" aria-label="Atlas Clips home">
           <Logo />
         </a>
         <nav className="flex items-center gap-1 text-sm">

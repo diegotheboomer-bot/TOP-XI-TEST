@@ -1,11 +1,11 @@
--- Creator Engine: full database setup in one paste (Supabase SQL Editor → New query → Run).
+-- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
 -- Same as supabase/migrations/0001…0004 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
 
 -- ═════ 0001_init.sql ═════
--- Creator Engine — initial schema (Supabase / PostgreSQL 15+)
+-- Atlas Clips — initial schema (Supabase / PostgreSQL 15+)
 --
 -- Access model:
 --   * Row Level Security is enabled on every table.

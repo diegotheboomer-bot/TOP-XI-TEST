@@ -118,7 +118,7 @@ export function Landing({
 
       <footer className="flex flex-col gap-3 border-t border-zinc-200/80 py-8 text-xs text-zinc-500 sm:flex-row sm:items-start sm:justify-between">
         <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          Creator Engine
+          Atlas Clips
           {legal && (
             <>
               <Link href={legal.privacy} className="text-xs hover:text-zinc-900">

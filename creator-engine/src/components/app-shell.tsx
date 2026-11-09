@@ -29,7 +29,7 @@ export function activeHref(sections: NavSection[], path: string): string | null 
 
 function Logo({ link: Link, href }: { link: LinkLike; href: string }) {
   return (
-    <Link href={href} aria-label="Creator Engine home">
+    <Link href={href} aria-label="Atlas Clips home">
       <BrandLogo />
     </Link>
   );

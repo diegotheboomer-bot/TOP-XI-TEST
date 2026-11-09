@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 // Applies a saved light preference before first paint (dark is the default).
-const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('ce-theme')==='light')document.documentElement.dataset.appTheme='light';var l=localStorage.getItem('ce-logo');if(l)document.documentElement.dataset.logo=l}catch(e){}`;
+const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('ce-theme')==='light')document.documentElement.dataset.appTheme='light'}catch(e){}`;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'demo-dist');
@@ -57,7 +57,9 @@ execFileSync(
 const css = readFileSync(cssFile, 'utf8');
 
 // Head and body parts, shared by both outputs.
-const head = `<title>Creator Engine Demo</title>
+const iconB64 = Buffer.from(readFileSync(path.join(root, 'src/app/icon.svg'))).toString('base64');
+const head = `<title>Atlas Clips Demo</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,${iconB64}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
@@ -82,7 +84,7 @@ writeFileSync(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Creator Engine demo: streamers run clipping campaigns, clippers get paid per view. Fictional data, mock money.">
+<meta name="description" content="Atlas Clips demo: streamers run clipping campaigns, clippers get paid per view. Fictional data, mock money.">
 ${head}
 </head>
 <body>

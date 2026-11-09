@@ -7,7 +7,7 @@ import { Logo as BrandLogo } from './logo';
 
 export function Logo() {
   return (
-    <Link href="/" aria-label="Creator Engine home">
+    <Link href="/" aria-label="Atlas Clips home">
       <BrandLogo />
     </Link>
   );

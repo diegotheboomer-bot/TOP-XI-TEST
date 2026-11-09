@@ -50,7 +50,6 @@
     padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   }
   .balance { text-wrap: balance; }
-  .picker { padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) 0; }
   /* Gradient text in the brand colour. */
   .text-brand {
     background-image: linear-gradient(100deg, rgb(var(--brand-ta)), rgb(var(--brand-tb)));

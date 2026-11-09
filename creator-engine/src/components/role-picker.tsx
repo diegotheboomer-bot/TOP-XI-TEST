@@ -36,7 +36,7 @@ export function RolePicker({
 }) {
   return (
     <main className="gutter mx-auto max-w-4xl py-12 sm:py-16">
-      <h1 className="balance text-center text-3xl font-semibold tracking-tight sm:text-4xl">How will you use Creator Engine?</h1>
+      <h1 className="balance text-center text-3xl font-semibold tracking-tight sm:text-4xl">How will you use Atlas Clips?</h1>
       <p className="mx-auto mt-3 max-w-md text-center text-zinc-600">Pick one to get started. You can switch later.</p>
       <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2">
         {ROLES.map((r) => (
