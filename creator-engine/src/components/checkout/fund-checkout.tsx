@@ -18,7 +18,7 @@ export interface Quote {
   totalCents: number;
 }
 
-export type CheckoutCampaign = Pick<Campaign, 'id' | 'title' | 'payout_model' | 'cpm_rate'>;
+export type CheckoutCampaign = Pick<Campaign, 'id' | 'title' | 'payout_model' | 'cpm_rate' | 'status'>;
 
 /** What the payment section renders: a quote to charge (null while the amount is invalid) and a callback for success. */
 export type PaymentSlot = (quote: Quote | null, onPaid: () => void) => React.ReactNode;
@@ -66,7 +66,7 @@ export function AddBudget({
       </Button>
       <Dialog open={open} onClose={close} title={paid ? 'Payment received' : 'Add budget'} description={paid ? undefined : campaign.title}>
         {paid ? (
-          <Paid quote={paid} feePercent={feePercent} title={campaign.title} onClose={close} />
+          <Paid quote={paid} feePercent={feePercent} title={campaign.title} draft={campaign.status === 'draft'} onClose={close} />
         ) : (
           <Checkout campaign={campaign} feePercent={feePercent} payment={payment} note={note} onPaid={setPaid} />
         )}
@@ -155,7 +155,7 @@ function Checkout({
   );
 }
 
-function Paid({ quote, feePercent, title, onClose }: { quote: Quote; feePercent: number; title: string; onClose: () => void }) {
+function Paid({ quote, feePercent, title, draft, onClose }: { quote: Quote; feePercent: number; title: string; draft: boolean; onClose: () => void }) {
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -167,6 +167,7 @@ function Paid({ quote, feePercent, title, onClose }: { quote: Quote; feePercent:
         </p>
       </div>
       <Breakdown quote={quote} feePercent={feePercent} className="mt-5" />
+      {draft && <p className="mt-3 rounded-lg bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">Next: click <strong>Go live</strong> on the campaign page, so clippers can find it in Discover.</p>}
       <button type="button" onClick={onClose} className={buttonClass('primary', 'md', 'mt-5 w-full')}>
         Done
       </button>

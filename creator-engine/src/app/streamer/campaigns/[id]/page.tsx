@@ -79,7 +79,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
       <div className="grid grid-cols-1 gap-6">
         <div className="order-2 min-w-0 space-y-6">
           <Card>
-            <CardHeader title="Clips" description={`Views sync every 4 hours. Clean clips with #ad auto-approve after ${c.auto_approve_hours}h.`} />
+            <CardHeader title="Clips" description={`Views sync every 4 hours. Clean clips with #ad auto-approve after ${c.auto_approve_hours}h. Approved clips are paid automatically after 3 days; you can flag one until then.`} />
             {submissions.length === 0 ? (
               <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
             ) : (
@@ -111,7 +111,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
               ) : (
                 <>
                   <AppAddBudget
-                    campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate }}
+                    campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate, status: c.status }}
                     feePercent={feePercent}
                     publishableKey={publishableKey}
                     createIntent={createDepositIntent}

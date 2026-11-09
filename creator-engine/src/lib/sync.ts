@@ -7,6 +7,8 @@ import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
 import { getYouTubeVideos } from './platforms/youtube';
 import { getTikTokAccessToken } from './tokens';
 import type { Submission } from './types';
+import { payClip } from './pay-clip';
+import { MIN_AUTO_PAYOUT, autoPayoutDue } from './payout-rules';
 
 type SubmissionWithCampaign = Submission & { campaigns: PayoutTerms & { auto_approve_hours: number } };
 
@@ -14,6 +16,8 @@ export interface SyncReport {
   synced: number;
   flagged: number;
   autoApproved: number;
+  /** Clips paid automatically after their hold. */
+  paid: number;
   failed: { submissionId: string; error: string }[];
 }
 
@@ -31,7 +35,7 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
     .in('platform', ['tiktok', 'youtube']);
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
-  const report: SyncReport = { synced: 0, flagged: 0, autoApproved: 0, failed: [] };
+  const report: SyncReport = { synced: 0, flagged: 0, autoApproved: 0, paid: 0, failed: [] };
   const all = (data ?? []) as SubmissionWithCampaign[];
   const byCreator = new Map<string, SubmissionWithCampaign[]>();
   for (const s of all.filter((x) => x.platform === 'tiktok')) {
@@ -80,7 +84,30 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
       }
     }
   }
+  await runAutoPayouts(admin, report);
   return report;
+}
+
+/**
+ * Pays every approved clip whose hold has passed (and that is owed at least the
+ * minimum, or any amount once its campaign has ended). Also covers ended
+ * campaigns, which the metric sync skips, so earned money is never left unpaid.
+ */
+async function runAutoPayouts(admin: SupabaseClient, report: SyncReport) {
+  const { data } = await admin
+    .from('submissions')
+    .select('id, status, approved_at, payout_earned, payout_transferred, campaigns!inner(status)')
+    .eq('status', 'live_tracking')
+    .not('approved_at', 'is', null);
+  for (const row of (data ?? []) as unknown as { id: string; status: 'live_tracking'; approved_at: string; payout_earned: number; payout_transferred: number; campaigns: { status: string } }[]) {
+    const owed = Number(row.payout_earned) - Number(row.payout_transferred);
+    const campaignEnded = row.campaigns.status === 'completed';
+    if (!autoPayoutDue({ status: row.status, approved_at: row.approved_at, owed, campaignEnded })) continue;
+    const result = await payClip(admin, row.id, campaignEnded ? 1 : MIN_AUTO_PAYOUT);
+    if (result.ok) report.paid++;
+    // Clippers who haven't finished payout setup are skipped quietly; they're paid once they do.
+    else if (!/payout setup/.test(result.error)) report.failed.push({ submissionId: row.id, error: result.error });
+  }
 }
 
 /**
@@ -145,7 +172,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
 
   if (sub.status === 'pending_review') {
     const approve = shouldAutoApprove({ ...sub, has_disclosure: metrics.has_disclosure }, sub.campaigns.auto_approve_hours, now.getTime());
-    await admin.from('submissions').update({ ...metrics, ...(approve ? { status: 'live_tracking' } : {}) }).eq('id', sub.id);
+    await admin.from('submissions').update({ ...metrics, ...(approve ? { status: 'live_tracking', approved_at: now.toISOString() } : {}) }).eq('id', sub.id);
     if (!approve) return 'ok';
   }
 

@@ -10,6 +10,7 @@ import { reviewDueIn } from '@/lib/compliance';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
+import { holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
 import { cn } from './ui/cn';
 import { CopyField } from './copy-button';
 import { CampaignBadge, FraudBadge, SubmissionBadge } from './status';
@@ -242,7 +243,9 @@ export function submissionNote(s: Submission, autoApproveHours: number, now = Da
     return due > 0 ? { text: `Auto-approves in ${hoursLabel(due)}`, tone: 'warn' } : { text: 'Approving on next sync', tone: 'warn' };
   }
   if (!s.has_disclosure) return { text: 'Caption no longer has #ad', tone: 'warn' };
-  return { text: `Synced ${timeAgo(s.last_synced_at)}`, tone: 'muted' };
+  const hold = holdHoursLeft(s.approved_at, now);
+  if (hold > 0) return { text: `Pays automatically in ${hoursLabel(hold * 3_600_000)}`, tone: 'muted' };
+  return { text: `Locked. Paid automatically · synced ${timeAgo(s.last_synced_at)}`, tone: 'muted' };
 }
 
 const NOTE_TONE = { muted: 'text-zinc-500', warn: 'text-amber-700', bad: 'text-rose-600' } as const;
@@ -319,10 +322,15 @@ function Cell({ label, value }: { label: string; value: string }) {
 }
 
 /** Which review / payout buttons a submission gets, given its state. */
-/** Actions on a clip. Once a campaign has ended, clips can still be paid or flagged but not approved. */
-export function submissionActionKinds(s: Submission, ended = false): ('approve' | 'flag' | 'pay' | 'clear')[] {
-  if (s.status === 'pending_review') return ended ? ['flag'] : ['approve', 'flag'];
-  if (s.status === 'live_tracking') return s.payout_earned - s.payout_transferred >= 1 ? ['pay', 'flag'] : ['flag'];
+/**
+ * Actions on a clip. Once a campaign has ended, clips can still be paid but not approved.
+ * A streamer can flag a clip only under review or during the payout hold after approval;
+ * after that it is locked and paid automatically.
+ */
+export function submissionActionKinds(s: Submission, ended = false, now = Date.now()): ('approve' | 'flag' | 'pay' | 'clear')[] {
+  const flag = streamerCanFlag(s, now) ? (['flag'] as const) : [];
+  if (s.status === 'pending_review') return ended ? [...flag] : ['approve', ...flag];
+  if (s.status === 'live_tracking') return s.payout_earned - s.payout_transferred >= 1 ? ['pay', ...flag] : [...flag];
   if (s.status === 'flagged') return ended ? [] : ['clear'];
   return [];
 }

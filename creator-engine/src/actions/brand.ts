@@ -8,8 +8,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
 import { streamerCharge } from '@/lib/payout';
 import { planRefunds } from '@/lib/refunds';
-import { sendPayPalPayout, paypalConfigured } from '@/lib/paypal';
-import { PAYOUT_METHOD_LABEL, payoutReady, type PayoutMethod } from '@/lib/payout-methods';
+import { payClip } from '@/lib/pay-clip';
+import { HOLD_HOURS, streamerCanFlag } from '@/lib/payout-rules';
 import type Stripe from 'stripe';
 import { usdCents } from '@/lib/format';
 import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
@@ -195,14 +195,17 @@ export async function connectStore(_prev: ActionState, form: FormData): Promise<
 export async function reviewSubmission(submissionId: string, decision: 'approve' | 'flag'): Promise<ActionState> {
   if (isDemo) return done(demo.reviewSubmission(submissionId, decision));
   const admin = createAdminClient();
-  const { data: sub } = await admin.from('submissions').select('campaign_id, status').eq('id', submissionId).single();
+  const { data: sub } = await admin.from('submissions').select('campaign_id, status, approved_at').eq('id', submissionId).single();
   if (!sub) return { error: 'Submission not found.' };
   const { campaign } = await requireOwnCampaign(sub.campaign_id);
   if (decision === 'approve' && campaign.status === 'completed') return { error: 'This campaign has ended, so new clips can’t earn.' };
+  if (decision === 'flag' && !streamerCanFlag(sub as { status: 'pending_review'; approved_at: string | null })) {
+    return { error: `Clips can only be flagged for ${HOLD_HOURS / 24} days after approval. This one is locked and will be paid.` };
+  }
 
   const update =
     decision === 'approve'
-      ? { status: 'live_tracking', flag_reason: null, fraud_score: 0 }
+      ? { status: 'live_tracking', flag_reason: null, fraud_score: 0, approved_at: new Date().toISOString() }
       : { status: 'flagged', flag_reason: 'Flagged by the streamer' };
   await admin.from('submissions').update(update).eq('id', submissionId);
   revalidatePath(`/streamer/campaigns/${sub.campaign_id}`);
@@ -210,96 +213,19 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
 }
 
 /**
- * Pays out everything earned but not yet transferred:
- * claim → debit escrow (atomic) → Stripe Transfer of the full amount → ledger row.
- * Each failed step reverses the ones before it.
+ * The streamer pays a clip early. (Approved clips are also paid automatically
+ * once the hold has passed; see lib/payout-rules.ts.)
  */
 export async function releasePayout(submissionId: string): Promise<ActionState> {
   if (isDemo) return done(demo.releasePayout(submissionId));
   const admin = createAdminClient();
-  const { data: sub } = await admin
-    .from('submissions')
-    .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, creators(stripe_account_id, payouts_enabled), campaigns(cpm_cap)')
-    .eq('id', submissionId)
-    .single();
+  const { data: sub } = await admin.from('submissions').select('campaign_id').eq('id', submissionId).single();
   if (!sub) return { error: 'Submission not found.' };
   await requireOwnCampaign(sub.campaign_id);
-
-  const creator = sub.creators as unknown as { stripe_account_id: string | null; payouts_enabled: boolean };
-  if (sub.status !== 'live_tracking') return { error: 'Only approved, unflagged submissions can be paid.' };
-  const { data: method } = await admin.from('payout_methods').select('method, handle').eq('creator_id', sub.creator_id).maybeSingle();
-  const setup = { method: (method?.method ?? 'stripe') as PayoutMethod, handle: (method?.handle as string | null) ?? null, stripeReady: !!creator.stripe_account_id && creator.payouts_enabled, lastFailure: null };
-  if (!payoutReady(setup)) return { error: 'Creator has not finished payout setup.' };
-  if (setup.method !== 'stripe' && !paypalConfigured()) return { error: 'PayPal payouts aren’t configured on this platform.' };
-
-  const gross = Math.round((Number(sub.payout_earned) - Number(sub.payout_transferred)) * 100) / 100;
-  if (gross < 1) return { error: 'Nothing to pay out yet.' };
-
-  const before = Number(sub.payout_transferred);
-  const after = Math.round((before + gross) * 100) / 100;
-
-  // 1. Claim: only one concurrent call can move payout_transferred from `before`.
-  const { data: claimed } = await admin
-    .from('submissions')
-    .update({ payout_transferred: after })
-    .eq('id', sub.id)
-    .eq('payout_transferred', before)
-    .select('id');
-  if (!claimed?.length) return { error: 'A payout for this submission is already in progress.' };
-  const unclaim = () => admin.from('submissions').update({ payout_transferred: before }).eq('id', sub.id).eq('payout_transferred', after);
-
-  // 2. Debit escrow atomically (fails instead of overdrawing).
-  const { data: debited } = await admin.rpc('escrow_debit', { p_campaign: sub.campaign_id, p_amount: gross });
-  if (!debited) {
-    await unclaim();
-    return { error: 'Not enough escrow. Top up the campaign first.' };
-  }
-
-  // 3. Send the full amount the clipper's chosen way. Clippers pay no fee
-  // (the streamer paid it at deposit; the platform covers transfer costs).
-  let externalId: string;
-  try {
-    if (setup.method === 'stripe') {
-      const transfer = await stripe().transfers.create(
-        {
-          amount: Math.round(gross * 100),
-          currency: 'usd',
-          destination: creator.stripe_account_id!,
-          transfer_group: `campaign_${sub.campaign_id}`,
-          metadata: { submission_id: sub.id },
-        },
-        { idempotencyKey: `payout_${sub.id}_${before}` },
-      );
-      externalId = transfer.id;
-    } else {
-      // Unique per payout; PayPal echoes it in webhooks so a returned payout can be undone.
-      const senderItemId = `${sub.id}_${Math.round(before * 100)}`;
-      await sendPayPalPayout({
-        senderItemId,
-        amount: gross,
-        wallet: setup.method === 'venmo' ? 'VENMO' : 'PAYPAL',
-        receiver: setup.handle!,
-        note: `Clip earnings: ${usdCents(gross)}`,
-      });
-      externalId = `paypal:${senderItemId}`;
-    }
-  } catch (e) {
-    await admin.rpc('escrow_credit', { p_campaign: sub.campaign_id, p_amount: gross });
-    await unclaim();
-    const via = setup.method === 'stripe' ? 'Stripe transfer' : `${PAYOUT_METHOD_LABEL[setup.method]} payout`;
-    return { error: `${via} failed: ${e instanceof Error ? e.message : 'unknown error'}` };
-  }
-
-  // 4. Ledger + close out once the cap is fully paid.
-  await admin
-    .from('escrow_ledger')
-    .insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'creator_payout', amount: gross, stripe_object_id: externalId });
-  if (after >= Number((sub.campaigns as unknown as { cpm_cap: number }).cpm_cap)) {
-    await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
-  }
-
-  revalidatePath(`/streamer/campaigns/${sub.campaign_id}`);
-  return { success: `Paid ${usdCents(gross)} to the clipper via ${setup.method === 'stripe' ? 'their bank' : PAYOUT_METHOD_LABEL[setup.method]}.` };
+  const result = await payClip(admin, submissionId);
+  if (!result.ok) return { error: result.error };
+  revalidatePath(`/streamer/campaigns/${result.campaignId}`);
+  return { success: `Paid ${usdCents(result.gross)} to the clipper via ${result.via}.` };
 }
 
 /** Streamer pins a moment from a stream for clippers to cut. */

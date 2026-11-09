@@ -9,12 +9,12 @@ const STEPS = {
   streamer: [
     ['Post a campaign', 'Set a rate per 1,000 views, a cap per clipper and the platforms you want. Fund it once, plus a {fee}% fee.'],
     ['Pin the moments', 'Drop timestamps from your stream. Each moment has a few slots so clippers spread out.'],
-    ['Pay for real views', 'Views come straight from TikTok and YouTube. You only pay for what was watched.'],
+    ['Pay for real views', 'Views come straight from TikTok and YouTube. You only pay for what was watched, and clips are paid automatically 3 days after approval.'],
   ],
   clipper: [
     ['Pick a campaign', 'See the rate, the budget left and what you would take home before you join.'],
     ['Claim and cut', 'Claim a moment, cut it your way, add your clip code and #ad to the caption.'],
-    ['Get paid as it grows', 'Earnings update every few hours. You keep 100%, paid to your bank, PayPal or Venmo.'],
+    ['Get paid automatically', 'Earnings update every few hours. Approved clips are paid out 3 days later, straight to your bank, PayPal or Venmo. You keep 100%.'],
   ],
 } as const;
 

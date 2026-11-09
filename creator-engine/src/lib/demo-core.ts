@@ -12,6 +12,7 @@ import { parseVideoUrl } from './video-url';
 import { generateDiscountCode, refParam } from './attribution';
 import { budgetStats, type BudgetStats } from './budget';
 import { shouldAutoApprove } from './compliance';
+import { HOLD_HOURS, MIN_AUTO_PAYOUT, autoPayoutDue, streamerCanFlag } from './payout-rules';
 import type { MomentInput } from './schemas';
 import { PAYOUT_METHOD_LABEL, payoutDestination, payoutReady, type PayoutMethod, type PayoutSetup } from './payout-methods';
 
@@ -224,6 +225,8 @@ export function seedDemo(feePercent: number, assetBase: string): State {
       phash: null,
       has_disclosure: true,
       last_synced_at: iso(1.2),
+      // Approved long ago, so the hold has passed and the next sync pays them automatically.
+      approved_at: x.status === 'pending_review' || x.status === 'flagged' ? null : iso(100),
       created_at: iso(120),
       prevSample: { at: Date.now() - 1.2 * HOUR, views, comments },
       ...x,
@@ -239,7 +242,8 @@ export function seedDemo(feePercent: number, assetBase: string): State {
   enroll('cr-dailyclipshq', 'cmp-ranked', 'RANKD3HQ');
   submit(a.id, 'cmp-ranked', 'tiktok', 420_300, 0.014, { payout_transferred: 500 });
   submit(b.id, 'cmp-ranked', 'youtube', 1_104_000, 0.009, { payout_transferred: 1500, status: 'paid' });
-  submit(c.id, 'cmp-ranked', 'instagram', 310_600, 0.011);
+  // Approved 20 hours ago: still in the hold, so the streamer can flag it and it isn't paid yet.
+  submit(c.id, 'cmp-ranked', 'instagram', 310_600, 0.011, { approved_at: iso(20) });
   submit(d.id, 'cmp-ranked', 'tiktok', 96_400, 0.013, { status: 'pending_review', created_at: iso(30) });
   submit('cr-clipfarm247', 'cmp-ranked', 'tiktok', 486_000, 0.00008, {
     status: 'flagged', fraud_score: 90, flag_reason: 'Bot farm activity: 3,120 views/min, 0.008% comment ratio',
@@ -496,25 +500,26 @@ export function reviewSubmission(s: State, id: string, decision: 'approve' | 'fl
   if (!sub || !ownCampaign(s, sub.campaign_id)) return { error: 'Submission not found.' };
   if (decision === 'approve') {
     if (ownCampaign(s, sub.campaign_id)!.status === 'completed') return { error: 'This campaign has ended, so new clips can’t earn.' };
-    Object.assign(sub, { status: 'live_tracking', flag_reason: null, fraud_score: 0 });
+    Object.assign(sub, { status: 'live_tracking', flag_reason: null, fraud_score: 0, approved_at: new Date().toISOString() });
     const c = ownCampaign(s, sub.campaign_id)!;
     sub.payout_earned = Math.max(sub.payout_earned, calculatePayout(c, sub.current_view_count, revenueFor(s, enrollmentOf(s, sub).id)));
     return { success: 'Approved. Tracking started.' };
   }
+  if (!streamerCanFlag(sub)) return { error: `Clips can only be flagged for ${HOLD_HOURS / 24} days after approval. This one is locked and will be paid.` };
   Object.assign(sub, { status: 'flagged', flag_reason: 'Flagged by the streamer' });
   return { success: 'Flagged.' };
 }
 
-export function releasePayout(s: State, id: string): ActionState {
-  const sub = s.submissions.find((x) => x.id === id);
-  const c = sub && ownCampaign(s, sub.campaign_id);
-  if (!sub || !c) return { error: 'Submission not found.' };
+/** Pays everything a clip has earned and not yet been sent. `minimum` is the smallest amount to send. */
+function payOut(s: State, sub: DemoSubmission, minimum = 1): ActionState & { paid?: number } {
+  const c = ownCampaign(s, sub.campaign_id);
+  if (!c) return { error: 'Submission not found.' };
   const creator = s.creators.find((x) => x.id === sub.creator_id)!;
   if (sub.status !== 'live_tracking') return { error: 'Only approved, unflagged submissions can be paid.' };
   const setup = payoutSetupOf(creator);
   if (!payoutReady(setup)) return { error: `@${creator.handle} has not finished payout setup.` };
   const gross = cents(sub.payout_earned - sub.payout_transferred);
-  if (gross < 1) return { error: 'Nothing to pay out yet.' };
+  if (gross < minimum) return { error: 'Nothing to pay out yet.' };
   if (c.escrow_balance < gross) return { error: 'Not enough escrow. Top up the campaign first.' };
 
   // Clippers keep 100%: the fee was charged to the streamer at deposit.
@@ -523,7 +528,15 @@ export function releasePayout(s: State, id: string): ActionState {
   s.ledger.push({ campaignId: c.id, type: 'creator_payout', amount: gross });
   if (sub.payout_transferred >= c.cpm_cap) sub.status = 'paid';
   const via = setup.method === 'stripe' ? 'their bank' : PAYOUT_METHOD_LABEL[setup.method];
-  return { success: `Paid ${usdCents(gross)} to @${creator.handle} via ${via}. No fee taken. Mock money.` };
+  return { success: `Paid ${usdCents(gross)} to @${creator.handle} via ${via}. No fee taken. Mock money.`, paid: gross };
+}
+
+/** The streamer pays a clip early. (Approved clips are also paid automatically after the hold.) */
+export function releasePayout(s: State, id: string): ActionState {
+  const sub = s.submissions.find((x) => x.id === id);
+  if (!sub || !ownCampaign(s, sub.campaign_id)) return { error: 'Submission not found.' };
+  const { error, success } = payOut(s, sub);
+  return error ? { error } : { success };
 }
 
 /**
@@ -542,10 +555,12 @@ export function simulateSync(s: State, campaignId: string): ActionState {
   let flagged = 0;
   let approved = 0;
   for (const sub of subs) {
+    // 4 hours pass for the payout hold too.
+    if (sub.approved_at) sub.approved_at = new Date(new Date(sub.approved_at).getTime() - 4 * HOUR).toISOString();
     if (sub.status === 'pending_review') {
       sub.created_at = new Date(new Date(sub.created_at).getTime() - 4 * HOUR).toISOString(); // 4 hours pass
       if (shouldAutoApprove(sub, c.auto_approve_hours, now)) {
-        sub.status = 'live_tracking';
+        Object.assign(sub, { status: 'live_tracking', approved_at: new Date(now).toISOString() });
         approved++;
       }
     }
@@ -570,7 +585,13 @@ export function simulateSync(s: State, campaignId: string): ActionState {
       if (sub.payout_transferred >= c.cpm_cap) sub.status = 'paid';
     }
   }
-  const notes = [flagged && `${flagged} flagged`, approved && `${approved} auto-approved`].filter(Boolean).join(', ');
+  // Approved clips whose hold has passed are paid automatically.
+  let paid = 0;
+  for (const sub of subs) {
+    const owed = sub.payout_earned - sub.payout_transferred;
+    if (autoPayoutDue({ status: sub.status, approved_at: sub.approved_at, owed, campaignEnded: false }, now) && payOut(s, sub, MIN_AUTO_PAYOUT).paid) paid++;
+  }
+  const notes = [flagged && `${flagged} flagged`, approved && `${approved} auto-approved`, paid && `${paid} paid automatically`].filter(Boolean).join(', ');
   return { success: `Synced ${subs.length} ${subs.length === 1 ? 'video' : 'videos'}${notes ? `. ${notes}` : ''}.` };
 }
 
@@ -656,6 +677,7 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
     phash: null,
     has_disclosure: true, // mock caption includes #ad
     last_synced_at: new Date(now).toISOString(),
+    approved_at: null,
     created_at: new Date(now).toISOString(),
     prevSample: { at: now, views, comments },
   });

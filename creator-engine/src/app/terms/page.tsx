@@ -42,7 +42,7 @@ export default function TermsPage() {
         <ul>
           <li>Post your own edits, follow each campaign’s rules, and only submit clips from accounts you control.</li>
           <li>Mark sponsored clips clearly, for example with #ad, as advertising law requires.</li>
-          <li>Earnings are based on views reported by TikTok or YouTube. Screenshots and self-reported numbers aren’t accepted.</li>
+          <li>Earnings are based on views reported by TikTok or YouTube. Screenshots and self-reported numbers aren’t accepted. Approved clips are paid out automatically 3 days after approval (amounts under $10 wait until the campaign ends), and the streamer can’t withdraw money you’ve earned.</li>
           <li>We don’t charge clippers a fee. Payouts go to a bank account or debit card through Stripe, or to PayPal or Venmo through PayPal; that provider’s own terms apply to your account there. Keep your payout details correct: a payout PayPal can’t deliver, or that isn’t claimed within 30 days, comes back to the campaign until you update them.</li>
           <li>You’re responsible for taxes on what you earn.</li>
         </ul>

@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0004 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0005 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -399,5 +399,14 @@ create table payout_methods (
 alter table payout_methods enable row level security;
 -- Read-only for the clipper themselves; writes go through server code (service role).
 create policy "own payout method" on payout_methods for select using (creator_id = my_creator_id());
+
+-- ═════ 0005_auto_payouts.sql ═════
+-- Clips are paid automatically a set time after approval, so we need to know when they were approved.
+alter table submissions add column approved_at timestamptz;
+
+-- Clips already approved: treat the last sync (or submission) time as their approval time.
+update submissions
+set approved_at = coalesce(last_synced_at, created_at)
+where status in ('live_tracking', 'paid') and approved_at is null;
 
 commit;

@@ -61,6 +61,8 @@ export interface Submission {
   /** Caption carries an ad disclosure (#ad, #sponsored, …). */
   has_disclosure: boolean;
   last_synced_at: string | null;
+  /** When the clip was approved (by the streamer or automatically); starts the payout hold. */
+  approved_at: string | null;
   created_at: string;
 }
 

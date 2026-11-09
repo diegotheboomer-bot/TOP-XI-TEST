@@ -28,7 +28,7 @@ Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thu
 
 ## Set up for real
 
-1. Create a Supabase project. In the SQL Editor, paste and run `supabase/setup.sql` once (all migrations in one transaction), or run `supabase/migrations/` in order with `supabase db push`. `0002` creates the `campaign-thumbnails` storage bucket; `0003` adds platforms and the moment board; `0004` adds payout methods (PayPal/Venmo). If you already ran an older `setup.sql`, run just the newer files from `supabase/migrations/`.
+1. Create a Supabase project. In the SQL Editor, paste and run `supabase/setup.sql` once (all migrations in one transaction), or run `supabase/migrations/` in order with `supabase db push`. `0002` creates the `campaign-thumbnails` storage bucket; `0003` adds platforms and the moment board; `0004` adds payout methods (PayPal/Venmo); `0005` records when a clip was approved, for the payout hold. If you already ran an older `setup.sql`, run just the newer files from `supabase/migrations/`.
 2. Copy `.env.example` to `.env.local` and fill it in. `TOKEN_ENCRYPTION_KEY`: `openssl rand -base64 32`.
 3. Supabase Auth → URL configuration: add `<APP_URL>/auth/callback` as a redirect URL.
 4. YouTube: a Data API v3 key in `YOUTUBE_API_KEY` (public video statistics).
@@ -41,6 +41,8 @@ Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thu
 ## Fees
 
 Streamers pay a platform fee on top of the budget they add (`PLATFORM_FEE_PERCENT`, default 9%). The checkout shows the budget and the fee as separate lines; only the budget goes into the campaign, and clippers are paid 100% of what they earn. Stripe's processing and Connect payout costs, and PayPal's payout fee (typically 2% with a cap, paid by the sender) come out of the fee.
+
+**Clippers are paid automatically.** An approved clip (approved by the streamer, or automatically after the review window) is held for 3 days, then the sync pays it from escrow to the clipper's bank, PayPal or Venmo (amounts under $10 wait until the campaign ends). During those 3 days the streamer can still flag the clip; after that it's locked, so a streamer can't take back what a clipper earned. The streamer can also pay a clip early with the Pay button. Rules: `src/lib/payout-rules.ts`; the payout itself: `src/lib/pay-clip.ts`; run by `src/lib/sync.ts`.
 
 A streamer can cancel a campaign at any time. Earnings stop growing, approved clips keep what they've earned (still paid out as normal), clips still waiting for review don't earn, and the unspent budget is refunded to the original card (Stripe: usually 5–10 business days). The fee is not refunded, and Stripe doesn't return its processing fee on refunds either. Budget freed up later (for example by flagging a clip) can be refunded from the same place. A refund the card issuer rejects goes back into the campaign budget.
 

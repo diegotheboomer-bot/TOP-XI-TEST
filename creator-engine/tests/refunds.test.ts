@@ -60,8 +60,9 @@ describe('cancelling a campaign (demo)', () => {
   it('refunds budget freed up later, e.g. by flagging a clip', () => {
     const s = core.seedDemo(9, '/t/');
     core.cancelCampaign(s, 'cmp-ranked');
-    const owed = core.campaignDetail(s, 'cmp-ranked')!.submissions.find((x) => x.status === 'live_tracking' && x.payout_earned - x.payout_transferred >= 1)!;
-    core.reviewSubmission(s, owed.id, 'flag');
+    // Only a clip still in its payout hold can be flagged by the streamer (@framejump was approved 20h ago).
+    const owed = core.campaignDetail(s, 'cmp-ranked')!.submissions.find((x) => x.creator_name === '@framejump')!;
+    expect(core.reviewSubmission(s, owed.id, 'flag')?.success).toBe('Flagged.');
     const freed = core.campaignDetail(s, 'cmp-ranked')!.budget.available;
     expect(freed).toBeGreaterThan(0);
     expect(core.cancelCampaign(s, 'cmp-ranked')?.success).toContain('refunded');
