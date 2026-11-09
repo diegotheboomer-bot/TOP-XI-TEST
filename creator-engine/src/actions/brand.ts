@@ -6,7 +6,8 @@ import { isDemo, appUrl } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
-import { splitFee } from '@/lib/payout';
+import { streamerCharge } from '@/lib/payout';
+import { usdCents } from '@/lib/format';
 import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import type { ActionState } from './result';
@@ -71,23 +72,27 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
   return { success: `Campaign ${status}.` };
 }
 
-/** Brand deposit → Stripe Checkout (creates a PaymentIntent). Escrow is credited by the webhook. */
+/**
+ * Streamer funds a campaign through Stripe Checkout. The budget (all of which
+ * goes to clippers) and the platform fee are separate lines, so the streamer
+ * sees the fee before paying. The webhook credits only the budget to escrow.
+ */
 export async function fundEscrow(_prev: ActionState, form: FormData): Promise<ActionState> {
   const campaignId = String(form.get('campaignId'));
   const amount = DepositSchema.safeParse(form.get('amount'));
   if (!amount.success) return { error: 'Deposit between $50 and $1,000,000.' };
   if (isDemo) return done(demo.fundEscrow(campaignId, amount.data), campaignId);
   const { campaign } = await requireOwnCampaign(campaignId);
+  const charge = streamerCharge(amount.data, platformFeePercent());
+  const cents = (n: number) => Math.round(n * 100);
 
   const session = await stripe().checkout.sessions.create({
     mode: 'payment',
     line_items: [
-      {
-        quantity: 1,
-        price_data: { currency: 'usd', unit_amount: Math.round(amount.data * 100), product_data: { name: `Escrow: ${campaign.title}` } },
-      },
+      { quantity: 1, price_data: { currency: 'usd', unit_amount: cents(charge.budget), product_data: { name: `Clipper budget: ${campaign.title}` } } },
+      { quantity: 1, price_data: { currency: 'usd', unit_amount: cents(charge.fee), product_data: { name: `Platform fee (${platformFeePercent()}%)` } } },
     ],
-    metadata: { campaign_id: campaignId },
+    metadata: { campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
     payment_intent_data: { metadata: { campaign_id: campaignId }, transfer_group: `campaign_${campaignId}` },
     success_url: `${appUrl()}/streamer/campaigns/${campaignId}?funded=1`,
     cancel_url: `${appUrl()}/streamer/campaigns/${campaignId}`,
@@ -129,7 +134,7 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
 
 /**
  * Pays out everything earned but not yet transferred:
- * claim → debit escrow (atomic) → Stripe Transfer of the net → ledger rows.
+ * claim → debit escrow (atomic) → Stripe Transfer of the full amount → ledger row.
  * Each failed step reverses the ones before it.
  */
 export async function releasePayout(submissionId: string): Promise<ActionState> {
@@ -170,13 +175,12 @@ export async function releasePayout(submissionId: string): Promise<ActionState> 
     return { error: 'Not enough escrow. Top up the campaign first.' };
   }
 
-  // 3. Transfer the creator's share; the platform fee stays in the platform balance.
-  const { net, fee } = splitFee(gross, platformFeePercent());
+  // 3. Transfer the full amount. Clippers pay no fee (the streamer paid it at deposit).
   let transferId: string;
   try {
     const transfer = await stripe().transfers.create(
       {
-        amount: Math.round(net * 100),
+        amount: Math.round(gross * 100),
         currency: 'usd',
         destination: creator.stripe_account_id,
         transfer_group: `campaign_${sub.campaign_id}`,
@@ -192,16 +196,15 @@ export async function releasePayout(submissionId: string): Promise<ActionState> 
   }
 
   // 4. Ledger + close out once the cap is fully paid.
-  await admin.from('escrow_ledger').insert([
-    { campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'creator_payout', amount: net, stripe_object_id: transferId },
-    { campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'platform_fee', amount: fee, stripe_object_id: transferId },
-  ]);
+  await admin
+    .from('escrow_ledger')
+    .insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'creator_payout', amount: gross, stripe_object_id: transferId });
   if (after >= Number((sub.campaigns as unknown as { cpm_cap: number }).cpm_cap)) {
     await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
   }
 
   revalidatePath(`/streamer/campaigns/${sub.campaign_id}`);
-  return { success: `Paid ${net.toFixed(2)} to creator (${fee.toFixed(2)} platform fee).` };
+  return { success: `Paid ${usdCents(gross)} to the clipper.` };
 }
 
 /** Streamer pins a moment from a stream for clippers to cut. */

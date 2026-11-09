@@ -33,11 +33,14 @@ export function calculatePayout(terms: PayoutTerms, views: number, attributedRev
   return floorCents(Math.min(earned, terms.cpm_cap));
 }
 
-/** Splits a gross payout into creator net and platform fee (fee rounded to the cent). */
-export function splitFee(gross: number, feePercent: number): { net: number; fee: number } {
-  const grossCents = Math.round(gross * 100);
-  const feeCents = Math.round((grossCents * feePercent) / 100);
-  return { net: (grossCents - feeCents) / 100, fee: feeCents / 100 };
+/**
+ * What a streamer is charged to add `budget` to a campaign: the budget (all of
+ * which goes to clippers) plus the platform fee on top, rounded to the cent.
+ */
+export function streamerCharge(budget: number, feePercent: number): { budget: number; fee: number; total: number } {
+  const budgetCents = Math.round(budget * 100);
+  const feeCents = Math.round((budgetCents * feePercent) / 100);
+  return { budget: budgetCents / 100, fee: feeCents / 100, total: (budgetCents + feeCents) / 100 };
 }
 
 const floorCents = (n: number) => Math.floor(n * 100 + 1e-6) / 100;

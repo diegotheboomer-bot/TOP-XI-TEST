@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { getCreatorCampaign } from '@/lib/data';
 import { rateParts, usd } from '@/lib/format';
-import { platformFeePercent } from '@/lib/stripe';
 import { trackingLink } from '@/lib/attribution';
 import { claimMoment, connectTikTok, joinCampaign } from '@/actions/creator';
 import { Card } from '@/components/ui/card';
@@ -22,7 +21,6 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
   if (!d) notFound();
   const { campaign: c } = d;
   const r = rateParts(c);
-  const fee = platformFeePercent();
   const merchLink = d.enrollment ? trackingLink(d.shopDomain, d.enrollment.ref_param) : null;
 
   return (
@@ -73,7 +71,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
             <p className="mt-1 text-sm text-zinc-500">{r.terms}</p>
             <BudgetMeter budget={c.budget} className="mt-5" />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <EarningsEstimator terms={c} feePercent={fee} />
+              <EarningsEstimator terms={c} />
             </div>
           </Card>
         </aside>
@@ -125,7 +123,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   {usd(c.base_payout)} once your clip is approved, plus {r.rate} {r.unit}.
                 </li>
               )}
-              <li>Earnings stop at {usd(c.cpm_cap)} per clipper. A {fee}% platform fee comes out of each payout.</li>
+              <li>Earnings stop at {usd(c.cpm_cap)} per clipper. You keep all of it: there are no fees for clippers.</li>
               <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
             </ul>
           </section>

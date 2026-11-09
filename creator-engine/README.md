@@ -37,6 +37,10 @@ Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thu
 7. Shopify (optional merch store): `orders/create` webhook to `<APP_URL>/api/webhooks/shopify`, signed with `SHOPIFY_WEBHOOK_SECRET`.
 8. Cron: `vercel.json` calls `/api/cron/sync` every 4 hours with `Authorization: Bearer $CRON_SECRET`.
 
+## Fees
+
+Streamers pay a platform fee on top of the budget they add (`PLATFORM_FEE_PERCENT`, default 9%). Checkout shows the budget and the fee as separate lines; only the budget goes into the campaign, and clippers are paid 100% of what they earn. Stripe's own processing and Connect payout costs come out of the fee.
+
 ## How it works
 
 | Piece | Where |
@@ -46,7 +50,7 @@ Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thu
 | Submit flow: ownership check via creator's token, baseline metrics, duplicate check | `src/actions/creator.ts` → `submitVideo` |
 | Metric sync, payout calc, velocity watchdog | `src/lib/sync.ts`, `src/lib/payout.ts`, `src/lib/fraud.ts` |
 | Perceptual hash (DCT pHash of the video cover frame) | `src/lib/phash.ts` |
-| Escrow deposit (Checkout), payouts (Transfer, 15% fee inline) | `src/actions/brand.ts`, `src/app/api/webhooks/stripe` |
+| Funding (Checkout: budget + 9% fee on top), payouts (Transfer, clippers keep 100%) | `src/actions/brand.ts`, `src/app/api/webhooks/stripe` |
 | Conversion attribution (discount code or `?ref=`) | `src/app/api/webhooks/shopify` |
 | Campaign thumbnails (upload to Supabase Storage, designed cover fallback) | `src/actions/brand.ts` → `createCampaign`, `src/components/views.tsx` → `CampaignCover` |
 | Budget forecast (committed, available, days left at current pace) | `src/lib/budget.ts` |

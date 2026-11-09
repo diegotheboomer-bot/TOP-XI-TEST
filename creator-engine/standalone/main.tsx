@@ -6,9 +6,10 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowLeft, ArrowLeftRight, Compass, House, LayoutList, Megaphone, Music2, Plus, RotateCcw, Users, Wallet } from 'lucide-react';
 import * as core from '@/lib/demo-core';
-import { compact, payoutModelLabel, rateParts, usd } from '@/lib/format';
+import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
 import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import { MomentFields } from '@/components/forms/moment-fields';
+import { DepositFields } from '@/components/forms/deposit-fields';
 import type { ActionState } from '@/actions/result';
 import type { Campaign } from '@/lib/types';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -46,7 +47,7 @@ import {
   submissionActionKinds,
 } from '@/components/views';
 
-const FEE_PERCENT = 15;
+const FEE_PERCENT = 9; // charged to streamers on top of their budget; clippers keep 100%
 const STORAGE_KEY = 'creator-engine-demo-v3';
 const ASSETS = 'thumbs/';
 
@@ -218,7 +219,7 @@ function App() {
       <>
         <LandingHeader />
         {route.name === 'home' ? (
-          <Landing startHref="#start" clipperHref="#discover" assetBase={ASSETS} />
+          <Landing startHref="#start" clipperHref="#discover" assetBase={ASSETS} feePercent={FEE_PERCENT} />
         ) : (
           <RolePicker streamerHref="#brand" clipperHref="#creator" assetBase={ASSETS} />
         )}
@@ -429,8 +430,8 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
 
       <StatGrid
         items={[
-          { label: 'Escrow balance', value: usd(c.escrow_balance), hint: `${usd(deposited)} deposited` },
-          { label: 'Paid to clippers', value: usd(paidOut), hint: `${usd(fees)} platform fees` },
+          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(deposited)} added, ${usdCompact(fees)} fee` },
+          { label: 'Paid to clippers', value: usd(paidOut), hint: 'Clippers keep 100%' },
           { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
           { label: 'Merch orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
         ]}
@@ -503,19 +504,19 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
             <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <InlineForm
-                id={`deposit-${c.id}`}
-                placeholder="2,000"
-                prefix="$"
-                type="number"
-                label="Deposit amount"
-                submit="Deposit"
-                onSubmit={(v) => {
-                  const amount = DepositSchema.safeParse(v);
-                  return amount.success ? act((s) => core.fundEscrow(s, c.id, amount.data)) : fail(store, amount.error.issues[0].message);
+              <form
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.currentTarget;
+                  const amount = DepositSchema.safeParse(new FormData(form).get('amount'));
+                  if (!amount.success) return fail(store, amount.error.issues[0].message);
+                  act((s) => core.fundEscrow(s, c.id, amount.data));
                 }}
-              />
-              <p className="mt-2 text-xs text-zinc-500">Mock money. Adds to escrow instantly.</p>
+              >
+                <DepositFields id={`deposit-${c.id}`} feePercent={FEE_PERCENT} submit={<Button type="submit">Add budget</Button>} />
+              </form>
+              <p className="mt-2 text-xs text-zinc-500">Mock money. Added instantly.</p>
             </div>
           </Card>
           <Card>
@@ -911,7 +912,7 @@ function Offer({ store, id }: { store: Store; id: string }) {
             <p className="mt-1 text-sm text-zinc-500">{r.terms}</p>
             <BudgetMeter budget={c.budget} className="mt-5" />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <EarningsEstimator terms={c} feePercent={FEE_PERCENT} />
+              <EarningsEstimator terms={c} />
             </div>
           </Card>
         </aside>
@@ -966,7 +967,7 @@ function Offer({ store, id }: { store: Store; id: string }) {
                 </li>
               )}
               <li>
-                Earnings stop at {usd(c.cpm_cap)} per clipper. A {FEE_PERCENT}% platform fee comes out of each payout.
+                Earnings stop at {usd(c.cpm_cap)} per clipper. You keep all of it: there are no fees for clippers.
               </li>
               <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
             </ul>

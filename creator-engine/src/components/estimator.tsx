@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { calculatePayout, splitFee, type PayoutTerms } from '@/lib/payout';
+import { calculatePayout, type PayoutTerms } from '@/lib/payout';
 import { compact, usd, usdCents } from '@/lib/format';
 import { Input } from './ui/field';
 
 const VIEW_STEPS = [10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000, 2_500_000, 5_000_000];
 
-/** What a creator would take home, after the platform fee, for a given result. */
-export function EarningsEstimator({ terms, feePercent }: { terms: PayoutTerms; feePercent: number }) {
+/** What a clipper would take home for a given result. Clippers pay no fee. */
+export function EarningsEstimator({ terms }: { terms: PayoutTerms }) {
   const cps = terms.payout_model === 'cps_performance';
   const [step, setStep] = useState(3);
   const [orders, setOrders] = useState(40);
@@ -17,7 +17,6 @@ export function EarningsEstimator({ terms, feePercent }: { terms: PayoutTerms; f
   const views = VIEW_STEPS[step];
   const aov = Math.max(0, Number(orderValue) || 0);
   const gross = calculatePayout(terms, views, cps ? orders * aov : 0);
-  const { net } = splitFee(gross, feePercent);
   const capped = gross >= terms.cpm_cap;
 
   return (
@@ -51,10 +50,10 @@ export function EarningsEstimator({ terms, feePercent }: { terms: PayoutTerms; f
       <div className="flex items-end justify-between gap-4 rounded-lg bg-zinc-50 px-4 py-3">
         <div>
           <p className="text-xs text-zinc-500">You take home</p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">{usdCents(net)}</p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums">{usdCents(gross)}</p>
         </div>
         <p className="text-right text-xs text-zinc-500">
-          {usd(gross)} earned, {feePercent}% fee
+          No fees taken
           {capped && <span className="block font-medium text-amber-700">Capped at {usd(terms.cpm_cap)}</span>}
         </p>
       </div>

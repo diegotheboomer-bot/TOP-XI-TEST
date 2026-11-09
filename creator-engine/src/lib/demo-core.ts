@@ -5,7 +5,7 @@
 import type { BrandDashboard, CampaignDetail, CreatorCampaignDetail, CreatorDashboard, MarketCampaign, MomentRow, SubmissionRow } from './data';
 import type { Campaign, Enrollment, Moment, Platform, Submission } from './types';
 import type { ActionState } from '@/actions/result';
-import { calculatePayout, splitFee } from './payout';
+import { calculatePayout, streamerCharge } from './payout';
 import { usd, usdCents } from './format';
 import { detectBotVelocity } from './fraud';
 import { parseVideoUrl } from './video-url';
@@ -298,13 +298,16 @@ export function seedDemo(feePercent: number, assetBase: string): State {
     if (s.status === 'flagged') s.payout_earned = cents(s.payout_earned * 0.35); // accrual froze earlier
   }
 
-  // Ledger: deposits cover current escrow plus everything already paid; payouts split with the fee.
+  // Ledger: deposits cover current escrow plus everything already paid, with the
+  // streamer's fee recorded alongside each deposit. Clippers were paid in full.
   for (const camp of campaigns) {
     const paid = submissions.filter((s) => s.campaign_id === camp.id).reduce((acc, s) => acc + s.payout_transferred, 0);
-    if (camp.escrow_balance + paid > 0) state.ledger.push({ campaignId: camp.id, type: 'deposit', amount: camp.escrow_balance + paid });
+    if (camp.escrow_balance + paid > 0) {
+      const { budget, fee } = streamerCharge(camp.escrow_balance + paid, feePercent);
+      state.ledger.push({ campaignId: camp.id, type: 'deposit', amount: budget }, { campaignId: camp.id, type: 'platform_fee', amount: fee });
+    }
     for (const s of submissions.filter((x) => x.campaign_id === camp.id && x.payout_transferred > 0)) {
-      const { net, fee } = splitFee(s.payout_transferred, feePercent);
-      state.ledger.push({ campaignId: camp.id, type: 'creator_payout', amount: net }, { campaignId: camp.id, type: 'platform_fee', amount: fee });
+      state.ledger.push({ campaignId: camp.id, type: 'creator_payout', amount: s.payout_transferred });
     }
   }
   return state;
@@ -441,9 +444,10 @@ export function setCampaignStatus(s: State, id: string, status: Campaign['status
 export function fundEscrow(s: State, id: string, amount: number): ActionState {
   const c = ownCampaign(s, id);
   if (!c) return { error: 'Campaign not found.' };
-  c.escrow_balance = cents(c.escrow_balance + amount);
-  s.ledger.push({ campaignId: id, type: 'deposit', amount });
-  return { success: `Mock deposit of ${usd(amount)} added to escrow.` };
+  const { budget, fee, total } = streamerCharge(amount, s.feePercent);
+  c.escrow_balance = cents(c.escrow_balance + budget);
+  s.ledger.push({ campaignId: id, type: 'deposit', amount: budget }, { campaignId: id, type: 'platform_fee', amount: fee });
+  return { success: `Charged ${usdCents(total)}: ${usd(budget)} added to the clipper budget plus ${usdCents(fee)} fee. Mock money.` };
 }
 
 export function connectStore(s: State, id: string, domain: string): ActionState {
@@ -477,12 +481,12 @@ export function releasePayout(s: State, id: string): ActionState {
   if (gross < 1) return { error: 'Nothing to pay out yet.' };
   if (c.escrow_balance < gross) return { error: 'Not enough escrow. Top up the campaign first.' };
 
-  const { net, fee } = splitFee(gross, s.feePercent);
+  // Clippers keep 100%: the fee was charged to the streamer at deposit.
   c.escrow_balance = cents(c.escrow_balance - gross);
   sub.payout_transferred = cents(sub.payout_transferred + gross);
-  s.ledger.push({ campaignId: c.id, type: 'creator_payout', amount: net }, { campaignId: c.id, type: 'platform_fee', amount: fee });
+  s.ledger.push({ campaignId: c.id, type: 'creator_payout', amount: gross });
   if (sub.payout_transferred >= c.cpm_cap) sub.status = 'paid';
-  return { success: `Paid ${usdCents(net)} to @${creator.handle} (${usdCents(fee)} fee). Mock money.` };
+  return { success: `Paid ${usdCents(gross)} to @${creator.handle}. No fee taken. Mock money.` };
 }
 
 /**

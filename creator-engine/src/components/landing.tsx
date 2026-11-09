@@ -6,14 +6,14 @@ import credits from '../../public/demo/thumbs/credits.json';
 
 const STEPS = {
   streamer: [
-    ['Post a campaign', 'Set a rate per 1,000 views, a cap per clipper and the platforms you want. Fund it once.'],
+    ['Post a campaign', 'Set a rate per 1,000 views, a cap per clipper and the platforms you want. Fund it once, plus a {fee}% fee.'],
     ['Pin the moments', 'Drop timestamps from your stream. Each moment has a few slots so clippers spread out.'],
     ['Pay for real views', 'Views come straight from TikTok and YouTube. You only pay for what was watched.'],
   ],
   clipper: [
     ['Pick a campaign', 'See the rate, the budget left and what you would take home before you join.'],
     ['Claim and cut', 'Claim a moment, cut it your way, add your clip code and #ad to the caption.'],
-    ['Get paid as it grows', 'Earnings update every few hours. Payouts go straight to your bank.'],
+    ['Get paid as it grows', 'Earnings update every few hours. You keep 100%, paid straight to your bank.'],
   ],
 } as const;
 
@@ -22,7 +22,7 @@ const FEATURES = [
   ['Clip codes', 'Every clipper gets a code. Put it in the caption and the clip is yours on TikTok, Shorts or Reels. No account linking needed.'],
   ['Budget forecast', 'Each campaign shows how much is left and about how many days it will last at the current pace.'],
   ['Review window', 'Streamers pick a review deadline. Clean clips with #ad are approved automatically when it passes.'],
-  ['Merch that pays clippers', 'The same clip code works as a discount at the streamer’s store, and can earn the clipper a cut.'],
+  ['No fees for clippers', 'Clippers keep 100% of what they earn. Streamers pay a flat {fee}% on top of their budget, shown before they pay.'],
   ['Fake views don’t get paid', 'Re-uploads are matched by image fingerprint and bot-like spikes freeze earnings until checked.'],
 ];
 
@@ -34,7 +34,20 @@ const base = (over: Partial<MarketCampaign>): MarketCampaign => ({
   ...over,
 });
 
-export function Landing({ link = 'a', startHref, clipperHref, assetBase }: { link?: LinkLike; startHref: string; clipperHref: string; assetBase: string }) {
+export function Landing({
+  link = 'a',
+  startHref,
+  clipperHref,
+  assetBase,
+  feePercent,
+}: {
+  link?: LinkLike;
+  startHref: string;
+  clipperHref: string;
+  assetBase: string;
+  feePercent: number;
+}) {
+  const withFee = (t: string) => t.replace('{fee}', String(feePercent));
   const Link = link;
   const preview = [
     base({
@@ -84,7 +97,7 @@ export function Landing({ link = 'a', startHref, clipperHref, assetBase }: { lin
                   <span className="grid size-7 shrink-0 place-items-center rounded-md bg-zinc-900 text-xs font-semibold text-white">{i + 1}</span>
                   <div className="min-w-0">
                     <p className="font-medium">{title}</p>
-                    <p className="mt-0.5 text-sm leading-relaxed text-zinc-600">{body}</p>
+                    <p className="mt-0.5 text-sm leading-relaxed text-zinc-600">{withFee(body)}</p>
                   </div>
                 </li>
               ))}
@@ -99,7 +112,7 @@ export function Landing({ link = 'a', startHref, clipperHref, assetBase }: { lin
           {FEATURES.map(([title, body]) => (
             <div key={title} className="border-t border-zinc-200/80 pt-4">
               <dt className="font-semibold tracking-tight">{title}</dt>
-              <dd className="mt-1.5 text-sm leading-relaxed text-zinc-600">{body}</dd>
+              <dd className="mt-1.5 text-sm leading-relaxed text-zinc-600">{withFee(body)}</dd>
             </div>
           ))}
         </dl>

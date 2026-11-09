@@ -7,4 +7,5 @@ export function stripe(): Stripe {
   return client;
 }
 
-export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 15);
+/** Charged to streamers on top of the budget they fund. Clippers pay no fee. */
+export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 9);

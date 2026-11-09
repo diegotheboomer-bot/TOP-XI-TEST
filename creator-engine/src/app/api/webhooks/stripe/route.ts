@@ -19,13 +19,19 @@ export async function POST(req: Request) {
     const session = event.data.object;
     const campaignId = session.metadata?.campaign_id;
     if (campaignId && session.payment_status === 'paid' && session.amount_total) {
+      // Only the budget goes into escrow; the platform fee line stays with the platform.
+      const budgetCents = Number(session.metadata?.budget_cents ?? session.amount_total);
+      const feeCents = Number(session.metadata?.fee_cents ?? 0);
       // Idempotent: a retried webhook for the same session is a no-op.
-      const { error } = await admin.rpc('record_deposit', {
+      const { data: recorded, error } = await admin.rpc('record_deposit', {
         p_campaign: campaignId,
-        p_amount: session.amount_total / 100,
+        p_amount: budgetCents / 100,
         p_stripe_id: session.id,
       });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (recorded && feeCents > 0) {
+        await admin.from('escrow_ledger').insert({ campaign_id: campaignId, entry_type: 'platform_fee', amount: feeCents / 100, stripe_object_id: session.id });
+      }
     }
   }
 

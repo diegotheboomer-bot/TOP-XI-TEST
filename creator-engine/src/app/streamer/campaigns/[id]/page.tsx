@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Users } from 'lucide-react';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
-import { compact, payoutModelLabel, rateParts, usd } from '@/lib/format';
+import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
+import { platformFeePercent } from '@/lib/stripe';
 import { releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
@@ -55,8 +56,8 @@ export default async function CampaignPage({ params, searchParams }: { params: {
 
       <StatGrid
         items={[
-          { label: 'Escrow balance', value: usd(c.escrow_balance), hint: `${usd(deposited)} deposited` },
-          { label: 'Paid to clippers', value: usd(paidOut), hint: `${usd(fees)} platform fees` },
+          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(deposited)} added, ${usdCompact(fees)} fee` },
+          { label: 'Paid to clippers', value: usd(paidOut), hint: 'Clippers keep 100%' },
           { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
           { label: 'Merch orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
         ]}
@@ -86,8 +87,8 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <FundEscrowForm campaignId={c.id} />
-              <p className="mt-2 text-xs text-zinc-500">{isDemo ? 'Mock money. Adds to escrow instantly.' : 'Card or ACH via Stripe.'}</p>
+              <FundEscrowForm campaignId={c.id} feePercent={platformFeePercent()} />
+              <p className="mt-2 text-xs text-zinc-500">{isDemo ? 'Mock money. Added instantly.' : 'Card or bank transfer through Stripe.'}</p>
             </div>
           </Card>
           <Card>

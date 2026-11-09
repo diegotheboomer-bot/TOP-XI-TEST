@@ -5,19 +5,14 @@ import { connectStore, fundEscrow } from '@/actions/brand';
 import { FormMessage } from '../form-message';
 import { SubmitButton } from '../submit-button';
 import { Input } from '../ui/field';
+import { DepositFields } from './deposit-fields';
 
-export function FundEscrowForm({ campaignId }: { campaignId: string }) {
+export function FundEscrowForm({ campaignId, feePercent }: { campaignId: string; feePercent: number }) {
   const [state, action] = useFormState(fundEscrow, undefined);
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="campaignId" value={campaignId} />
-      <div className="flex gap-2">
-        <div className="relative min-w-0 flex-1">
-          <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-zinc-400">$</span>
-          <Input name="amount" type="number" min="50" step="1" required placeholder="2,000" aria-label="Deposit amount" className="pl-7" />
-        </div>
-        <SubmitButton pendingText="Opening…">Deposit</SubmitButton>
-      </div>
+      <DepositFields id={`deposit-${campaignId}`} feePercent={feePercent} submit={<SubmitButton pendingText="Opening…">Add budget</SubmitButton>} />
       <FormMessage state={state} />
     </form>
   );

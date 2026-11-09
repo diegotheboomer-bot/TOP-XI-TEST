@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculatePayout, splitFee, type PayoutTerms } from '@/lib/payout';
+import { calculatePayout, streamerCharge, type PayoutTerms } from '@/lib/payout';
 
 const terms = (t: Partial<PayoutTerms>): PayoutTerms => ({ payout_model: 'hybrid', base_payout: 0, cpm_rate: 0, cpm_cap: 1000, cps_commission_pct: 0, ...t });
 
@@ -24,12 +24,13 @@ describe('calculatePayout', () => {
   });
 });
 
-describe('splitFee', () => {
-  it('takes 15% inline', () => expect(splitFee(100, 15)).toEqual({ net: 85, fee: 15 }));
-  it('net + fee always equals gross', () => {
-    for (const g of [0.01, 1.07, 33.33, 265.62, 9999.99]) {
-      const { net, fee } = splitFee(g, 15);
-      expect(Math.round((net + fee) * 100)).toBe(Math.round(g * 100));
+describe('streamerCharge', () => {
+  it('adds 9% on top of the budget', () => expect(streamerCharge(1000, 9)).toEqual({ budget: 1000, fee: 90, total: 1090 }));
+  it('rounds the fee to the cent', () => expect(streamerCharge(333.33, 9)).toEqual({ budget: 333.33, fee: 30, total: 363.33 }));
+  it('total is always budget + fee', () => {
+    for (const b of [50, 99.99, 1234.56, 75_000]) {
+      const c = streamerCharge(b, 9);
+      expect(Math.round(c.total * 100)).toBe(Math.round(c.budget * 100) + Math.round(c.fee * 100));
     }
   });
 });
