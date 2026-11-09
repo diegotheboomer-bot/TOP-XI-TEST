@@ -35,7 +35,7 @@ Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thu
 5. TikTok developer app: Login Kit with scopes `user.info.basic`, `user.info.stats`, `video.list`; redirect URI `<APP_URL>/api/oauth/tiktok/callback`.
 6. Stripe: enable Connect (Express). Webhook `<APP_URL>/api/webhooks/stripe` for `checkout.session.completed` and `account.updated` (Connect events).
 7. Shopify (optional merch store): `orders/create` webhook to `<APP_URL>/api/webhooks/shopify`, signed with `SHOPIFY_WEBHOOK_SECRET`.
-8. Cron: `vercel.json` calls `/api/cron/sync` every 4 hours with `Authorization: Bearer $CRON_SECRET`.
+8. Cron: `vercel.json` calls `/api/cron/sync` once a day (the most Vercel's free Hobby plan allows) with `Authorization: Bearer $CRON_SECRET`. For the intended every-4-hours refresh, switch the schedule to `0 */4 * * *` on Vercel Pro, or call the endpoint from any external scheduler.
 
 ## Fees
 
