@@ -10,10 +10,10 @@ const KEY = 'ce-logo';
 /** Demo-only switcher for comparing logo marks in the real header and sidebar. Remembered per browser. */
 export function LogoPicker() {
   const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState<string>('frame');
+  const [current, setCurrent] = useState<string>('cut');
 
   useEffect(() => {
-    setCurrent(document.documentElement.dataset.logo ?? 'frame');
+    setCurrent(document.documentElement.dataset.logo ?? 'cut');
   }, []);
 
   function pick(id: string) {
