@@ -1,0 +1,27 @@
+@import '../styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body { @apply bg-zinc-50 text-zinc-900; }
+  :focus-visible { outline: 2px solid rgb(var(--accent-500)); outline-offset: 2px; }
+  ::selection { @apply bg-accent-100; }
+}
+
+@layer components {
+  .gutter {
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  @media (min-width: 640px) {
+    .gutter {
+      padding-left: max(24px, env(safe-area-inset-left, 0px));
+      padding-right: max(24px, env(safe-area-inset-right, 0px));
+    }
+  }
+  .site-header { top: env(safe-area-inset-top, 0px); }
+  .balance { text-wrap: balance; }
+}
