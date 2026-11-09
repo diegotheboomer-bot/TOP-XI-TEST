@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function PayoutsPage() {
   const d = await getCreatorDashboard();
-  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
   return (
     <div className="space-y-8">
       <PageHeader

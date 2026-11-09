@@ -34,7 +34,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
     feePercent,
     pending: submissions.filter((s) => s.status === 'pending_review').length,
   };
-  const publishableKey = isDemo ? null : (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '');
+  const publishableKey = isDemo ? null : (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? '');
 
   return (
     <div className="space-y-6">

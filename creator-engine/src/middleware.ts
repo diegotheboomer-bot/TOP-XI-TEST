@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // Refreshes the Supabase session cookie on each request.
 export async function middleware(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !key) return NextResponse.next(); // demo mode
 
   let response = NextResponse.next({ request });
