@@ -235,6 +235,8 @@ export async function claimMoment(momentId: string): Promise<ActionState> {
   const admin = createAdminClient();
   const { data: moment } = await admin.from('campaign_moments').select('campaign_id').eq('id', momentId).maybeSingle();
   if (!moment) return { error: 'Moment not found.' };
+  const { data: campaign } = await admin.from('campaigns').select('status').eq('id', moment.campaign_id).single();
+  if (campaign?.status !== 'active') return { error: 'This campaign isn’t taking new clips.' };
   const { data: enrolled } = await admin.from('campaign_creators').select('id').eq('campaign_id', moment.campaign_id).eq('creator_id', creatorId).maybeSingle();
   if (!enrolled) return { error: 'Join the campaign to claim moments.' };
   const { data: result } = await admin.rpc('claim_moment', { p_moment: momentId, p_creator: creatorId });

@@ -1,15 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Check, Lock } from 'lucide-react';
+import { Check, Lock, Plus } from 'lucide-react';
 import { streamerCharge } from '@/lib/payout';
 import { DepositSchema } from '@/lib/schemas';
 import { compact, usd, usdCents } from '@/lib/format';
 import type { Campaign } from '@/lib/types';
-import { Card } from '../ui/card';
 import { cn } from '../ui/cn';
-import { buttonClass } from '../ui/button';
-import { CampaignCover, type LinkLike } from '../views';
+import { Button, buttonClass } from '../ui/button';
+import { Dialog } from '../ui/dialog';
 
 export interface Quote {
   /** Budget the streamer adds; all of it goes to clippers. */
@@ -19,136 +18,158 @@ export interface Quote {
   totalCents: number;
 }
 
-export type CheckoutCampaign = Pick<Campaign, 'id' | 'title' | 'cover_color' | 'thumbnail_url' | 'payout_model' | 'cpm_rate' | 'escrow_balance'>;
+export type CheckoutCampaign = Pick<Campaign, 'id' | 'title' | 'payout_model' | 'cpm_rate'>;
 
-/** What the payment column renders: a quote to charge (null while the amount is invalid) and a callback for success. */
+/** What the payment section renders: a quote to charge (null while the amount is invalid) and a callback for success. */
 export type PaymentSlot = (quote: Quote | null, onPaid: () => void) => React.ReactNode;
 
 const QUICK_PICKS = [500, 1000, 5000, 10000];
 
 /**
- * Checkout for adding budget to a campaign. The left column sets the amount
- * and shows the fee on top; the right column is the payment form (Stripe's
- * Payment Element in the app, a mock card form in the demo).
+ * "Add budget" button that opens the checkout in a popup: amount with the fee
+ * on top, then the payment form (Stripe's Payment Element in the app, a mock
+ * card form in the demo). `onDone` runs when a paid checkout is closed.
  */
-export function FundCheckout({
+export function AddBudget({
   campaign,
   feePercent,
-  backHref,
-  link: Link = 'a',
   payment,
   note,
+  onDone,
+  className,
 }: {
   campaign: CheckoutCampaign;
   feePercent: number;
-  backHref: string;
-  link?: LinkLike;
   payment: PaymentSlot;
   /** Small print under the payment form. */
   note: React.ReactNode;
+  onDone?: () => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [paid, setPaid] = useState<Quote | null>(null);
+  const close = () => {
+    setOpen(false);
+    if (paid) onDone?.();
+  };
+  return (
+    <>
+      <Button
+        type="button"
+        className={className}
+        onClick={() => {
+          setPaid(null);
+          setOpen(true);
+        }}
+      >
+        <Plus className="size-4" /> Add budget
+      </Button>
+      <Dialog open={open} onClose={close} title={paid ? 'Payment received' : 'Add budget'} description={paid ? undefined : campaign.title}>
+        {paid ? (
+          <Paid quote={paid} feePercent={feePercent} title={campaign.title} onClose={close} />
+        ) : (
+          <Checkout campaign={campaign} feePercent={feePercent} payment={payment} note={note} onPaid={setPaid} />
+        )}
+      </Dialog>
+    </>
+  );
+}
+
+function Checkout({
+  campaign,
+  feePercent,
+  payment,
+  note,
+  onPaid,
+}: {
+  campaign: CheckoutCampaign;
+  feePercent: number;
+  payment: PaymentSlot;
+  note: React.ReactNode;
+  onPaid: (quote: Quote) => void;
 }) {
   const [value, setValue] = useState('1000');
-  const [paid, setPaid] = useState<Quote | null>(null);
-
   const parsed = DepositSchema.safeParse(value);
   const quote: Quote | null = parsed.success ? toQuote(parsed.data, feePercent) : null;
   const error = value.trim() && !parsed.success ? parsed.error.issues[0].message : undefined;
   const views = quote && campaign.payout_model !== 'cps_performance' && campaign.cpm_rate > 0 ? (quote.amount / campaign.cpm_rate) * 1000 : null;
 
-  if (paid) {
-    return (
-      <Card className="mx-auto max-w-md text-center">
-        <span className="mx-auto grid size-12 place-items-center rounded-full bg-accent-50 text-accent-700">
-          <Check className="size-6" />
-        </span>
-        <h1 className="mt-4 text-xl font-semibold tracking-tight">Payment received</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">
-          {usd(paid.amount)} is going into <span className="text-zinc-900">{campaign.title}</span> for clippers to earn.
-        </p>
-        <Breakdown quote={paid} feePercent={feePercent} className="mt-5 text-left" />
-        <Link href={backHref} className={buttonClass('primary', 'md', 'mt-6 w-full')}>
-          Back to campaign
-        </Link>
-      </Card>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <Link href={backHref} className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
-        <ArrowLeft className="size-4" /> {campaign.title}
-      </Link>
+    <div>
+      <label htmlFor="budget" className="block text-[13px] font-medium text-zinc-700">
+        Budget for clippers
+      </label>
+      <div
+        className={cn(
+          'mt-1.5 flex items-center rounded-xl border bg-white px-4 transition focus-within:ring-4 focus-within:ring-zinc-900/5',
+          error ? 'border-rose-200' : 'border-zinc-200 focus-within:border-zinc-400',
+        )}
+      >
+        <span className="text-2xl font-medium text-zinc-400">$</span>
+        <input
+          id="budget"
+          inputMode="decimal"
+          autoComplete="off"
+          value={value}
+          onChange={(e) => setValue(cleanAmount(e.target.value))}
+          aria-invalid={!!error}
+          aria-describedby="budget-help"
+          className="h-14 w-full min-w-0 bg-transparent pl-1.5 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900 focus:outline-none"
+        />
+      </div>
+      <p id="budget-help" className={cn('mt-1.5 text-xs', error ? 'text-rose-600' : 'text-zinc-500')}>
+        {error ?? (views ? `Pays for up to ${compact(views)} views at ${usdCents(campaign.cpm_rate)} per 1K.` : 'Between $50 and $1,000,000.')}
+      </p>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] md:items-start">
-        <Card>
-          <div className="flex items-center gap-3">
-            <CampaignCover campaign={campaign} brandName="" variant="thumb" showTitle={false} className="size-14 shrink-0 rounded-lg" />
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold tracking-tight">Add budget</h1>
-              <p className="text-sm text-zinc-500">
-                {campaign.title} · {usd(campaign.escrow_balance)} left now
-              </p>
-            </div>
-          </div>
-
-          <label htmlFor="budget" className="mt-6 block text-[13px] font-medium text-zinc-700">
-            Budget for clippers
-          </label>
-          <div
+      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Quick amounts">
+        {QUICK_PICKS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setValue(String(n))}
+            aria-pressed={quote?.amount === n}
             className={cn(
-              'mt-1.5 flex items-center rounded-xl border bg-white px-4 transition focus-within:ring-4 focus-within:ring-zinc-900/5',
-              error ? 'border-rose-200' : 'border-zinc-200 focus-within:border-zinc-400',
+              'h-8 rounded-full border px-3.5 text-[13px] font-medium tabular-nums transition',
+              quote?.amount === n ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900',
             )}
           >
-            <span className="text-2xl font-medium text-zinc-400">$</span>
-            <input
-              id="budget"
-              inputMode="decimal"
-              autoComplete="off"
-              value={value}
-              onChange={(e) => setValue(cleanAmount(e.target.value))}
-              aria-invalid={!!error}
-              aria-describedby="budget-help"
-              className="h-14 w-full min-w-0 bg-transparent pl-1.5 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900 focus:outline-none"
-            />
-          </div>
-          <p id="budget-help" className={cn('mt-1.5 text-xs', error ? 'text-rose-600' : 'text-zinc-500')}>
-            {error ?? 'Between $50 and $1,000,000.'}
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Quick amounts">
-            {QUICK_PICKS.map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setValue(String(n))}
-                aria-pressed={quote?.amount === n}
-                className={cn(
-                  'h-8 rounded-full border px-3.5 text-[13px] font-medium tabular-nums transition',
-                  quote?.amount === n ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900',
-                )}
-              >
-                {usd(n)}
-              </button>
-            ))}
-          </div>
-
-          <Breakdown quote={quote} feePercent={feePercent} className="mt-6" />
-          <p className="mt-3 text-xs text-zinc-500">
-            {views ? `Pays for up to ${compact(views)} views at ${usdCents(campaign.cpm_rate)} per 1K. ` : ''}
-            All of the budget goes to clippers. Unspent budget stays in the campaign.
-          </p>
-        </Card>
-
-        <Card>
-          <h2 className="text-base font-semibold tracking-tight">Payment</h2>
-          <div className="mt-4">{payment(quote, () => setPaid(quote))}</div>
-          <p className="mt-4 flex items-start gap-1.5 text-xs text-zinc-500">
-            <Lock className="mt-px size-3.5 shrink-0" />
-            <span>{note}</span>
-          </p>
-        </Card>
+            {usd(n)}
+          </button>
+        ))}
       </div>
+
+      <Breakdown quote={quote} feePercent={feePercent} className="mt-5" />
+      <p className="mt-2.5 text-xs text-zinc-500">
+        All of the budget goes to clippers. If you cancel the campaign, unspent budget is refunded to your card; the {feePercent}% fee isn’t refundable.
+      </p>
+
+      <div className="mt-6 border-t border-zinc-100 pt-5">
+        <h3 className="mb-3 text-sm font-semibold">Payment</h3>
+        {payment(quote, () => quote && onPaid(quote))}
+        <p className="mt-3 flex items-start gap-1.5 text-xs text-zinc-500">
+          <Lock className="mt-px size-3.5 shrink-0" />
+          <span>{note}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Paid({ quote, feePercent, title, onClose }: { quote: Quote; feePercent: number; title: string; onClose: () => void }) {
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-50 text-accent-700">
+          <Check className="size-5" />
+        </span>
+        <p className="text-sm text-zinc-500">
+          {usd(quote.amount)} is going into <span className="text-zinc-900">{title}</span> for clippers to earn.
+        </p>
+      </div>
+      <Breakdown quote={quote} feePercent={feePercent} className="mt-5" />
+      <button type="button" onClick={onClose} className={buttonClass('primary', 'md', 'mt-5 w-full')}>
+        Done
+      </button>
     </div>
   );
 }
@@ -173,7 +194,7 @@ function Breakdown({ quote, feePercent, className }: { quote: Quote | null; feeP
         <dd className="tabular-nums">{quote ? usdCents(quote.amount) : '—'}</dd>
       </div>
       <div className={row}>
-        <dt className="text-zinc-500">Platform fee ({feePercent}%)</dt>
+        <dt className="text-zinc-500">Platform fee ({feePercent}%, non-refundable)</dt>
         <dd className="tabular-nums">{quote ? usdCents(quote.fee) : '—'}</dd>
       </div>
       <div className={cn(row, 'border-t border-zinc-200 pt-2 font-semibold')}>

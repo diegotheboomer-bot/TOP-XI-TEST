@@ -5,7 +5,7 @@ import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { platformFeePercent } from '@/lib/stripe';
-import { releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
+import { cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
@@ -14,7 +14,8 @@ import { CampaignBadge } from '@/components/status';
 import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
 import { MomentForm } from '@/components/forms/moment-form';
 import { ConnectStoreForm } from '@/components/forms/campaign-forms';
-import { ButtonLink } from '@/components/ui/button-link';
+import { AppAddBudget } from '@/components/checkout/app-checkout';
+import { CancelCampaign, type CancelSummary } from '@/components/cancel-campaign';
 import type { Campaign } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -22,8 +23,18 @@ export const dynamic = 'force-dynamic';
 export default async function CampaignPage({ params, searchParams }: { params: { id: string }; searchParams: { funded?: string } }) {
   const detail = await getCampaignDetail(params.id);
   if (!detail) notFound();
-  const { campaign: c, submissions, shopDomain, deposited, paidOut, fees, budget } = detail;
+  const { campaign: c, submissions, shopDomain, deposited, refunded, paidOut, fees, budget } = detail;
   const r = rateParts(c);
+  const ended = c.status === 'completed';
+  const feePercent = platformFeePercent();
+  const cancel: CancelSummary = {
+    refund: budget.available,
+    reserved: Math.max(0, c.escrow_balance - budget.available),
+    fees,
+    feePercent,
+    pending: submissions.filter((s) => s.status === 'pending_review').length,
+  };
+  const publishableKey = isDemo ? null : (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '');
 
   return (
     <div className="space-y-6">
@@ -42,11 +53,12 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           <PlatformChips platforms={c.platforms} className="mt-2" />
           <div className="mt-4 flex flex-wrap gap-2">
             <StatusActions campaign={c} />
+            {c.status !== 'draft' || c.escrow_balance > 0 ? <CancelCampaign summary={cancel} ended={ended} onConfirm={cancelCampaign.bind(null, c.id)} /> : null}
           </div>
         </div>
       </div>
 
-      {isDemo && (
+      {isDemo && !ended && (
         <DemoBar>
           <ActionButton action={simulateSync.bind(null, c.id)}>Run 4h sync</ActionButton>
           {shopDomain && <ActionButton action={simulateSale.bind(null, c.id)}>Simulate merch order</ActionButton>}
@@ -57,7 +69,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
 
       <StatGrid
         items={[
-          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(deposited)} added, ${usdCompact(fees)} fee` },
+          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(deposited + refunded)} added, ${usdCompact(fees)} fee${refunded > 0 ? `, ${usdCompact(refunded)} refunded` : ''}` },
           { label: 'Paid to clippers', value: usd(paidOut), hint: 'Clippers keep 100%' },
           { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
           { label: 'Merch orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
@@ -71,27 +83,43 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             {submissions.length === 0 ? (
               <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
             ) : (
-              <SubmissionTable rows={submissions} cap={c.cpm_cap} autoApproveHours={c.auto_approve_hours} actions={(s) => <SubmissionActions s={s} />} />
+              <SubmissionTable rows={submissions} cap={c.cpm_cap} autoApproveHours={c.auto_approve_hours} actions={(s) => <SubmissionActions s={s} ended={ended} />} />
             )}
           </Card>
           <Card>
             <CardHeader title="Moments to clip" description="Pin timestamps from your stream. Slots stop everyone cutting the same moment." />
             <MomentBoard moments={detail.moments} showClaimers empty="No moments pinned yet." />
-            <div className="mt-5 border-t border-zinc-100 pt-5">
-              <MomentForm campaignId={c.id} />
-            </div>
+            {!ended && (
+              <div className="mt-5 border-t border-zinc-100 pt-5">
+                <MomentForm campaignId={c.id} />
+              </div>
+            )}
           </Card>
         </div>
 
         <div className="order-1 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
           <Card>
-            <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
+            <CardHeader title="Budget" description={ended ? 'Campaign ended' : `${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <ButtonLink href={`/streamer/campaigns/${c.id}/fund`} className="w-full">
-                Add budget
-              </ButtonLink>
-              <p className="mt-2 text-xs text-zinc-500">{platformFeePercent()}% platform fee on top. Clippers keep 100% of the budget.</p>
+              {ended ? (
+                <p className="text-sm text-zinc-500">
+                  {refunded > 0 ? `${usd(refunded)} refunded to your card. ` : ''}What’s left pays clippers for clips they’ve already earned on.
+                </p>
+              ) : publishableKey === '' ? (
+                <p className="text-sm text-rose-600">Stripe isn’t set up: add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.</p>
+              ) : (
+                <>
+                  <AppAddBudget
+                    campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate }}
+                    feePercent={feePercent}
+                    publishableKey={publishableKey}
+                    createIntent={createDepositIntent}
+                    payDemo={payDemoDeposit}
+                  />
+                  <p className="mt-2 text-xs text-zinc-500">{feePercent}% platform fee on top. Cancel anytime: unspent budget is refunded, the fee isn’t.</p>
+                </>
+              )}
             </div>
           </Card>
           <Card>
@@ -119,13 +147,12 @@ function StatusActions({ campaign }: { campaign: Campaign }) {
         </ActionButton>
       )}
       {campaign.status === 'active' && <ActionButton action={setCampaignStatus.bind(null, campaign.id, 'paused')}>Pause</ActionButton>}
-      {campaign.status !== 'draft' && <ActionButton action={setCampaignStatus.bind(null, campaign.id, 'completed')}>Complete</ActionButton>}
     </>
   );
 }
 
-function SubmissionActions({ s }: { s: SubmissionRow }) {
-  const kinds = submissionActionKinds(s);
+function SubmissionActions({ s, ended }: { s: SubmissionRow; ended: boolean }) {
+  const kinds = submissionActionKinds(s, ended);
   if (!kinds.length) return null;
   return (
     <>

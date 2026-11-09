@@ -31,8 +31,11 @@ export interface CampaignDetail {
   campaign: Campaign;
   shopDomain: string | null;
   submissions: SubmissionRow[];
+  /** Deposits minus refunds. */
   deposited: number;
+  refunded: number;
   paidOut: number;
+  /** Platform fees paid; never refunded. */
   fees: number;
   budget: BudgetStats;
   moments: MomentRow[];
@@ -91,12 +94,13 @@ async function loadBudgets(campaigns: Campaign[]): Promise<Map<string, BudgetSta
   if (!ids.length) return out;
   const admin = createAdminClient();
   const [{ data: ledger }, { data: subs }] = await Promise.all([
-    admin.from('escrow_ledger').select('campaign_id, amount').eq('entry_type', 'deposit').in('campaign_id', ids),
+    admin.from('escrow_ledger').select('campaign_id, entry_type, amount').in('entry_type', ['deposit', 'refund']).in('campaign_id', ids),
     admin.from('submissions').select('campaign_id, status, payout_earned, payout_transferred').in('campaign_id', ids),
   ]);
   for (const c of campaigns) {
     const own = (subs ?? []).filter((s) => s.campaign_id === c.id);
-    const deposited = (ledger ?? []).filter((l) => l.campaign_id === c.id).reduce((a, l) => a + Number(l.amount), 0);
+    // Net of refunds, so a cancelled campaign's refund doesn't count as spent.
+    const deposited = (ledger ?? []).filter((l) => l.campaign_id === c.id).reduce((a, l) => a + (l.entry_type === 'refund' ? -1 : 1) * Number(l.amount), 0);
     const owed = own
       .filter((s) => s.status === 'live_tracking')
       .reduce((a, s) => a + Number(s.payout_earned) - Number(s.payout_transferred), 0);
@@ -174,10 +178,11 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
     campaign: c,
     shopDomain: (conversion_pixels as { shop_domain: string | null } | null)?.shop_domain ?? null,
     submissions: rows,
-    deposited: sum('deposit'),
+    deposited: sum('deposit') - sum('refund'),
+    refunded: sum('refund'),
     paidOut: sum('creator_payout'),
     fees: sum('platform_fee'),
-    budget: budgetStats({ deposited: sum('deposit'), escrow: c.escrow_balance, owed, createdAt: c.created_at }),
+    budget: budgetStats({ deposited: sum('deposit') - sum('refund'), escrow: c.escrow_balance, owed, createdAt: c.created_at }),
     moments: await loadMoments(c.id),
   };
 }

@@ -7,6 +7,8 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
 import { streamerCharge } from '@/lib/payout';
+import { planRefunds } from '@/lib/refunds';
+import type Stripe from 'stripe';
 import { usdCents } from '@/lib/format';
 import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
@@ -66,6 +68,7 @@ export async function createCampaign(_prev: ActionState, form: FormData): Promis
 export async function setCampaignStatus(campaignId: string, status: 'active' | 'paused' | 'completed'): Promise<ActionState> {
   if (isDemo) return done(demo.setCampaignStatus(campaignId, status), campaignId);
   const { admin, campaign } = await requireOwnCampaign(campaignId);
+  if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
   if (status === 'active' && Number(campaign.escrow_balance) <= 0) return { error: 'Fund escrow before going live.' };
   await admin.from('campaigns').update({ status }).eq('id', campaignId);
   revalidatePath(`/streamer/campaigns/${campaignId}`);
@@ -85,6 +88,7 @@ export async function createDepositIntent(campaignId: string, amount: number): P
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (isDemo) return { error: 'Stripe is off in demo mode.' };
   const { campaign } = await requireOwnCampaign(campaignId);
+  if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
   const fee = platformFeePercent();
   const charge = streamerCharge(parsed.data, fee);
   const cents = (n: number) => Math.round(n * 100);
@@ -111,6 +115,65 @@ export async function payDemoDeposit(campaignId: string, amount: number): Promis
   return done(demo.fundEscrow(campaignId, parsed.data), campaignId);
 }
 
+/**
+ * Ends the campaign and refunds the unspent budget to the streamer's card.
+ * Status goes to completed first, so the sync stops growing earnings; money
+ * earned by approved clips stays reserved for payouts. The platform fee is
+ * not refunded. On an ended campaign it refunds whatever has been freed since
+ * (e.g. a flagged clip). Order: debit escrow (atomic) → Stripe refunds per
+ * deposit → ledger rows; anything Stripe doesn't take goes back to escrow.
+ */
+export async function cancelCampaign(campaignId: string): Promise<ActionState> {
+  if (isDemo) return done(demo.cancelCampaign(campaignId), campaignId);
+  const { admin, campaign } = await requireOwnCampaign(campaignId);
+  const wasLive = campaign.status !== 'completed';
+  if (wasLive) await admin.from('campaigns').update({ status: 'completed' }).eq('id', campaignId);
+
+  const { data: subs } = await admin.from('submissions').select('payout_earned, payout_transferred').eq('campaign_id', campaignId).eq('status', 'live_tracking');
+  const owed = (subs ?? []).reduce((a, x) => a + Number(x.payout_earned) - Number(x.payout_transferred), 0);
+  const { data: fresh } = await admin.from('campaigns').select('escrow_balance').eq('id', campaignId).single();
+  const escrowCents = Math.round(Number(fresh?.escrow_balance ?? 0) * 100);
+  const refundCents = Math.max(0, escrowCents - Math.ceil(owed * 100));
+  const ended = wasLive ? 'Campaign cancelled. ' : '';
+  if (refundCents === 0) return done({ success: `${ended}Nothing left to refund.` }, campaignId);
+
+  const { data: debited } = await admin.rpc('escrow_debit', { p_campaign: campaignId, p_amount: refundCents / 100 });
+  if (!debited) return done({ error: `${ended}The budget changed while refunding. Try again.` }, campaignId);
+
+  // Deposits made through the in-app checkout, newest first.
+  const { data: deposits } = await admin
+    .from('escrow_ledger')
+    .select('amount, stripe_object_id')
+    .eq('campaign_id', campaignId)
+    .eq('entry_type', 'deposit')
+    .like('stripe_object_id', 'pi_%')
+    .order('created_at', { ascending: false });
+  let refunded = 0;
+  let failure: string | null = null;
+  try {
+    const refundable = [];
+    for (const d of deposits ?? []) {
+      const intent = await stripe().paymentIntents.retrieve(d.stripe_object_id as string, { expand: ['latest_charge'] });
+      const charge = intent.latest_charge as Stripe.Charge | null;
+      refundable.push({ id: intent.id, refundableCents: Math.round(Number(d.amount) * 100) - (charge?.amount_refunded ?? 0) });
+    }
+    for (const part of planRefunds(refundable, refundCents)) {
+      const refund = await stripe().refunds.create({ payment_intent: part.id, amount: part.cents, metadata: { kind: 'campaign_refund', campaign_id: campaignId } });
+      refunded += part.cents;
+      await admin.from('escrow_ledger').insert({ campaign_id: campaignId, entry_type: 'refund', amount: part.cents / 100, stripe_object_id: refund.id });
+    }
+  } catch (err) {
+    failure = err instanceof Error ? err.message : 'Stripe refund failed.';
+  }
+  // Whatever wasn't refunded stays in the campaign.
+  if (refunded < refundCents) await admin.rpc('escrow_credit', { p_campaign: campaignId, p_amount: (refundCents - refunded) / 100 });
+
+  const back = refunded ? `${usdCents(refunded / 100)} is on its way back to your card (5–10 business days). ` : '';
+  if (failure) return done({ error: `${ended}${back}The rest couldn’t be refunded: ${failure}` }, campaignId);
+  if (refunded < refundCents) return done({ error: `${ended}${back}${usdCents((refundCents - refunded) / 100)} couldn’t be matched to a card payment. Contact support.` }, campaignId);
+  return done({ success: `${ended}${back.trim()}` }, campaignId);
+}
+
 export async function connectStore(_prev: ActionState, form: FormData): Promise<ActionState> {
   const domain = ShopDomainSchema.safeParse(form.get('shopDomain'));
   if (!domain.success) return { error: domain.error.issues[0].message };
@@ -132,7 +195,8 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
   const admin = createAdminClient();
   const { data: sub } = await admin.from('submissions').select('campaign_id, status').eq('id', submissionId).single();
   if (!sub) return { error: 'Submission not found.' };
-  await requireOwnCampaign(sub.campaign_id);
+  const { campaign } = await requireOwnCampaign(sub.campaign_id);
+  if (decision === 'approve' && campaign.status === 'completed') return { error: 'This campaign has ended, so new clips can’t earn.' };
 
   const update =
     decision === 'approve'
@@ -224,7 +288,8 @@ export async function addMoment(_prev: ActionState, form: FormData): Promise<Act
   const parsed = MomentSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (isDemo) return done(demo.addMoment(campaignId, parsed.data), campaignId);
-  const { admin } = await requireOwnCampaign(campaignId);
+  const { admin, campaign } = await requireOwnCampaign(campaignId);
+  if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
   const { error } = await admin.from('campaign_moments').insert({ ...parsed.data, campaign_id: campaignId });
   if (error) return { error: error.message };
   revalidatePath(`/streamer/campaigns/${campaignId}`);

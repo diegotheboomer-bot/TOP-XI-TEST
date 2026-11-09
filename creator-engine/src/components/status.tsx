@@ -11,7 +11,7 @@ const campaign: Record<CampaignStatus, [Tone, string]> = {
   draft: ['neutral', 'Draft'],
   active: ['green', 'Active'],
   paused: ['amber', 'Paused'],
-  completed: ['blue', 'Completed'],
+  completed: ['blue', 'Ended'],
 };
 
 export const SubmissionBadge = ({ status }: { status: SubmissionStatus }) => (

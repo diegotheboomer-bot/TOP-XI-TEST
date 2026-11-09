@@ -9,7 +9,8 @@ import * as core from '@/lib/demo-core';
 import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
 import { CampaignSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import { MomentFields } from '@/components/forms/moment-fields';
-import { FundCheckout } from '@/components/checkout/fund-checkout';
+import { AddBudget } from '@/components/checkout/fund-checkout';
+import { CancelCampaign } from '@/components/cancel-campaign';
 import { MockPayment } from '@/components/checkout/mock-payment';
 import { PayoutsView } from '@/components/payouts/payouts-view';
 import { MockOnboarding } from '@/components/payouts/mock-onboarding';
@@ -94,7 +95,6 @@ type Route =
   | { name: 'brand' }
   | { name: 'new-campaign' }
   | { name: 'campaign'; id: string }
-  | { name: 'fund'; id: string }
   | { name: 'creator' }
   | { name: 'discover' }
   | { name: 'payouts' }
@@ -103,7 +103,6 @@ type Route =
 function parseHash(hash: string): Route {
   const h = hash.replace(/^#/, '');
   if (h === 'start' || h === 'brand' || h === 'creator' || h === 'discover' || h === 'new-campaign' || h === 'payouts') return { name: h };
-  if (h.startsWith('fund-')) return { name: 'fund', id: h.slice('fund-'.length) };
   if (h.startsWith('campaign-')) return { name: 'campaign', id: h.slice('campaign-'.length) };
   if (h.startsWith('offer-')) return { name: 'offer', id: h.slice('offer-'.length) };
   return { name: 'home' };
@@ -201,7 +200,6 @@ const SECTIONS: Record<Role, NavSection> = {
 const ROUTE_ROLE: Record<Exclude<Route['name'], 'home' | 'start'>, Role> = {
   brand: 'streamer',
   campaign: 'streamer',
-  fund: 'streamer',
   'new-campaign': 'streamer',
   creator: 'clipper',
   discover: 'clipper',
@@ -212,7 +210,6 @@ const ROUTE_ROLE: Record<Exclude<Route['name'], 'home' | 'start'>, Role> = {
 const CURRENT: Record<Exclude<Route['name'], 'home' | 'start'>, string> = {
   brand: '#brand',
   campaign: '#brand',
-  fund: '#brand',
   'new-campaign': '#new-campaign',
   creator: '#creator',
   discover: '#discover',
@@ -269,7 +266,6 @@ function App() {
         {route.name === 'creator' && <CreatorHome store={store} />}
         {route.name === 'discover' && <Discover store={store} />}
         {route.name === 'offer' && <Offer store={store} id={route.id} />}
-        {route.name === 'fund' && <Fund store={store} id={route.id} />}
         {route.name === 'payouts' && <Payouts store={store} />}
       </AppShell>
       <Toast state={store.toast} />
@@ -411,9 +407,17 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
       />
     );
   }
-  const { campaign: c, submissions, shopDomain, deposited, paidOut, fees, budget } = detail;
+  const { campaign: c, submissions, shopDomain, deposited, refunded, paidOut, fees, budget } = detail;
   const r = rateParts(c);
   const act = (fn: (s: core.DemoState) => ActionState) => store.run((s) => fn(s));
+  const ended = c.status === 'completed';
+  const cancel = {
+    refund: budget.available,
+    reserved: Math.max(0, c.escrow_balance - budget.available),
+    fees,
+    feePercent: FEE_PERCENT,
+    pending: submissions.filter((s) => s.status === 'pending_review').length,
+  };
 
   return (
     <div className="space-y-6">
@@ -429,10 +433,14 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
           <PlatformChips platforms={c.platforms} className="mt-2" />
           <div className="mt-4 flex flex-wrap gap-2">
             <StatusActions campaign={c} act={act} />
+            {c.status !== 'draft' || c.escrow_balance > 0 ? (
+              <CancelCampaign key={c.id} summary={cancel} ended={ended} onConfirm={() => store.run((s) => core.cancelCampaign(s, c.id), { quiet: true })} />
+            ) : null}
           </div>
         </div>
       </div>
 
+      {!ended && (
       <DemoBar>
         <Button size="sm" variant="secondary" onClick={() => act((s) => core.simulateSync(s, c.id))}>
           Run 4h sync
@@ -443,10 +451,11 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
           </Button>
         )}
       </DemoBar>
+      )}
 
       <StatGrid
         items={[
-          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(deposited)} added, ${usdCompact(fees)} fee` },
+          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(deposited + refunded)} added, ${usdCompact(fees)} fee${refunded > 0 ? `, ${usdCompact(refunded)} refunded` : ''}` },
           { label: 'Paid to clippers', value: usd(paidOut), hint: 'Clippers keep 100%' },
           { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
           { label: 'Merch orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
@@ -465,7 +474,7 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
               cap={c.cpm_cap}
               autoApproveHours={c.auto_approve_hours}
               actions={(s) => {
-                const kinds = submissionActionKinds(s);
+                const kinds = submissionActionKinds(s, ended);
                 if (!kinds.length) return null;
                 return (
                   <>
@@ -498,6 +507,7 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
         <Card>
           <CardHeader title="Moments to clip" description="Pin timestamps from your stream. Slots stop everyone cutting the same moment." />
           <MomentBoard moments={detail.moments} showClaimers empty="No moments pinned yet." />
+          {!ended && (
           <form
             className="mt-5 border-t border-zinc-100 pt-5"
             noValidate
@@ -512,18 +522,34 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
           >
             <MomentFields idPrefix={c.id} submit={<Button type="submit" variant="secondary">Pin moment</Button>} />
           </form>
+          )}
         </Card>
         </div>
 
         <div className="order-1 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
           <Card>
-            <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
+            <CardHeader title="Budget" description={ended ? 'Campaign ended' : `${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <a href={`#fund-${c.id}`} className={buttonClass('primary', 'md', 'w-full')}>
-                Add budget
-              </a>
-              <p className="mt-2 text-xs text-zinc-500">{FEE_PERCENT}% platform fee on top. Clippers keep 100% of the budget.</p>
+              {ended ? (
+                <p className="text-sm text-zinc-500">
+                  {refunded > 0 ? `${usd(refunded)} refunded to your card. ` : ''}What’s left pays clippers for clips they’ve already earned on.
+                </p>
+              ) : (
+                <>
+                  <AddBudget
+                    key={c.id}
+                    campaign={c}
+                    feePercent={FEE_PERCENT}
+                    className="w-full"
+                    note="Demo mode: mock money only."
+                    payment={(quote, onPaid) => (
+                      <MockPayment quote={quote} onPay={(amount) => store.run((s) => core.fundEscrow(s, c.id, amount), { quiet: true })} onPaid={onPaid} />
+                    )}
+                  />
+                  <p className="mt-2 text-xs text-zinc-500">{FEE_PERCENT}% platform fee on top. Cancel anytime: unspent budget is refunded, the fee isn’t.</p>
+                </>
+              )}
             </div>
           </Card>
           <Card>
@@ -567,11 +593,6 @@ function StatusActions({ campaign, act }: { campaign: Campaign; act: (fn: (s: co
       {campaign.status === 'active' && (
         <Button size="sm" variant="secondary" onClick={() => act((s) => core.setCampaignStatus(s, campaign.id, 'paused'))}>
           Pause
-        </Button>
-      )}
-      {campaign.status !== 'draft' && (
-        <Button size="sm" variant="secondary" onClick={() => act((s) => core.setCampaignStatus(s, campaign.id, 'completed'))}>
-          Complete
         </Button>
       )}
     </>
@@ -664,23 +685,6 @@ function connectTikTok(store: Store) {
     return { success: 'TikTok connected (mock).' };
   });
 }
-function Fund({ store, id }: { store: Store; id: string }) {
-  const detail = core.campaignDetail(store.state, id);
-  if (!detail) {
-    return <Empty icon={<Megaphone />} title="Campaign not found" body="It may have been removed by a reset." action={<a href="#brand" className={buttonClass('secondary')}>Back to campaigns</a>} />;
-  }
-  return (
-    <FundCheckout
-      key={id}
-      campaign={detail.campaign}
-      feePercent={FEE_PERCENT}
-      backHref={`#campaign-${id}`}
-      note="Demo mode: mock money only."
-      payment={(quote, onPaid) => <MockPayment quote={quote} onPay={(amount) => store.run((s) => core.fundEscrow(s, id, amount), { quiet: true })} onPaid={onPaid} />}
-    />
-  );
-}
-
 function Payouts({ store }: { store: Store }) {
   const d = core.creatorDashboard(store.state, store.viewer);
   return (

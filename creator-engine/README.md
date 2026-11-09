@@ -16,7 +16,7 @@ npm run build
 
 With no Supabase keys the app runs in **demo mode** (`src/lib/demo-core.ts`). Everything is clickable and uses mock money, run through the same payout, fee and fraud code as production. Every streamer, clipper and number is invented.
 
-- **Streamer** (`/streamer`, as Marlow Kade): create campaigns (thumbnail upload, platforms, review window), fund them through the checkout (mock card form), pin moments, approve or flag clips, pay clippers. **Run 4h sync** advances time: views grow, earnings recalculate, the bot watchdog runs and overdue clean clips auto-approve.
+- **Streamer** (`/streamer`, as Marlow Kade): create campaigns (thumbnail upload, platforms, review window), fund them from the **Add budget** popup (mock card form), cancel them for a refund, pin moments, approve or flag clips, pay clippers. **Run 4h sync** advances time: views grow, earnings recalculate, the bot watchdog runs and overdue clean clips auto-approve.
 - **Clipper** (`/clipper`): switch clippers with **Viewing as**, browse Discover, join, claim a moment, submit a TikTok, Shorts or Reels link, set up payouts (mock onboarding form).
 - **Reset** in the sidebar restores the starting data.
 
@@ -33,13 +33,15 @@ Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thu
 3. Supabase Auth → URL configuration: add `<APP_URL>/auth/callback` as a redirect URL.
 4. YouTube: a Data API v3 key in `YOUTUBE_API_KEY` (public video statistics).
 5. TikTok developer app: Login Kit with scopes `user.info.basic`, `user.info.stats`, `video.list`; redirect URI `<APP_URL>/api/oauth/tiktok/callback`.
-6. Stripe: put the secret and publishable keys in `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and enable Connect. Add a webhook `<APP_URL>/api/webhooks/stripe` for `payment_intent.succeeded` (your account) and `account.updated` (connected accounts), and put its signing secret in `STRIPE_WEBHOOK_SECRET`. If you add a Content-Security-Policy, allow `js.stripe.com` and `connect-js.stripe.com`.
+6. Stripe: put the secret and publishable keys in `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and enable Connect. Add a webhook `<APP_URL>/api/webhooks/stripe` for `payment_intent.succeeded` and `refund.failed` (your account) and `account.updated` (connected accounts), and put its signing secret in `STRIPE_WEBHOOK_SECRET`. If you add a Content-Security-Policy, allow `js.stripe.com` and `connect-js.stripe.com`.
 7. Shopify (optional merch store): `orders/create` webhook to `<APP_URL>/api/webhooks/shopify`, signed with `SHOPIFY_WEBHOOK_SECRET`.
 8. Cron: `vercel.json` calls `/api/cron/sync` once a day (the most Vercel's free Hobby plan allows) with `Authorization: Bearer $CRON_SECRET`. For the intended every-4-hours refresh, switch the schedule to `0 */4 * * *` on Vercel Pro, or call the endpoint from any external scheduler.
 
 ## Fees
 
 Streamers pay a platform fee on top of the budget they add (`PLATFORM_FEE_PERCENT`, default 9%). The checkout shows the budget and the fee as separate lines; only the budget goes into the campaign, and clippers are paid 100% of what they earn. Stripe's own processing and Connect payout costs come out of the fee.
+
+A streamer can cancel a campaign at any time. Earnings stop growing, approved clips keep what they've earned (still paid out as normal), clips still waiting for review don't earn, and the unspent budget is refunded to the original card (Stripe: usually 5–10 business days). The fee is not refunded, and Stripe doesn't return its processing fee on refunds either. Budget freed up later (for example by flagging a clip) can be refunded from the same place. A refund the card issuer rejects goes back into the campaign budget.
 
 ## How it works
 
@@ -50,7 +52,8 @@ Streamers pay a platform fee on top of the budget they add (`PLATFORM_FEE_PERCEN
 | Submit flow: ownership check via creator's token, baseline metrics, duplicate check | `src/actions/creator.ts` → `submitVideo` |
 | Metric sync, payout calc, velocity watchdog | `src/lib/sync.ts`, `src/lib/payout.ts`, `src/lib/fraud.ts` |
 | Perceptual hash (DCT pHash of the video cover frame) | `src/lib/phash.ts` |
-| Funding: in-app checkout with Stripe's Payment Element (budget + 9% fee on top) | `src/app/streamer/campaigns/[id]/fund`, `src/components/checkout/`, `src/actions/brand.ts` → `createDepositIntent`, `src/app/api/webhooks/stripe` |
+| Funding: "Add budget" popup with Stripe's Payment Element (budget + 9% fee on top) | `src/components/checkout/`, `src/actions/brand.ts` → `createDepositIntent`, `src/app/api/webhooks/stripe` |
+| Cancel and refund unspent budget (fee kept) | `src/components/cancel-campaign.tsx`, `src/actions/brand.ts` → `cancelCampaign`, `src/lib/refunds.ts` |
 | Clipper payout setup: Stripe's embedded onboarding styled like the app; payouts by Transfer (clippers keep 100%) | `src/app/clipper/payouts`, `src/components/payouts/`, `src/actions/creator.ts`, `src/actions/brand.ts` → `releasePayout` |
 | Conversion attribution (discount code or `?ref=`) | `src/app/api/webhooks/shopify` |
 | Campaign thumbnails (upload to Supabase Storage, designed cover fallback) | `src/actions/brand.ts` → `createCampaign`, `src/components/views.tsx` → `CampaignCover` |

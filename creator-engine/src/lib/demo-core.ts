@@ -26,7 +26,7 @@ type DemoCampaign = Campaign & { shopDomain: string | null };
 type DemoSubmission = Submission & { prevSample: { at: number; views: number; comments: number } };
 interface Ledger {
   campaignId: string;
-  type: 'deposit' | 'creator_payout' | 'platform_fee';
+  type: 'deposit' | 'creator_payout' | 'platform_fee' | 'refund';
   amount: number;
 }
 interface Conversion {
@@ -326,7 +326,8 @@ export const demoCreators = (s: State) => s.creators.filter((c) => !c.handle.inc
 
 // ─── Queries ───────────────────────────────────────────────────────────────
 function budgetOf(s: State, c: DemoCampaign): BudgetStats {
-  const deposited = s.ledger.filter((l) => l.campaignId === c.id && l.type === 'deposit').reduce((a, l) => a + l.amount, 0);
+  const total = (type: Ledger['type']) => s.ledger.filter((l) => l.campaignId === c.id && l.type === type).reduce((a, l) => a + l.amount, 0);
+  const deposited = total('deposit') - total('refund');
   const owed = s.submissions
     .filter((x) => x.campaign_id === c.id && x.status === 'live_tracking')
     .reduce((a, x) => a + x.payout_earned - x.payout_transferred, 0);
@@ -382,7 +383,8 @@ export function campaignDetail(s: State, id: string): CampaignDetail | null {
       .filter((x) => x.campaign_id === id)
       .sort((a, b) => order[a.status] - order[b.status] || b.current_view_count - a.current_view_count)
       .map((x): SubmissionRow => ({ ...stripSub(x), creator_name: '@' + s.creators.find((cr) => cr.id === x.creator_id)!.handle })),
-    deposited: sum('deposit'),
+    deposited: cents(sum('deposit') - sum('refund')),
+    refunded: sum('refund'),
     paidOut: sum('creator_payout'),
     fees: sum('platform_fee'),
     budget: budgetOf(s, c),
@@ -436,6 +438,7 @@ export function createCampaign(s: State, input: Omit<Campaign, 'id' | 'brand_id'
 export function setCampaignStatus(s: State, id: string, status: Campaign['status']): ActionState {
   const c = ownCampaign(s, id);
   if (!c) return { error: 'Campaign not found.' };
+  if (c.status === 'completed') return { error: 'This campaign has ended.' };
   if (status === 'active' && c.escrow_balance <= 0) return { error: 'Fund escrow before going live.' };
   c.status = status;
   return { success: `Campaign ${status}.` };
@@ -444,10 +447,30 @@ export function setCampaignStatus(s: State, id: string, status: Campaign['status
 export function fundEscrow(s: State, id: string, amount: number): ActionState {
   const c = ownCampaign(s, id);
   if (!c) return { error: 'Campaign not found.' };
+  if (c.status === 'completed') return { error: 'This campaign has ended.' };
   const { budget, fee, total } = streamerCharge(amount, s.feePercent);
   c.escrow_balance = cents(c.escrow_balance + budget);
   s.ledger.push({ campaignId: id, type: 'deposit', amount: budget }, { campaignId: id, type: 'platform_fee', amount: fee });
   return { success: `Charged ${usdCents(total)}: ${usd(budget)} added to the clipper budget plus ${usdCents(fee)} fee. Mock money.` };
+}
+
+/**
+ * Ends the campaign and refunds the unspent budget (mock). Earnings stop
+ * growing; approved clips keep what they've earned. The fee isn't refunded.
+ * On an ended campaign it refunds whatever has been freed up since.
+ */
+export function cancelCampaign(s: State, id: string): ActionState {
+  const c = ownCampaign(s, id);
+  if (!c) return { error: 'Campaign not found.' };
+  const wasLive = c.status !== 'completed';
+  c.status = 'completed';
+  const refund = cents(budgetOf(s, c).available);
+  if (refund > 0) {
+    c.escrow_balance = cents(c.escrow_balance - refund);
+    s.ledger.push({ campaignId: id, type: 'refund', amount: refund });
+  }
+  const refunded = refund > 0 ? `${usdCents(refund)} refunded to your card (mock).` : 'Nothing left to refund.';
+  return { success: wasLive ? `Campaign cancelled. ${refunded}` : refunded };
 }
 
 export function connectStore(s: State, id: string, domain: string): ActionState {
@@ -461,6 +484,7 @@ export function reviewSubmission(s: State, id: string, decision: 'approve' | 'fl
   const sub = s.submissions.find((x) => x.id === id);
   if (!sub || !ownCampaign(s, sub.campaign_id)) return { error: 'Submission not found.' };
   if (decision === 'approve') {
+    if (ownCampaign(s, sub.campaign_id)!.status === 'completed') return { error: 'This campaign has ended, so new clips can’t earn.' };
     Object.assign(sub, { status: 'live_tracking', flag_reason: null, fraud_score: 0 });
     const c = ownCampaign(s, sub.campaign_id)!;
     sub.payout_earned = Math.max(sub.payout_earned, calculatePayout(c, sub.current_view_count, revenueFor(s, enrollmentOf(s, sub).id)));
@@ -497,6 +521,7 @@ export function releasePayout(s: State, id: string): ActionState {
 export function simulateSync(s: State, campaignId: string): ActionState {
   const c = ownCampaign(s, campaignId);
   if (!c) return { error: 'Campaign not found.' };
+  if (c.status === 'completed') return { error: 'This campaign has ended. Earnings are final.' };
   const subs = s.submissions.filter((x) => x.campaign_id === campaignId && (x.status === 'live_tracking' || x.status === 'pending_review'));
   if (!subs.length) return { error: 'No live videos to sync.' };
 
@@ -540,6 +565,7 @@ export function simulateSync(s: State, campaignId: string): ActionState {
 export function simulateSale(s: State, campaignId: string): ActionState {
   const c = ownCampaign(s, campaignId);
   if (!c) return { error: 'Campaign not found.' };
+  if (c.status === 'completed') return { error: 'This campaign has ended. Earnings are final.' };
   if (!c.shopDomain) return { error: 'Connect a store first.' };
   const live = s.submissions.filter((x) => x.campaign_id === campaignId && x.status === 'live_tracking');
   if (!live.length) return { error: 'No live creators to attribute a sale to.' };
@@ -557,7 +583,9 @@ export function simulateSale(s: State, campaignId: string): ActionState {
 }
 
 export function addMoment(s: State, campaignId: string, input: MomentInput): ActionState {
-  if (!ownCampaign(s, campaignId)) return { error: 'Campaign not found.' };
+  const c = ownCampaign(s, campaignId);
+  if (!c) return { error: 'Campaign not found.' };
+  if (c.status === 'completed') return { error: 'This campaign has ended.' };
   s.moments.unshift({ id: `mo-${randomUUID().slice(0, 8)}`, campaign_id: campaignId, ...input, vod_url: null, claimed_by: [] });
   return { success: 'Moment pinned for clippers.' };
 }
@@ -576,6 +604,7 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
   const enrollment = s.enrollments.find((e) => e.creator_id === me.id && e.campaign_id === campaignId);
   if (!enrollment) return { error: 'Join the campaign before submitting.' };
   const camp = s.campaigns.find((x) => x.id === campaignId)!;
+  if (camp.status !== 'active') return { error: 'This campaign is not accepting submissions.' };
 
   const parsed = parseVideoUrl(url);
   if (!parsed.ok) {
@@ -624,6 +653,7 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
 export function claimMoment(s: State, viewer: string, momentId: string): ActionState {
   const m = s.moments.find((x) => x.id === momentId);
   if (!m) return { error: 'Moment not found.' };
+  if (s.campaigns.find((c) => c.id === m.campaign_id)?.status !== 'active') return { error: 'This campaign isn’t taking new clips.' };
   if (!s.enrollments.some((e) => e.creator_id === viewer && e.campaign_id === m.campaign_id)) return { error: 'Join the campaign to claim moments.' };
   if (m.claimed_by.includes(viewer)) return { error: 'You already claimed this moment.' };
   if (m.claimed_by.length >= m.max_claims) return { error: 'Every slot for this moment is taken.' };

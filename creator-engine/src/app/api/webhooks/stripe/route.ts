@@ -36,6 +36,18 @@ export async function POST(req: Request) {
     }
   }
 
+  // A campaign refund the card issuer couldn't process: Stripe returns the money
+  // to the platform balance, so put it back into the campaign's budget.
+  if (event.type === 'refund.failed') {
+    const refund = event.data.object;
+    const campaignId = refund.metadata?.campaign_id;
+    if (refund.metadata?.kind === 'campaign_refund' && campaignId) {
+      // Deleting the ledger row first makes retries a no-op.
+      const { data: removed } = await admin.from('escrow_ledger').delete().eq('stripe_object_id', refund.id).eq('entry_type', 'refund').select('id');
+      if (removed?.length) await admin.rpc('escrow_credit', { p_campaign: campaignId, p_amount: refund.amount / 100 });
+    }
+  }
+
   if (event.type === 'account.updated') {
     const account = event.data.object;
     await admin.from('creators').update({ payouts_enabled: account.payouts_enabled ?? false }).eq('stripe_account_id', account.id);

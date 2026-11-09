@@ -319,10 +319,11 @@ function Cell({ label, value }: { label: string; value: string }) {
 }
 
 /** Which review / payout buttons a submission gets, given its state. */
-export function submissionActionKinds(s: Submission): ('approve' | 'flag' | 'pay' | 'clear')[] {
-  if (s.status === 'pending_review') return ['approve', 'flag'];
+/** Actions on a clip. Once a campaign has ended, clips can still be paid or flagged but not approved. */
+export function submissionActionKinds(s: Submission, ended = false): ('approve' | 'flag' | 'pay' | 'clear')[] {
+  if (s.status === 'pending_review') return ended ? ['flag'] : ['approve', 'flag'];
   if (s.status === 'live_tracking') return s.payout_earned - s.payout_transferred >= 1 ? ['pay', 'flag'] : ['flag'];
-  if (s.status === 'flagged') return ['clear'];
+  if (s.status === 'flagged') return ended ? [] : ['clear'];
   return [];
 }
 

@@ -37,6 +37,7 @@ export const creatorCampaign = (id: string) => core.creatorCampaign(db(), curren
 export const createCampaign = (input: Parameters<typeof core.createCampaign>[1]) => core.createCampaign(db(), input);
 export const setCampaignStatus = (id: string, status: Campaign['status']): ActionState => core.setCampaignStatus(db(), id, status);
 export const fundEscrow = (id: string, amount: number) => core.fundEscrow(db(), id, amount);
+export const cancelCampaign = (id: string) => core.cancelCampaign(db(), id);
 export const connectStore = (id: string, domain: string) => core.connectStore(db(), id, domain);
 export const reviewSubmission = (id: string, d: 'approve' | 'flag') => core.reviewSubmission(db(), id, d);
 export const releasePayout = (id: string) => core.releasePayout(db(), id);

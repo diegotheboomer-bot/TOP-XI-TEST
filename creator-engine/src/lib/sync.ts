@@ -18,14 +18,16 @@ export interface SyncReport {
 }
 
 /**
- * Cron entry point: refresh every live_tracking submission.
+ * Cron entry point: refresh every live or pending submission of a running campaign.
  * Videos are grouped per creator because TikTok stats need that creator's token.
  */
 export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncReport> {
   const { data, error } = await admin
     .from('submissions')
-    .select('*, campaigns(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, auto_approve_hours)')
+    .select('*, campaigns!inner(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, auto_approve_hours, status)')
     .in('status', ['live_tracking', 'pending_review'])
+    // Ended (cancelled) campaigns are skipped: their earnings are final.
+    .in('campaigns.status', ['active', 'paused'])
     .in('platform', ['tiktok', 'youtube']);
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
