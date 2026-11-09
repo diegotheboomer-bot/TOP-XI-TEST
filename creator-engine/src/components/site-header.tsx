@@ -3,16 +3,12 @@ import { isDemo } from '@/lib/env';
 import { signOut } from '@/actions/account';
 import { Badge } from './ui/badge';
 import { ThemeToggle } from './theme-toggle';
+import { Logo as BrandLogo } from './logo';
 
 export function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
-      <span className="grid size-7 place-items-center rounded-md bg-brand text-brand-ink">
-        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M4 17 9.5 11l4 4L20 8" />
-        </svg>
-      </span>
-      Creator Engine
+    <Link href="/" aria-label="Creator Engine home">
+      <BrandLogo />
     </Link>
   );
 }

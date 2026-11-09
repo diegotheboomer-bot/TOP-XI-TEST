@@ -1,6 +1,7 @@
 import type { LinkLike } from './views';
 import { cn } from './ui/cn';
 import { Badge } from './ui/badge';
+import { Logo as BrandLogo } from './logo';
 
 export interface NavItem {
   href: string;
@@ -28,13 +29,8 @@ export function activeHref(sections: NavSection[], path: string): string | null 
 
 function Logo({ link: Link, href }: { link: LinkLike; href: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2.5 font-semibold tracking-tight">
-      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-brand text-brand-ink">
-        <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 17 9.5 11l4 4L20 8" />
-        </svg>
-      </span>
-      Creator Engine
+    <Link href={href} aria-label="Creator Engine home">
+      <BrandLogo />
     </Link>
   );
 }
