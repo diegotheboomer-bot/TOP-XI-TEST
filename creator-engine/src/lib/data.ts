@@ -1,3 +1,4 @@
+import { payoutReady, type PayoutSetup } from './payout-methods';
 import { redirect } from 'next/navigation';
 import { isDemo } from './env';
 import { getViewer } from './session';
@@ -52,7 +53,9 @@ export interface CreatorEnrollment {
 export interface CreatorDashboard {
   name: string;
   tiktok: { username: string | null; followers: number | null } | null;
+  /** Ready to be paid by the chosen method. */
   payoutsEnabled: boolean;
+  payout: PayoutSetup;
   enrollments: CreatorEnrollment[];
   openCampaigns: MarketCampaign[];
 }
@@ -187,6 +190,12 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
   };
 }
 
+/** The clipper's payout method (readable only by them, via RLS). Stripe until they choose otherwise. */
+async function loadPayoutSetup(creatorId: string, stripeReady: boolean): Promise<PayoutSetup> {
+  const { data } = await createClient().from('payout_methods').select('method, handle, last_failure').eq('creator_id', creatorId).maybeSingle();
+  return { method: data?.method ?? 'stripe', handle: data?.handle ?? null, stripeReady, lastFailure: data?.last_failure ?? null };
+}
+
 export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   if (isDemo) return demo.creatorDashboard();
   const creatorId = await requireRole('creator');
@@ -203,10 +212,12 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     .filter((c) => !joined.has(c.id))
     .map(({ brands, ...c }) => ({ ...num(c as Campaign, CAMPAIGN_NUMS), brandName: (brands as { name: string } | null)?.name ?? '' }));
   const budgets = await loadBudgets(openList);
+  const payout = await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false);
   return {
     name: creator?.display_name ?? '',
     tiktok: account ? { username: account.username, followers: account.follower_count } : null,
-    payoutsEnabled: creator?.payouts_enabled ?? false,
+    payoutsEnabled: payoutReady(payout),
+    payout,
     enrollments: (enrollments ?? []).map(({ campaigns, ...e }) => {
       const { brands, conversion_pixels, ...c } = campaigns as Record<string, unknown>;
       const sub = (subs ?? []).find((s) => s.campaign_id === e.campaign_id);
@@ -246,7 +257,7 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     enrollment: (enrollment as Enrollment | null) ?? null,
     submission: sub ? num(sub as Submission, SUB_NUMS) : null,
     tiktokConnected: !!account,
-    payoutsEnabled: creator?.payouts_enabled ?? false,
+    payoutsEnabled: payoutReady(await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false)),
     moments: await loadMoments(c.id, creatorId),
   };
 }

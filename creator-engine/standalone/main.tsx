@@ -14,6 +14,7 @@ import { CancelCampaign } from '@/components/cancel-campaign';
 import { MockPayment } from '@/components/checkout/mock-payment';
 import { PayoutsView } from '@/components/payouts/payouts-view';
 import { MockOnboarding } from '@/components/payouts/mock-onboarding';
+import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import type { ActionState } from '@/actions/result';
 import type { Campaign } from '@/lib/types';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -691,10 +692,16 @@ function Payouts({ store }: { store: Store }) {
     <div className="space-y-8">
       <PageHeader title="Payouts" description="Where your earnings go. Set up once, then get paid for every approved clip." actions={<ViewAs store={store} />} />
       <PayoutsView
-        enabled={d.payoutsEnabled}
-        form={
+        key={store.viewer}
+        setup={d.payout}
+        onSave={(method, handle) => {
+          if (method === 'stripe') return store.run((st, v) => core.setPayoutMethod(st, v, 'stripe', null), { quiet: true });
+          const parsed = PayoutHandleSchema.safeParse({ method, handle });
+          if (!parsed.success) return { error: parsed.error.issues[0].message };
+          return store.run((st, v) => core.setPayoutMethod(st, v, parsed.data.method, parsed.data.handle), { quiet: true });
+        }}
+        stripeForm={
           <MockOnboarding
-            key={store.viewer}
             onDone={() =>
               store.run((s, v) => {
                 core.enablePayouts(s, v);
@@ -703,7 +710,7 @@ function Payouts({ store }: { store: Store }) {
             }
           />
         }
-        manage={<p className="text-sm text-zinc-500">In the real app, this opens your Stripe Express dashboard: payout history, bank details and tax forms.</p>}
+        manageStripe={<p className="self-center text-xs text-zinc-500">In the real app, “Open Stripe dashboard” shows payout history, bank details and tax forms.</p>}
       />
     </div>
   );
@@ -774,7 +781,7 @@ function CreatorHome({ store }: { store: Store }) {
           },
           {
             label: 'Set up payouts',
-            detail: 'Connect a bank through Stripe so you can be paid.',
+            detail: 'Choose a bank, debit card, PayPal or Venmo so you can be paid.',
             done: d.payoutsEnabled,
             action: (
               <a href="#payouts" className={buttonClass('primary', 'sm')}>
@@ -859,7 +866,7 @@ function CreatorHome({ store }: { store: Store }) {
             icon={<Wallet />}
             title="Payouts"
             connected={d.payoutsEnabled}
-            detail={d.payoutsEnabled ? 'Stripe Express' : 'Not set up'}
+            detail={d.payoutsEnabled ? payoutDestination(d.payout) : 'Not set up'}
             action={
               <a href="#payouts" className={buttonClass(d.payoutsEnabled ? 'ghost' : 'secondary', 'sm')}>
                 {d.payoutsEnabled ? 'Manage' : 'Set up'}

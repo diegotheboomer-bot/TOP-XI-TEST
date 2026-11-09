@@ -14,6 +14,8 @@ import { hasClipCode, hasDisclosure } from '@/lib/compliance';
 import { getYouTubeVideos } from '@/lib/platforms/youtube';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
 import { stripe } from '@/lib/stripe';
+import { paypalConfigured } from '@/lib/paypal';
+import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
 import type { ActionState } from './result';
 
@@ -209,6 +211,10 @@ export async function refreshPayoutStatus(): Promise<ActionState> {
   if (!creator?.stripe_account_id) return undefined;
   const account = await stripe().accounts.retrieve(creator.stripe_account_id as string);
   await admin.from('creators').update({ payouts_enabled: account.payouts_enabled ?? false }).eq('id', creatorId);
+  // Finishing Stripe's form means the clipper chose bank or debit card.
+  if (account.payouts_enabled) {
+    await admin.from('payout_methods').upsert({ creator_id: creatorId, method: 'stripe', handle: null, last_failure: null, updated_at: new Date().toISOString() });
+  }
   revalidatePath('/clipper', 'layout');
   return account.payouts_enabled ? { success: 'Payouts are on.' } : undefined;
 }
@@ -219,6 +225,29 @@ export async function openPayoutDashboard(): Promise<void> {
   const account = await payoutAccount(await requireCreator());
   const link = await stripe().accounts.createLoginLink(account);
   redirect(link.url);
+}
+
+/**
+ * Clipper chooses how to get paid. PayPal and Venmo save the email or US
+ * mobile number; choosing bank/debit card switches back to Stripe (onboarding
+ * still has to be finished there).
+ */
+export async function savePayoutMethod(method: string, handle: string): Promise<ActionState> {
+  let row: { method: 'stripe' | 'paypal' | 'venmo'; handle: string | null };
+  if (method === 'stripe') row = { method: 'stripe', handle: null };
+  else {
+    const parsed = PayoutHandleSchema.safeParse({ method, handle });
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+    row = parsed.data;
+  }
+  if (isDemo) return refreshed(demo.setPayoutMethod(row.method, row.handle));
+  if (row.method !== 'stripe' && !paypalConfigured()) return { error: 'PayPal and Venmo payouts aren’t switched on yet. Use a bank or debit card for now.' };
+  const creatorId = await requireCreator();
+  const { error } = await createAdminClient()
+    .from('payout_methods')
+    .upsert({ creator_id: creatorId, ...row, last_failure: null, updated_at: new Date().toISOString() });
+  if (error) return { error: error.message };
+  return refreshed({ success: row.method === 'stripe' ? 'Bank or debit card selected.' : `Payouts will go to ${payoutDestination(row)}.` });
 }
 
 /** Demo: the mock onboarding form finished. */

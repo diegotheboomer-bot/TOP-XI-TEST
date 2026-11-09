@@ -13,6 +13,7 @@ import { generateDiscountCode, refParam } from './attribution';
 import { budgetStats, type BudgetStats } from './budget';
 import { shouldAutoApprove } from './compliance';
 import type { MomentInput } from './schemas';
+import { PAYOUT_METHOD_LABEL, payoutDestination, payoutReady, type PayoutMethod, type PayoutSetup } from './payout-methods';
 
 interface DemoCreator {
   id: string;
@@ -20,7 +21,11 @@ interface DemoCreator {
   displayName: string;
   followers: number;
   tiktokConnected: boolean;
+  /** Stripe Connect onboarding finished. */
   payoutsEnabled: boolean;
+  payoutMethod: PayoutMethod;
+  /** PayPal email or Venmo number; null for Stripe. */
+  payoutHandle: string | null;
 }
 type DemoCampaign = Campaign & { shopDomain: string | null };
 type DemoSubmission = Submission & { prevSample: { at: number; views: number; comments: number } };
@@ -91,9 +96,14 @@ export function seedDemo(feePercent: number, assetBase: string): State {
     followers,
     tiktokConnected: true,
     payoutsEnabled: true,
+    payoutMethod: 'stripe',
+    payoutHandle: null,
   });
   const [a, b, c, d, e, f, h] = CLIPPERS.map(([handle, name, followers]) => creator(handle, name, followers));
   f.payoutsEnabled = false;
+  // Some clippers prefer PayPal or Venmo (reserved example domain / fictional 555-01xx number).
+  Object.assign(b, { payoutsEnabled: false, payoutMethod: 'paypal', payoutHandle: 'vodvault@example.com' });
+  Object.assign(e, { payoutsEnabled: false, payoutMethod: 'venmo', payoutHandle: '+12015550123' });
   h.tiktokConnected = false;
   h.payoutsEnabled = false;
   const creators = [
@@ -398,7 +408,8 @@ export function creatorDashboard(s: State, viewer: string): CreatorDashboard {
   return {
     name: me.displayName,
     tiktok: me.tiktokConnected ? { username: me.handle, followers: me.followers } : null,
-    payoutsEnabled: me.payoutsEnabled,
+    payoutsEnabled: payoutReady(payoutSetupOf(me)),
+    payout: payoutSetupOf(me),
     enrollments: mine.map((e) => {
       const c = s.campaigns.find((x) => x.id === e.campaign_id)!;
       const sub = s.submissions.find((x) => x.creator_id === me.id && x.campaign_id === c.id);
@@ -421,7 +432,7 @@ export function creatorCampaign(s: State, viewer: string, id: string): CreatorCa
     enrollment,
     submission: sub ? stripSub(sub) : null,
     tiktokConnected: me.tiktokConnected,
-    payoutsEnabled: me.payoutsEnabled,
+    payoutsEnabled: payoutReady(payoutSetupOf(me)),
     moments: momentRows(s, id, me.id),
   };
 }
@@ -500,7 +511,8 @@ export function releasePayout(s: State, id: string): ActionState {
   if (!sub || !c) return { error: 'Submission not found.' };
   const creator = s.creators.find((x) => x.id === sub.creator_id)!;
   if (sub.status !== 'live_tracking') return { error: 'Only approved, unflagged submissions can be paid.' };
-  if (!creator.payoutsEnabled) return { error: `@${creator.handle} has not finished payout setup.` };
+  const setup = payoutSetupOf(creator);
+  if (!payoutReady(setup)) return { error: `@${creator.handle} has not finished payout setup.` };
   const gross = cents(sub.payout_earned - sub.payout_transferred);
   if (gross < 1) return { error: 'Nothing to pay out yet.' };
   if (c.escrow_balance < gross) return { error: 'Not enough escrow. Top up the campaign first.' };
@@ -510,7 +522,8 @@ export function releasePayout(s: State, id: string): ActionState {
   sub.payout_transferred = cents(sub.payout_transferred + gross);
   s.ledger.push({ campaignId: c.id, type: 'creator_payout', amount: gross });
   if (sub.payout_transferred >= c.cpm_cap) sub.status = 'paid';
-  return { success: `Paid ${usdCents(gross)} to @${creator.handle}. No fee taken. Mock money.` };
+  const via = setup.method === 'stripe' ? 'their bank' : PAYOUT_METHOD_LABEL[setup.method];
+  return { success: `Paid ${usdCents(gross)} to @${creator.handle} via ${via}. No fee taken. Mock money.` };
 }
 
 /**
@@ -666,7 +679,18 @@ export function connectTikTok(s: State, viewer: string): void {
   me.tiktokConnected = true;
 }
 
+const payoutSetupOf = (c: DemoCreator): PayoutSetup => ({ method: c.payoutMethod, handle: c.payoutHandle, stripeReady: c.payoutsEnabled, lastFailure: null });
+
+/** Mock Stripe onboarding finished: bank or debit card through Stripe. */
 export function enablePayouts(s: State, viewer: string): void {
   const me = s.creators.find((c) => c.id === viewer)!;
-  me.payoutsEnabled = true;
+  Object.assign(me, { payoutsEnabled: true, payoutMethod: 'stripe', payoutHandle: null });
+}
+
+/** Clipper picks a payout method. PayPal/Venmo need a validated handle; Stripe needs onboarding. */
+export function setPayoutMethod(s: State, viewer: string, method: PayoutMethod, handle: string | null): ActionState {
+  const me = s.creators.find((c) => c.id === viewer)!;
+  if (method !== 'stripe' && !handle) return { error: 'Enter where to send your money.' };
+  Object.assign(me, { payoutMethod: method, payoutHandle: method === 'stripe' ? null : handle });
+  return { success: `Payouts will go to ${payoutDestination({ method, handle })}.` };
 }

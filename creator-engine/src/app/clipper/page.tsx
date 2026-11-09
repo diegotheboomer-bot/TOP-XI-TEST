@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Compass, Music2, Wallet } from 'lucide-react';
 import { getCreatorDashboard } from '@/lib/data';
 import { compact, usd } from '@/lib/format';
+import { payoutDestination } from '@/lib/payout-methods';
 import { connectTikTok } from '@/actions/creator';
 import { isDemo } from '@/lib/env';
 import { currentCreatorId, demoCreators } from '@/lib/demo';
@@ -60,7 +61,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             done: subs.length > 0,
             action: firstOpen ? <ButtonLink href={`/clipper/campaigns/${firstOpen.campaign.id}`} size="sm">Open campaign</ButtonLink> : undefined,
           },
-          { label: 'Set up payouts', detail: 'Connect a bank through Stripe so you can be paid.', done: d.payoutsEnabled, action: payoutsButton },
+          { label: 'Set up payouts', detail: 'Choose a bank, debit card, PayPal or Venmo so you can be paid.', done: d.payoutsEnabled, action: payoutsButton },
         ]}
       />
 
@@ -132,7 +133,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             icon={<Wallet />}
             title="Payouts"
             connected={d.payoutsEnabled}
-            detail={d.payoutsEnabled ? 'Stripe Express' : 'Not set up'}
+            detail={d.payoutsEnabled ? payoutDestination(d.payout) : 'Not set up'}
             action={
               <ButtonLink href="/clipper/payouts" size="sm" variant={d.payoutsEnabled ? 'ghost' : 'secondary'}>
                 {d.payoutsEnabled ? 'Manage' : 'Set up'}

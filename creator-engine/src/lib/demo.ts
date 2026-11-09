@@ -47,5 +47,6 @@ export const joinCampaign = (campaignId: string) => core.joinCampaign(db(), curr
 export const submitVideo = (campaignId: string, url: string) => core.submitVideo(db(), currentCreatorId(), campaignId, url);
 export const connectTikTok = () => core.connectTikTok(db(), currentCreatorId());
 export const enablePayouts = () => core.enablePayouts(db(), currentCreatorId());
+export const setPayoutMethod = (method: Parameters<typeof core.setPayoutMethod>[2], handle: string | null) => core.setPayoutMethod(db(), currentCreatorId(), method, handle);
 export const addMoment = (campaignId: string, input: Parameters<typeof core.addMoment>[2]) => core.addMoment(db(), campaignId, input);
 export const claimMoment = (momentId: string) => core.claimMoment(db(), currentCreatorId(), momentId);

@@ -43,7 +43,7 @@ export default function TermsPage() {
           <li>Post your own edits, follow each campaign’s rules, and only submit clips from accounts you control.</li>
           <li>Mark sponsored clips clearly, for example with #ad, as advertising law requires.</li>
           <li>Earnings are based on views reported by TikTok or YouTube. Screenshots and self-reported numbers aren’t accepted.</li>
-          <li>We don’t charge clippers a fee. Payouts go through Stripe, and Stripe’s own terms apply to your payout account.</li>
+          <li>We don’t charge clippers a fee. Payouts go to a bank account or debit card through Stripe, or to PayPal or Venmo through PayPal; that provider’s own terms apply to your account there. Keep your payout details correct: a payout PayPal can’t deliver, or that isn’t claimed within 30 days, comes back to the campaign until you update them.</li>
           <li>You’re responsible for taxes on what you earn.</li>
         </ul>
       </section>
@@ -69,7 +69,11 @@ export default function TermsPage() {
 
       <section>
         <h2>Payments</h2>
-        <p>Payments and payouts are processed by Stripe. Card payments can be disputed; if a funding payment is reversed, we may hold payouts from that campaign.</p>
+        <p>
+          Payments are processed by Stripe; payouts by Stripe or PayPal. Card payments can be disputed; if a funding payment is reversed, we may hold payouts from that
+          campaign. Streamers can cancel a campaign at any time: unspent budget is refunded to the original payment method, the platform fee is not, and money clippers
+          have already earned is still paid to them.
+        </p>
       </section>
 
       <section>
