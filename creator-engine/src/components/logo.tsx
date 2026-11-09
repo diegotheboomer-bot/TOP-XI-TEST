@@ -47,8 +47,6 @@ const along = (k: number, d: number) => {
   const n = Math.hypot(1, k);
   return `translate(${f(d / n)} ${f((-d * k) / n)})`;
 };
-const hband = (y1: number, y2: number) => `-5,${y1} 33,${y1} 33,${y2} -5,${y2}`;
-const vband = (x1: number, x2: number) => `${x1},-40 ${x2},-40 ${x2},40 ${x1},40`;
 
 /** The classic cut: the A sliced at slope k through (x, y), the top piece slid along. */
 function cutA(shape: ReturnType<typeof a>, k: number, x: number, y: number, top: Tone = 'g', extra: (side: 'low' | 'high') => Piece[] = () => []): Piece[] {
@@ -63,72 +61,34 @@ function cutA(shape: ReturnType<typeof a>, k: number, x: number, y: number, top:
 }
 
 const A = a({ dx: -0.9 });
-const SLICE_A = a({ top: 6.6, bottom: 24.4, w: 9.6 }); // sits lower so the lifted tip stays inside the tile
-const SIDE_L = vband(-5, 11.1);
-const SIDE_R = vband(16.9, 33);
-const MIDDLE = vband(12.3, 15.7);
-const LIFT = 'translate(0 -3)';
-const BAR_A = a({ dx: -1.1 });
+const STEEP = a({ dx: -0.8 });
 
 export const LOGO_MARKS = [
   { id: 'cut', name: 'Cut', meaning: 'The A sliced, top piece slid along the cut', pieces: cutA(A, 0.3, 13.1, 15.2) },
   {
     id: 'cutbar',
     name: 'Cut Bar',
-    meaning: 'With a crossbar; the tip sliced off above it',
-    pieces: cutA(A, 0.3, 13.1, 12.9, 'g', (side) => (side === 'low' ? [{ d: A.bar(17.2, 19.8), t: 'g' }] : [])),
+    meaning: 'A slim crossbar; the tip sliced off above it',
+    pieces: cutA(A, 0.3, 13.1, 12.9, 'g', (side) => (side === 'low' ? [{ d: A.bar(17.6, 19.4), t: 'g' }] : [])),
+  },
+  {
+    id: 'cutbarthin',
+    name: 'Cut Hairline',
+    meaning: 'An even thinner crossbar',
+    pieces: cutA(A, 0.3, 13.1, 12.9, 'g', (side) => (side === 'low' ? [{ d: A.bar(17.9, 19.1), t: 'g' }] : [])),
   },
   {
     id: 'cutthru',
     name: 'Cut Thru Bar',
-    meaning: 'With a crossbar; the cut runs through it',
-    pieces: cutA(A, 0.2, 13.1, 18, 'g', () => [{ d: A.bar(16.6, 19.2), t: 'g' }]),
+    meaning: 'A slim crossbar with the cut running through it',
+    pieces: cutA(A, 0.2, 13.1, 18, 'g', () => [{ d: A.bar(17.1, 18.9), t: 'g' }]),
   },
-  { id: 'cutduo', name: 'Cut Duo', meaning: 'The cut with a lighter top piece', pieces: cutA(A, 0.3, 13.1, 15.2, 'a') },
-  { id: 'cutsteep', name: 'Cut Steep', meaning: 'A sharper, more dramatic cut', pieces: cutA(a({ dx: -0.8 }), 0.55, 13.2, 15.6) },
-  { id: 'cutmirror', name: 'Cut Mirror', meaning: 'The cut the other way', pieces: cutA(a({ dx: 0.9 }), -0.3, 14.9, 15.2) },
-  { id: 'cutthin', name: 'Cut Thin', meaning: 'The cut with slimmer legs', pieces: cutA(a({ t: 3.8, dx: -0.9 }), 0.3, 13.1, 15.2) },
-  { id: 'cutbold', name: 'Cut Bold', meaning: 'The cut with heavier legs', pieces: cutA(a({ t: 6.2, dx: -0.9 }), 0.3, 13.1, 15.2) },
+  { id: 'cutsteep', name: 'Cut Steep', meaning: 'A sharper, more dramatic cut', pieces: cutA(STEEP, 0.55, 13.2, 15.6) },
   {
-    id: 'slice',
-    name: 'Slice',
-    meaning: 'The middle of the A sliced out and lifted',
-    pieces: [
-      { d: SLICE_A.d, t: 'g', clip: SIDE_L },
-      { d: SLICE_A.d, t: 'g', clip: SIDE_R },
-      { d: SLICE_A.d, t: 'g', clip: MIDDLE, move: LIFT },
-    ],
-  },
-  {
-    id: 'slicebar',
-    name: 'Slice Bar',
-    meaning: 'With a crossbar; its band sliced out and slid sideways',
-    pieces: [
-      { d: BAR_A.d, t: 'g', clip: hband(-40, 15.9) },
-      { d: BAR_A.d, t: 'g', clip: hband(20.9, 40) },
-      { d: BAR_A.d, t: 'g', clip: hband(17.1, 19.7), move: 'translate(2.4 0)' },
-      { d: BAR_A.bar(17.1, 19.7), t: 'g', clip: hband(17.1, 19.7), move: 'translate(2.4 0)' },
-    ],
-  },
-  {
-    id: 'sliceduo',
-    name: 'Slice Duo',
-    meaning: 'The slice with the lifted piece lit up',
-    pieces: [
-      { d: SLICE_A.d, t: 'd', clip: SIDE_L },
-      { d: SLICE_A.d, t: 'd', clip: SIDE_R },
-      { d: SLICE_A.d, t: 'a', clip: MIDDLE, move: LIFT },
-    ],
-  },
-  {
-    id: 'facetbar',
-    name: 'Facet Bar',
-    meaning: 'A classic A with a crossbar, in two facets',
-    pieces: [
-      { d: 'M3.5 24 14 4 14 13.52 8.5 24z', t: 'a' },
-      { d: 'M14 4 24.5 24 19.5 24 14 13.52z', t: 'g' },
-      { d: a().bar(17.4, 20), t: 'g' },
-    ],
+    id: 'steepbar',
+    name: 'Steep Bar',
+    meaning: 'The steep cut with a slim crossbar',
+    pieces: cutA(STEEP, 0.55, 13.2, 15.6, 'g', (side) => (side === 'low' ? [{ d: STEEP.bar(17.9, 19.7), t: 'g' }] : [])),
   },
 ] as const satisfies readonly { id: string; name: string; meaning: string; pieces: readonly Piece[] }[];
 
