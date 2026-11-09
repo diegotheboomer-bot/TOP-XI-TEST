@@ -25,6 +25,17 @@ const SLICES = {
   slantLeft: '0,0 11.2,0 8.4,28 0,28',
   slantMid: '12.4,0 18.6,0 15.8,28 9.6,28',
   slantRight: '19.8,0 28,0 28,28 17,28',
+  // The C's spine cut away from its arms on a slant.
+  cSpine: '0,0 10.6,0 7.8,28 0,28',
+  cArms: '11.8,0 28,0 28,28 9,28',
+  // Slanted cuts sized for the play button.
+  playLeft: '0,0 13.4,0 10.6,28 0,28',
+  playMid: '14.6,0 20.6,0 17.8,28 11.8,28',
+  playRight: '21.8,0 28,0 28,28 19,28',
+  // Two parallel slices: three shards.
+  shardTop: band(-10, 12.5),
+  shardMid: band(14.3, 18.5),
+  shardLow: band(20.3, 40),
 };
 /** Moves a piece along the slice direction, so its cut edges stay parallel. */
 const slide = (d: number) => `translate(${(d * 0.978).toFixed(2)} ${(-d * 0.21).toFixed(2)})`;
@@ -37,113 +48,54 @@ const sliced = (d: string, t: Tone = 'g', by = 1.8): Piece[] => [
 ];
 
 export const LOGO_MARKS = [
-  { id: 'cfacet', name: 'C Facet', meaning: 'Angular C for creator and clip', pieces: [
-    { d: 'M21.5 5 9.6 5 4.6 14 9.8 14 12.5 9.6 19 9.6z', t: 'a' },
-    { d: 'M4.6 14 9.8 14 12.5 18.4 19 18.4 21.5 23 9.6 23z', t: 'g' },
-  ] },
-  { id: 'ccut', name: 'C Cut', meaning: 'The C, sliced', pieces: sliced(C_SHAPE) },
+  { id: 'ccut', name: 'C Cut', meaning: 'The C for creator and clip, sliced', pieces: sliced(C_SHAPE) },
   { id: 'cut', name: 'Cut', meaning: 'A clip being cut', pieces: sliced(PLAY, 'g', 1.7) },
   { id: 'facet', name: 'Facet', meaning: 'A faceted play button', pieces: [
     { d: 'M8 6 12.7 14 22 14z', t: 'a' },
     { d: 'M22 14 12.7 14 8 22z', t: 'g' },
     { d: 'M8 22 12.7 14 8 6z', t: 'd' },
   ] },
-  { id: 'blade', name: 'Blade', meaning: 'The edge that cuts the clip', pieces: [
-    { d: 'M15.5 3 9 12.5 14 12z', t: 'a' },
-    { d: 'M15.5 3 19 11.5 14 12z', t: 'g' },
-    { d: 'M9 12.5 14 12 12.5 25z', t: 'd' },
-    { d: 'M19 11.5 14 12 12.5 25z', t: 'b' },
-  ] },
-  { id: 'shardc', name: 'Shard C', meaning: 'A C made of clip pieces', pieces: [
-    { d: 'M21 5 10 5 12.6 9.4 19 9.4z', t: 'a' },
-    { d: 'M8.4 6.8 11.2 11.6 11.2 17.4 8.4 22.2 4.4 14.5z', t: 'g' },
-    { d: 'M21 24 10 24 12.6 19.6 19 19.6z', t: 'b' },
-  ] },
   { id: 'slice', name: 'Slice', meaning: 'A vertical slice lifted out of a stream', pieces: [
     { d: 'M3.5 9h21v11.8h-21z', t: 'e', clip: 'slantLeft' },
     { d: 'M3.5 9h21v11.8h-21z', t: 'd', clip: 'slantRight' },
     { d: 'M3.5 9h21v11.8h-21z', t: 'g', clip: 'slantMid', move: 'translate(0.7 -3.4)' },
   ] },
-  { id: 'crop', name: 'Crop', meaning: 'Cropping the moment', pieces: [
-    { d: 'M4.5 4.5h7.5l-7.5 7.5z', t: 'a' },
-    { d: 'M23.5 4.5h-7.5l7.5 7.5z', t: 'g' },
-    { d: 'M4.5 23.5h7.5l-7.5-7.5z', t: 'g' },
-    { d: 'M23.5 23.5h-7.5l7.5-7.5z', t: 'b' },
-    { d: 'M12.2 10.8 17.4 14l-5.2 3.2z', t: 'a' },
+  { id: 'facetc', name: 'Facet C', meaning: 'The C in three facets', pieces: [
+    { d: 'M21.5 5 9.6 5 12.5 9.6 19 9.6z', t: 'a' },
+    { d: 'M9.6 5 4.6 14 9.6 23 12.5 18.4 9.8 14 12.5 9.6z', t: 'g' },
+    { d: 'M9.6 23 21.5 23 19 18.4 12.5 18.4z', t: 'd' },
   ] },
-  { id: 'bolt', name: 'Bolt', meaning: 'Going viral', pieces: [
-    { d: 'M17 3 7 16 13.2 16 14.8 11.5z', t: 'a' },
-    { d: 'M14.8 11.5 21 11.5 10.5 25 13.2 16z', t: 'g' },
+  { id: 'slicec', name: 'Slice C', meaning: 'The C with its spine sliced out and lifted', pieces: [
+    { d: C_SHAPE, t: 'a', clip: 'cArms' },
+    { d: C_SHAPE, t: 'g', clip: 'cSpine', move: 'translate(0.6 -2.8)' },
   ] },
-  { id: 'climb', name: 'Climb', meaning: 'Views climbing', pieces: [
-    { d: 'M14 3.5 23 12.5 19.6 12.5 14 6.9 8.4 12.5 5 12.5z', t: 'a' },
-    { d: 'M14 9.5 23 18.5 19.6 18.5 14 12.9 8.4 18.5 5 18.5z', t: 'g' },
-    { d: 'M14 15.5 23 24.5 19.6 24.5 14 18.9 8.4 24.5 5 24.5z', t: 'd' },
+  { id: 'cplay', name: 'C Play', meaning: 'The C holding a play button', pieces: [
+    { d: C_SHAPE, t: 'g' },
+    { d: 'M14.6 10.8 20.4 14 14.6 17.2z', t: 'a' },
   ] },
-  { id: 'gem', name: 'Gem', meaning: 'Getting paid', pieces: [
-    { d: 'M4 11.5 10 4 11.2 11.5z', t: 'a' },
-    { d: 'M10 4 18 4 16.8 11.5 11.2 11.5z', t: 'g' },
-    { d: 'M18 4 24 11.5 16.8 11.5z', t: 'b' },
-    { d: 'M4 11.5 11.2 11.5 14 24.5z', t: 'd' },
-    { d: 'M11.2 11.5 16.8 11.5 14 24.5z', t: 'g' },
-    { d: 'M16.8 11.5 24 11.5 14 24.5z', t: 'e' },
+  { id: 'cutframe', name: 'Cut Frame', meaning: 'A vertical clip being cut', pieces: sliced('M9 4h10v20H9z', 'g', 1.8) },
+  { id: 'facetframe', name: 'Facet Frame', meaning: 'A vertical clip in two facets', pieces: [
+    { d: 'M9 4 19 4 9 24z', t: 'a' },
+    { d: 'M19 4 19 24 9 24z', t: 'g' },
   ] },
-  { id: 'spark', name: 'Spark', meaning: 'The highlight moment', pieces: [
-    { d: 'M14 14 14 3 11.8 11.8z', t: 'a' },
-    { d: 'M14 14 14 3 16.2 11.8z', t: 'g' },
-    { d: 'M14 14 25 14 16.2 11.8z', t: 'a' },
-    { d: 'M14 14 25 14 16.2 16.2z', t: 'g' },
-    { d: 'M14 14 14 25 16.2 16.2z', t: 'a' },
-    { d: 'M14 14 14 25 11.8 16.2z', t: 'd' },
-    { d: 'M14 14 3 14 11.8 16.2z', t: 'a' },
-    { d: 'M14 14 3 14 11.8 11.8z', t: 'g' },
+  { id: 'sliceplay', name: 'Slice Play', meaning: 'A play button with its vertical slice lifted out', pieces: [
+    { d: PLAY, t: 'a', clip: 'playLeft' },
+    { d: PLAY, t: 'g', clip: 'playMid', move: 'translate(0.6 -2.6)' },
+    { d: PLAY, t: 'b', clip: 'playRight' },
   ] },
-  { id: 'ce', name: 'CE', meaning: 'Creator Engine monogram', pieces: [
-    { d: 'M15 5 8.5 5 4 14 8.5 23 15 23 13 19 11 19 8.6 14 11 9 13 9z', t: 'g' },
-    { d: 'M17 5 24 5 22 9 17 9z', t: 'a' },
-    { d: 'M17 12 22.5 12 21 16 17 16z', t: 'b' },
-    { d: 'M17 19 22 19 24 23 17 23z', t: 'a' },
+  { id: 'shards', name: 'Shards', meaning: 'One video cut into clips', pieces: [
+    { d: PLAY, t: 'g', clip: 'shardTop' },
+    { d: PLAY, t: 'g', clip: 'shardMid', move: slide(2) },
+    { d: PLAY, t: 'g', clip: 'shardLow' },
   ] },
-  { id: 'prism', name: 'Prism', meaning: 'One stream, three platforms', pieces: [
-    { d: 'M4 6 13 14 4 22z', t: 'g' },
-    { d: 'M14.5 13.3 24 5.5 24 9z', t: 'a' },
-    { d: 'M14.5 14 24 12.2 24 15.8z', t: 'b' },
-    { d: 'M14.5 14.7 24 19 24 22.5z', t: 'd' },
-  ] },
-  { id: 'bezel', name: 'Bezel', meaning: 'The vertical clip', pieces: [
-    { d: 'M8 3 20 3 17.5 6 10.5 6z', t: 'a' },
-    { d: 'M20 3 20 25 17.5 22 17.5 6z', t: 'g' },
-    { d: 'M8 25 20 25 17.5 22 10.5 22z', t: 'b' },
-    { d: 'M8 3 8 25 10.5 22 10.5 6z', t: 'd' },
-    { d: 'M12.6 11.6 16 14 12.6 16.4z', t: 'a' },
-  ] },
-  { id: 'skip', name: 'Skip', meaning: 'Straight to the moment', pieces: [
-    { d: 'M4 7 12.5 14 4 21z', t: 'd' },
-    ...sliced('M12.5 7 23 14 12.5 21z', 'g', 1.5),
-  ] },
-  { id: 'cube', name: 'Cube', meaning: 'The engine', pieces: [
-    { d: 'M14 4 22.7 9 14 14 5.3 9z', t: 'a' },
-    { d: 'M5.3 9 14 14 14 24 5.3 19z', t: 'd' },
-    { d: 'M22.7 9 14 14 14 24 22.7 19z', t: 'g' },
-  ] },
-  { id: 'pin', name: 'Pin', meaning: 'The pinned moment', pieces: [
-    { d: 'M14 3 8 7 8 13 14 25z', t: 'a' },
-    { d: 'M14 3 20 7 20 13 14 25z', t: 'g' },
-    { d: 'M14 7.4 16.6 10 14 12.6 11.4 10z', t: 'h' },
-  ] },
-  { id: 'check', name: 'Check', meaning: 'Verified views', pieces: [
-    { d: 'M4 14.5 8 10.5 12 14.5 12 22.5z', t: 'a' },
-    { d: 'M12 14.5 21 5.5 25 9.5 12 22.5z', t: 'g' },
-  ] },
-  { id: 'peak', name: 'Peak', meaning: 'The chat spike', pieces: [
-    { d: 'M3 24 8 13 13 24z', t: 'd' },
-    { d: 'M16.5 4 9 24 16.5 24z', t: 'a' },
-    { d: 'M16.5 4 24 24 16.5 24z', t: 'g' },
+  { id: 'widetall', name: 'Wide to Tall', meaning: 'A wide stream and the vertical clip made from it', pieces: [
+    { d: 'M3.5 8h16v10h-16z', t: 'd' },
+    { d: 'M15.5 5h8v17h-8z', t: 'g' },
   ] },
 ] as const satisfies readonly { id: string; name: string; meaning: string; pieces: readonly Piece[] }[];
 
 export type LogoMarkId = (typeof LOGO_MARKS)[number]['id'];
-const DEFAULT: LogoMarkId = 'cfacet';
+const DEFAULT: LogoMarkId = 'ccut';
 
 /** The chosen mark: <html data-logo="…"> (set by the demo's picker), else the default. */
 function useMark(): LogoMarkId {
