@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { isDemo } from '@/lib/env';
-import { resetDemoData, signOut } from '@/actions/account';
+import { signOut } from '@/actions/account';
 import { Badge } from './ui/badge';
 
 export function Logo() {
@@ -25,27 +25,19 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
           {isDemo && <Badge tone="amber" className="hidden sm:inline-flex">Demo · mock money</Badge>}
         </div>
         <nav className="flex items-center gap-1 text-sm">
-          <Link href="/streamer" className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
-            Streamers
-          </Link>
-          <Link href="/clipper" className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
-            Clippers
-          </Link>
-          {isDemo && (
-            <form action={resetDemoData}>
-              <button className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">Reset</button>
-            </form>
+          {!isDemo && !signedIn && (
+            <Link href="/login" className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
+              Sign in
+            </Link>
           )}
           {signedIn && !isDemo ? (
             <form action={signOut}>
               <button className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">Sign out</button>
             </form>
           ) : (
-            !isDemo && (
-              <Link href="/login" className="ml-1 rounded-md bg-zinc-900 px-4 py-1.5 font-medium text-white transition hover:bg-zinc-800">
-                Sign in
-              </Link>
-            )
+            <Link href="/start" className="ml-1 rounded-md bg-zinc-900 px-4 py-1.5 font-medium text-white transition hover:bg-zinc-800">
+              Get started
+            </Link>
           )}
         </nav>
       </div>

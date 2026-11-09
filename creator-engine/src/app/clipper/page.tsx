@@ -12,7 +12,6 @@ import { Empty } from '@/components/ui/empty';
 import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { CreatorSwitcher } from '@/components/creator-switcher';
-import { SubmitVideoForm } from '@/components/forms/submit-video-form';
 import { Checklist, ConnectionCard, EnrollmentCard, MarketCard } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +26,7 @@ const tiktokMessages: Record<string, [string, boolean]> = {
 export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; payouts?: string } }) {
   const d = await getCreatorDashboard();
   const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
+  const firstOpen = d.enrollments.find((e) => !e.submission);
   const notice: [string, boolean] | undefined = searchParams.tiktok
     ? tiktokMessages[searchParams.tiktok]
     : searchParams.payouts === 'connected'
@@ -50,10 +50,21 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       {notice && <p className={`rounded-lg px-4 py-3 text-sm ${notice[1] ? 'bg-accent-50 text-accent-700' : 'bg-rose-50 text-rose-700'}`}>{notice[0]}</p>}
 
       <Checklist
+        title="How to start earning"
         steps={[
-          { label: 'Join a campaign', detail: 'You get a clip code for every campaign you join.', done: d.enrollments.length > 0, action: <ButtonLink href="/clipper/discover" size="sm">Discover</ButtonLink> },
-          { label: 'Post your first clip', detail: 'Put your clip code and #ad in the caption, then paste the link below.', done: subs.length > 0 },
-          { label: 'Set up payouts', detail: 'Stripe sends your earnings to your bank.', done: d.payoutsEnabled, action: payoutsButton },
+          {
+            label: 'Pick a campaign',
+            detail: 'Browse Discover and join a streamer you like clipping. It’s free.',
+            done: d.enrollments.length > 0,
+            action: <ButtonLink href="/clipper/discover" size="sm">Discover</ButtonLink>,
+          },
+          {
+            label: 'Post your first clip',
+            detail: 'Open the campaign. The “Your next step” box walks you through it.',
+            done: subs.length > 0,
+            action: firstOpen ? <ButtonLink href={`/clipper/campaigns/${firstOpen.campaign.id}`} size="sm">Open campaign</ButtonLink> : undefined,
+          },
+          { label: 'Set up payouts', detail: 'Connect a bank through Stripe so you can be paid.', done: d.payoutsEnabled, action: payoutsButton },
         ]}
       />
 
@@ -78,7 +89,11 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                 {...e}
                 href={`/clipper/campaigns/${e.campaign.id}`}
                 link={Link}
-                submitForm={<SubmitVideoForm campaignId={e.campaign.id} />}
+                submitForm={
+                  <ButtonLink href={`/clipper/campaigns/${e.campaign.id}`} className="w-full">
+                    Post your clip
+                  </ButtonLink>
+                }
               />
             ))}
           </div>

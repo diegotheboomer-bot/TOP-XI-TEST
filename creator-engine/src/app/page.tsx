@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <>
       <SiteHeader />
-      <Landing link={Link} streamerHref="/streamer" clipperHref="/clipper/discover" assetBase="/demo/thumbs/" />
+      <Landing link={Link} startHref="/start" clipperHref="/clipper/discover" assetBase="/demo/thumbs/" />
     </>
   );
 }

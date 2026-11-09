@@ -34,7 +34,7 @@ const base = (over: Partial<MarketCampaign>): MarketCampaign => ({
   ...over,
 });
 
-export function Landing({ link = 'a', streamerHref, clipperHref, assetBase }: { link?: LinkLike; streamerHref: string; clipperHref: string; assetBase: string }) {
+export function Landing({ link = 'a', startHref, clipperHref, assetBase }: { link?: LinkLike; startHref: string; clipperHref: string; assetBase: string }) {
   const Link = link;
   const preview = [
     base({
@@ -57,11 +57,11 @@ export function Landing({ link = 'a', streamerHref, clipperHref, assetBase }: { 
             Post a campaign, pin the moments worth clipping, and pay clippers only for the views their clips get on TikTok, YouTube Shorts and Instagram Reels.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href={streamerHref} className={buttonClass('primary')}>
-              I stream
+            <Link href={startHref} className={buttonClass('primary')}>
+              Get started
             </Link>
             <Link href={clipperHref} className={buttonClass('secondary')}>
-              I clip
+              Browse campaigns
             </Link>
           </div>
         </div>

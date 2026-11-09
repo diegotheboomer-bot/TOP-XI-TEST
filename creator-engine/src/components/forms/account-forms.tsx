@@ -27,9 +27,9 @@ const roles = [
   { value: 'creator', icon: Video, title: 'I clip', body: 'Clip streamers and get paid per view.' },
 ] as const;
 
-export function OnboardingForm() {
+export function OnboardingForm({ defaultRole = 'brand' }: { defaultRole?: 'brand' | 'creator' }) {
   const [state, action] = useFormState(createProfile, undefined);
-  const [role, setRole] = useState<'brand' | 'creator'>('brand');
+  const [role, setRole] = useState<'brand' | 'creator'>(defaultRole);
   return (
     <form action={action} className="space-y-5">
       <fieldset className="grid gap-3 sm:grid-cols-2">

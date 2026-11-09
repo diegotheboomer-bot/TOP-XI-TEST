@@ -4,7 +4,7 @@
 // Build: npm run build:demo
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowLeft, Compass, House, LayoutList, Megaphone, Music2, Plus, RotateCcw, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Compass, House, LayoutList, Megaphone, Music2, Plus, RotateCcw, Users, Wallet } from 'lucide-react';
 import * as core from '@/lib/demo-core';
 import { compact, payoutModelLabel, rateParts, usd } from '@/lib/format';
 import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
@@ -22,6 +22,9 @@ import { FormMessage } from '@/components/form-message';
 import { CampaignBadge } from '@/components/status';
 import { AppShell, type NavSection } from '@/components/app-shell';
 import { Landing } from '@/components/landing';
+import { CopyField } from '@/components/copy-button';
+import { trackingLink } from '@/lib/attribution';
+import { RolePicker } from '@/components/role-picker';
 import { EarningsEstimator } from '@/components/estimator';
 import { CampaignFormBody } from '@/components/forms/campaign-form-body';
 import {
@@ -34,6 +37,7 @@ import {
   EnrollmentCard,
   MarketCard,
   MomentBoard,
+  NextStep,
   PlatformChips,
   RequirementList,
   StreamerAvatar,
@@ -81,6 +85,7 @@ function save(saved: Saved): boolean {
 // ─── Routing on plain #names ───────────────────────────────────────────────
 type Route =
   | { name: 'home' }
+  | { name: 'start' }
   | { name: 'brand' }
   | { name: 'new-campaign' }
   | { name: 'campaign'; id: string }
@@ -90,7 +95,7 @@ type Route =
 
 function parseHash(hash: string): Route {
   const h = hash.replace(/^#/, '');
-  if (h === 'brand' || h === 'creator' || h === 'discover' || h === 'new-campaign') return { name: h };
+  if (h === 'start' || h === 'brand' || h === 'creator' || h === 'discover' || h === 'new-campaign') return { name: h };
   if (h.startsWith('campaign-')) return { name: 'campaign', id: h.slice('campaign-'.length) };
   if (h.startsWith('offer-')) return { name: 'offer', id: h.slice('offer-'.length) };
   return { name: 'home' };
@@ -164,25 +169,36 @@ function useStore() {
 }
 
 // ─── App frame ─────────────────────────────────────────────────────────────
-const SECTIONS: NavSection[] = [
-  {
+type Role = 'streamer' | 'clipper';
+
+const SECTIONS: Record<Role, NavSection> = {
+  streamer: {
     title: 'Streamer',
     items: [
       { href: '#brand', label: 'Campaigns', icon: <LayoutList /> },
       { href: '#new-campaign', label: 'New campaign', icon: <Plus /> },
     ],
   },
-  {
+  clipper: {
     title: 'Clipper',
     items: [
       { href: '#creator', label: 'Home', icon: <House /> },
       { href: '#discover', label: 'Discover', icon: <Compass /> },
     ],
   },
-];
+};
 
-const CURRENT: Record<Route['name'], string | null> = {
-  home: null,
+/** Which side of the app a page belongs to; the sidebar only shows that side. */
+const ROUTE_ROLE: Record<Exclude<Route['name'], 'home' | 'start'>, Role> = {
+  brand: 'streamer',
+  campaign: 'streamer',
+  'new-campaign': 'streamer',
+  creator: 'clipper',
+  discover: 'clipper',
+  offer: 'clipper',
+};
+
+const CURRENT: Record<Exclude<Route['name'], 'home' | 'start'>, string> = {
   brand: '#brand',
   campaign: '#brand',
   'new-campaign': '#new-campaign',
@@ -191,35 +207,46 @@ const CURRENT: Record<Route['name'], string | null> = {
   offer: '#discover',
 };
 
+const footerItem = 'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 [&>svg]:size-4';
+
 function App() {
   const store = useStore();
   const route = useRoute();
 
-  if (route.name === 'home') {
+  if (route.name === 'home' || route.name === 'start') {
     return (
       <>
         <LandingHeader />
-        <Landing streamerHref="#brand" clipperHref="#discover" assetBase={ASSETS} />
+        {route.name === 'home' ? (
+          <Landing startHref="#start" clipperHref="#discover" assetBase={ASSETS} />
+        ) : (
+          <RolePicker streamerHref="#brand" clipperHref="#creator" assetBase={ASSETS} />
+        )}
         <Toast state={store.toast} />
       </>
     );
   }
+  const role = ROUTE_ROLE[route.name];
+  const other: Role = role === 'streamer' ? 'clipper' : 'streamer';
 
   return (
     <>
       <AppShell
-        sections={SECTIONS}
+        sections={[SECTIONS[role]]}
         current={CURRENT[route.name]}
         homeHref="#home"
         demo
         footer={
-          <button
-            type="button"
-            onClick={store.reset}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 [&>svg]:size-4"
-          >
-            <RotateCcw /> Reset demo
-          </button>
+          <div className="flex gap-1 lg:block lg:space-y-0.5">
+            <a href={other === 'streamer' ? '#brand' : '#creator'} className={footerItem}>
+              <ArrowLeftRight /> <span className="hidden lg:inline">Switch to {other} view</span>
+              <span className="lg:hidden">{other === 'streamer' ? 'Streamer' : 'Clipper'}</span>
+            </a>
+            <button type="button" onClick={store.reset} className={footerItem}>
+              <RotateCcw /> <span className="hidden lg:inline">Reset demo</span>
+              <span className="lg:hidden">Reset</span>
+            </button>
+          </div>
         }
       >
         {route.name === 'brand' && <BrandDashboard store={store} />}
@@ -235,7 +262,6 @@ function App() {
 }
 
 function LandingHeader() {
-  const link = 'rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900';
   return (
     <header className="site-header sticky z-20 border-b border-zinc-200/70 bg-zinc-50/85 backdrop-blur">
       <div className="gutter mx-auto flex h-16 max-w-6xl items-center justify-between gap-3">
@@ -248,11 +274,8 @@ function LandingHeader() {
           <span className="hidden min-[400px]:inline">Creator Engine</span>
         </a>
         <nav className="flex items-center gap-0.5 text-sm">
-          <a href="#brand" className={link}>
-            Streamers
-          </a>
-          <a href="#discover" className={link}>
-            Clippers
+          <a href="#start" className={buttonClass('primary', 'sm')}>
+            Get started
           </a>
         </nav>
       </div>
@@ -290,6 +313,7 @@ function BrandDashboard({ store }: { store: Store }) {
   const { brandName, campaigns } = core.brandDashboard(store.state);
   const sum = (f: (c: (typeof campaigns)[number]) => number) => campaigns.reduce((a, c) => a + f(c), 0);
   const pending = sum((c) => c.pendingReview);
+  const firstDraft = campaigns.find((c) => c.status === 'draft');
   return (
     <>
       <PageHeader
@@ -302,7 +326,34 @@ function BrandDashboard({ store }: { store: Store }) {
           </a>
         }
       />
+      <Checklist
+        title="Launch your first campaign"
+        steps={[
+          {
+            label: 'Create a campaign',
+            detail: 'Set your rate, cap and which platforms clippers can post on.',
+            done: campaigns.length > 0,
+            action: (
+              <a href="#new-campaign" className={buttonClass('primary', 'sm')}>
+                Create
+              </a>
+            ),
+          },
+          {
+            label: 'Fund it',
+            detail: 'Add the budget. Clippers are paid from it as their views come in.',
+            done: campaigns.some((c) => c.budget.deposited > 0),
+            action: firstDraft ? (
+              <a href={`#campaign-${firstDraft.id}`} className={buttonClass('primary', 'sm')}>
+                Open
+              </a>
+            ) : undefined,
+          },
+          { label: 'Go live and pin moments', detail: 'Pin timestamps from your stream so clippers know what to cut.', done: campaigns.some((c) => c.status === 'active') },
+        ]}
+      />
       <StatGrid
+        className="mt-6"
         items={[
           { label: 'Escrow held', value: usd(sum((c) => c.escrow_balance)) },
           { label: 'Earned by clippers', value: usd(sum((c) => c.budget.committed)) },
@@ -647,15 +698,17 @@ function SubmitForm({ store, campaignId, handle }: { store: Store; campaignId: s
 function CreatorHome({ store }: { store: Store }) {
   const d = core.creatorDashboard(store.state, store.viewer);
   const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
+  const firstOpen = d.enrollments.find((e) => !e.submission);
   return (
     <div className="space-y-8">
       <PageHeader title={`Hi, ${d.name}`} description="Your campaigns, clip codes and earnings." actions={<ViewAs store={store} />} />
 
       <Checklist
+        title="How to start earning"
         steps={[
           {
-            label: 'Join a campaign',
-            detail: 'You get a clip code for every campaign you join.',
+            label: 'Pick a campaign',
+            detail: 'Browse Discover and join a streamer you like clipping. It’s free.',
             done: d.enrollments.length > 0,
             action: (
               <a href="#discover" className={buttonClass('primary', 'sm')}>
@@ -663,10 +716,19 @@ function CreatorHome({ store }: { store: Store }) {
               </a>
             ),
           },
-          { label: 'Post your first clip', detail: 'Put your clip code and #ad in the caption, then paste the link below.', done: subs.length > 0 },
+          {
+            label: 'Post your first clip',
+            detail: 'Open the campaign. The “Your next step” box walks you through it.',
+            done: subs.length > 0,
+            action: firstOpen ? (
+              <a href={`#offer-${firstOpen.campaign.id}`} className={buttonClass('primary', 'sm')}>
+                Open campaign
+              </a>
+            ) : undefined,
+          },
           {
             label: 'Set up payouts',
-            detail: 'Stripe sends your earnings to your bank.',
+            detail: 'Connect a bank through Stripe so you can be paid.',
             done: d.payoutsEnabled,
             action: (
               <Button size="sm" onClick={() => enablePayouts(store)}>
@@ -706,7 +768,11 @@ function CreatorHome({ store }: { store: Store }) {
                 key={e.enrollment.id}
                 {...e}
                 href={`#offer-${e.campaign.id}`}
-                submitForm={<SubmitForm store={store} campaignId={e.campaign.id} handle={d.tiktok?.username ?? null} />}
+                submitForm={
+                  <a href={`#offer-${e.campaign.id}`} className={buttonClass('primary', 'md', 'w-full')}>
+                    Post your clip
+                  </a>
+                }
               />
             ))}
           </div>
@@ -797,81 +863,46 @@ function Offer({ store, id }: { store: Store; id: string }) {
   const { campaign: c } = d;
   const r = rateParts(c);
   const me = core.creatorDashboard(store.state, store.viewer);
+  const merchLink = d.enrollment ? trackingLink(d.shopDomain, d.enrollment.ref_param) : null;
 
   return (
     <div className="space-y-6">
       <BackLink href="#discover">Discover</BackLink>
       <CampaignCover campaign={c} brandName={c.brandName} variant="banner" className="rounded-xl" />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <div className="space-y-6">
-          <div>
-            <h1 className="balance text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
-            <p className="mt-2 flex items-center gap-2 text-sm text-zinc-600">
-              <StreamerAvatar name={c.brandName} /> {c.brandName}
-            </p>
-            <PlatformChips platforms={c.platforms} className="mt-3" />
-          </div>
-          {c.brief && (
-            <section>
-              <h2 className="mb-2 font-semibold tracking-tight">The brief</h2>
-              <p className="max-w-prose leading-relaxed text-zinc-600">{c.brief}</p>
-            </section>
-          )}
-          <section>
-            <h2 className="mb-1 font-semibold tracking-tight">Moments to clip</h2>
-            <p className="mb-4 text-sm text-zinc-500">Claim one before you cut it. Each moment has a few slots so clips stay varied.</p>
-            <MomentBoard
-              moments={d.moments}
-              empty="No moments pinned yet. Anything from the VODs is fair game."
-              action={(m) =>
-                m.mine ? (
-                  <Badge tone="green">Yours</Badge>
-                ) : m.claimed_by.length >= m.max_claims ? (
-                  <Badge>Full</Badge>
-                ) : d.enrollment ? (
-                  <Button size="sm" variant="secondary" onClick={() => store.run((s, v) => core.claimMoment(s, v, m.id))}>
-                    Claim
-                  </Button>
-                ) : null
-              }
-            />
-          </section>
-          <section>
-            <h2 className="mb-3 font-semibold tracking-tight">Requirements</h2>
-            <RequirementList items={c.requirements} />
-          </section>
-          <section>
-            <h2 className="mb-2 font-semibold tracking-tight">How you get paid</h2>
-            <ul className="max-w-prose list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-600">
-              <li>Views are read from TikTok and YouTube every 4 hours. Screenshots and self-reported numbers aren’t accepted.</li>
-              <li>Put your clip code in the caption. It proves the clip is yours on any platform.</li>
-              {c.payout_model === 'cps_performance' && <li>Every order placed with your code or link earns you {c.cps_commission_pct}%.</li>}
-              {c.payout_model === 'hybrid' && (
-                <li>
-                  {usd(c.base_payout)} base fee once your video is approved, plus {r.rate} {r.unit}.
-                </li>
-              )}
-              <li>
-                Earnings stop at {usd(c.cpm_cap)} per clipper. A {FEE_PERCENT}% platform fee comes out of each payout.
-              </li>
-              <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
-            </ul>
-          </section>
-          {d.enrollment && (
-            <EnrollmentCard
-              enrollment={d.enrollment}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        {/* On phones the next-step box comes first so the action is never buried. */}
+        <aside className="space-y-4 lg:sticky lg:top-8 lg:order-2 lg:self-start">
+          <Card>
+            <NextStep
               campaign={c}
               brandName={c.brandName}
-              shopDomain={d.shopDomain}
+              enrollment={d.enrollment}
               submission={d.submission}
-              href={`#offer-${c.id}`}
+              claimedMoment={d.moments.find((m) => m.mine)?.title ?? null}
+              join={
+                <Button className="w-full" onClick={() => store.run((s, v) => core.joinCampaign(s, v, c.id))}>
+                  Join campaign
+                </Button>
+              }
               submitForm={<SubmitForm store={store} campaignId={c.id} handle={me.tiktok?.username ?? null} />}
+              tiktokPrompt={
+                c.platforms.includes('tiktok') && !d.tiktokConnected ? (
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+                    <span>Posting on TikTok? Connect it first so we can read your views.</span>
+                    <Button size="sm" variant="secondary" onClick={() => connectTikTok(store)}>
+                      Connect
+                    </Button>
+                  </div>
+                ) : undefined
+              }
             />
-          )}
-        </div>
-
-        <aside className="space-y-4 lg:sticky lg:top-8 lg:self-start">
+            {merchLink && (
+              <div className="mt-5 border-t border-zinc-100 pt-5">
+                <CopyField label="Your merch link (earns you a cut)" value={merchLink} />
+              </div>
+            )}
+          </Card>
           <Card>
             <div className="flex items-baseline gap-1.5">
               <span className="text-2xl font-semibold tracking-tight tabular-nums">{r.rate}</span>
@@ -882,17 +913,65 @@ function Offer({ store, id }: { store: Store; id: string }) {
             <div className="mt-5 border-t border-zinc-100 pt-5">
               <EarningsEstimator terms={c} feePercent={FEE_PERCENT} />
             </div>
-            <div className="mt-5">
-              {d.enrollment ? (
-                <p className="rounded-lg bg-accent-50 px-3.5 py-2.5 text-sm text-accent-700">You’ve joined. Your clip code is on this page.</p>
-              ) : (
-                <Button className="w-full" onClick={() => store.run((s, v) => core.joinCampaign(s, v, c.id))}>
-                  Join campaign
-                </Button>
-              )}
-            </div>
           </Card>
         </aside>
+
+        <div className="space-y-8 lg:order-1">
+          <div>
+            <h1 className="balance text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
+            <p className="mt-2 flex items-center gap-2 text-sm text-zinc-600">
+              <StreamerAvatar name={c.brandName} /> {c.brandName}
+            </p>
+            <PlatformChips platforms={c.platforms} className="mt-3" />
+          </div>
+          {c.brief && (
+            <section>
+              <h2 className="mb-2 font-semibold tracking-tight">What {c.brandName} wants</h2>
+              <p className="max-w-prose leading-relaxed text-zinc-600">{c.brief}</p>
+            </section>
+          )}
+          <section>
+            <h2 className="mb-1 font-semibold tracking-tight">Moments to clip</h2>
+            <p className="mb-4 text-sm text-zinc-500">Claim one before you cut it. Each moment has a few slots so clips stay varied.</p>
+            <MomentBoard
+              moments={d.moments}
+              empty="No moments pinned yet. Anything from the streams is fair game."
+              action={(m) =>
+                m.mine ? (
+                  <Badge tone="green">Yours</Badge>
+                ) : m.claimed_by.length >= m.max_claims ? (
+                  <Badge>Full</Badge>
+                ) : d.enrollment ? (
+                  <Button size="sm" variant="secondary" onClick={() => store.run((s, v) => core.claimMoment(s, v, m.id))}>
+                    Claim
+                  </Button>
+                ) : (
+                  <span className="text-xs text-zinc-400">Join to claim</span>
+                )
+              }
+            />
+          </section>
+          <section>
+            <h2 className="mb-3 font-semibold tracking-tight">Rules for your clip</h2>
+            <RequirementList items={c.requirements} />
+          </section>
+          <section>
+            <h2 className="mb-2 font-semibold tracking-tight">How you get paid</h2>
+            <ul className="max-w-prose list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-600">
+              <li>Views are read from TikTok and YouTube every 4 hours. Screenshots and self-reported numbers aren’t accepted.</li>
+              {c.payout_model === 'cps_performance' && <li>Every merch order placed with your code or link earns you {c.cps_commission_pct}%.</li>}
+              {c.payout_model === 'hybrid' && (
+                <li>
+                  {usd(c.base_payout)} once your clip is approved, plus {r.rate} {r.unit}.
+                </li>
+              )}
+              <li>
+                Earnings stop at {usd(c.cpm_cap)} per clipper. A {FEE_PERCENT}% platform fee comes out of each payout.
+              </li>
+              <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
+            </ul>
+          </section>
+        </div>
       </div>
     </div>
   );

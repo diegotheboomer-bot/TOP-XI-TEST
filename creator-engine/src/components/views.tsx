@@ -345,7 +345,7 @@ export interface ChecklistStep {
 }
 
 /** Shown until every step is done. Only the first open step offers its action. */
-export function Checklist({ steps }: { steps: ChecklistStep[] }) {
+export function Checklist({ steps, title = 'Get started' }: { steps: ChecklistStep[]; title?: string }) {
   const done = steps.filter((s) => s.done).length;
   if (done === steps.length) return null;
   const next = steps.findIndex((s) => !s.done);
@@ -353,7 +353,7 @@ export function Checklist({ steps }: { steps: ChecklistStep[] }) {
     <Card flush>
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-6">
         <div>
-          <h2 className="font-semibold tracking-tight">Get ready to earn</h2>
+          <h2 className="font-semibold tracking-tight">{title}</h2>
           <p className="mt-0.5 text-sm text-zinc-500">
             {done} of {steps.length} done
           </p>
@@ -509,6 +509,143 @@ export function MomentBoard({
         );
       })}
     </ul>
+  );
+}
+
+// ─── Clipper: next step on a campaign ──────────────────────────────────────
+export type ClipperStage = 'join' | 'post' | 'review' | 'earning' | 'flagged' | 'paid';
+
+export function clipperStage(enrollment: Enrollment | null, submission: Submission | null): ClipperStage {
+  if (!enrollment) return 'join';
+  if (!submission) return 'post';
+  if (submission.status === 'pending_review') return 'review';
+  if (submission.status === 'flagged') return 'flagged';
+  if (submission.status === 'paid') return 'paid';
+  return 'earning';
+}
+
+const STAGE_TRACK: { key: ClipperStage[]; label: string }[] = [
+  { key: ['join'], label: 'Join' },
+  { key: ['post'], label: 'Post' },
+  { key: ['review', 'flagged'], label: 'Review' },
+  { key: ['earning', 'paid'], label: 'Earn' },
+];
+
+/**
+ * Tells a clipper exactly what to do next on a campaign, with the action right
+ * there: join, then post and paste the link, then wait for review, then earn.
+ */
+export function NextStep({
+  campaign,
+  brandName,
+  enrollment,
+  submission,
+  claimedMoment,
+  join,
+  submitForm,
+  tiktokPrompt,
+}: {
+  campaign: Campaign;
+  brandName: string;
+  enrollment: Enrollment | null;
+  submission: Submission | null;
+  /** Title of a moment this clipper claimed, if any. */
+  claimedMoment: string | null;
+  join: React.ReactNode;
+  submitForm: React.ReactNode;
+  /** Shown in the post step when TikTok is allowed but not connected. */
+  tiktokPrompt?: React.ReactNode;
+}) {
+  const stage = clipperStage(enrollment, submission);
+  const current = STAGE_TRACK.findIndex((s) => s.key.includes(stage));
+  const where = campaign.platforms.map((p) => ({ tiktok: 'TikTok', youtube: 'YouTube Shorts', instagram: 'Instagram Reels' })[p]).join(', ');
+
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">Your next step</p>
+      <ol className="mt-3 grid grid-cols-4 gap-1.5" aria-label="Progress">
+        {STAGE_TRACK.map((s, i) => (
+          <li key={s.label} className="min-w-0">
+            <div className={cn('h-1 rounded-full', i < current ? 'bg-accent-500' : i === current ? 'bg-zinc-900' : 'bg-zinc-200')} />
+            <p className={cn('mt-1.5 truncate text-xs', i === current ? 'font-medium text-zinc-900' : 'text-zinc-500')}>{s.label}</p>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-5">
+        {stage === 'join' && (
+          <>
+            <h3 className="font-semibold tracking-tight">Join to get your clip code</h3>
+            <p className="mt-1 text-sm text-zinc-600">It’s free. Then clip any moment from {brandName}’s streams and post it on {where}.</p>
+            <div className="mt-4">{join}</div>
+          </>
+        )}
+
+        {stage === 'post' && enrollment && (
+          <>
+            <h3 className="font-semibold tracking-tight">Post your clip, then paste the link</h3>
+            <ol className="mt-3 space-y-2 text-sm text-zinc-700">
+              <li className="flex gap-2.5">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">1</span>
+                <span>{claimedMoment ? <>Cut your moment: <span className="font-medium">{claimedMoment}</span></> : 'Cut a moment. Claim one below so nobody else takes it.'}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">2</span>
+                <span>Post it on {where}.</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">3</span>
+                <span>
+                  Put <span className="font-mono font-medium">{enrollment.discount_code}</span> and <span className="font-medium">#ad</span> in the caption.
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">4</span>
+                <span>Paste the link below.</span>
+              </li>
+            </ol>
+            <div className="mt-4">
+              <CopyField label="Your clip code" value={enrollment.discount_code} />
+            </div>
+            {tiktokPrompt && <div className="mt-3">{tiktokPrompt}</div>}
+            <div className="mt-4">{submitForm}</div>
+          </>
+        )}
+
+        {stage === 'review' && submission && (
+          <>
+            <h3 className="font-semibold tracking-tight">Waiting for {brandName} to review</h3>
+            <p className={cn('mt-1 text-sm', submission.has_disclosure ? 'text-zinc-600' : 'text-amber-700')}>
+              {submission.has_disclosure
+                ? `${submissionNote(submission, campaign.auto_approve_hours).text}. Views are already being counted.`
+                : 'Add #ad to your caption. Clips without it can’t be approved.'}
+            </p>
+          </>
+        )}
+
+        {stage === 'flagged' && submission && (
+          <>
+            <h3 className="font-semibold tracking-tight">Your clip was flagged</h3>
+            <p className="mt-1 text-sm text-rose-600">{submission.flag_reason ?? 'The streamer flagged this clip.'}</p>
+            <p className="mt-2 text-sm text-zinc-600">It stops earning until it’s cleared.</p>
+          </>
+        )}
+
+        {(stage === 'earning' || stage === 'paid') && submission && (
+          <>
+            <h3 className="font-semibold tracking-tight">{stage === 'paid' ? 'Paid in full' : 'You’re earning'}</h3>
+            <p className="mt-1 text-sm text-zinc-600">
+              {compact(submission.current_view_count)} views so far. {usd(submission.payout_transferred)} paid out.
+            </p>
+            <div className="mt-4 flex items-baseline justify-between text-sm">
+              <span className="text-2xl font-semibold tracking-tight tabular-nums">{usd(submission.payout_earned)}</span>
+              <span className="text-zinc-500">of {usd(campaign.cpm_cap)} max</span>
+            </div>
+            <Progress value={submission.payout_earned} max={campaign.cpm_cap} className="mt-2" />
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
