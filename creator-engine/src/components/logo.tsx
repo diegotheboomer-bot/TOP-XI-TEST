@@ -6,7 +6,7 @@
 import { useEffect, useId, useState } from 'react';
 
 /** Tones: a/b are the Volt stops, g the gradient, d a softer shade, h the tile colour, w a faint white. */
-type Tone = 'a' | 'b' | 'g' | 'd' | 'h' | 'w';
+type Tone = 'a' | 'b' | 'g' | 'd' | 'e' | 'f' | 'h' | 'w';
 interface Piece {
   d: string;
   t: Tone;
@@ -79,81 +79,44 @@ function thru({ top = 'g' as Tone, line }: { top?: Tone; line?: number } = {}): 
   ];
 }
 
-/** The two sides of the cut drawn as pixel steps instead of a straight line. */
-function stairs(offset: number, upper: boolean, step = 2.6) {
-  const pts: [number, number][] = [];
-  for (let x = -5; x < 33; x += step) {
-    const y = onCut(x + step / 2) + offset;
-    pts.push([x, y], [x + step, y]);
-  }
-  const poly = upper ? [[-5, -40], [33, -40], ...pts.reverse()] : [...pts, [33, 40], [-5, 40]];
-  return poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
-}
-
 /** A thin bar along the cut direction ending at (xe, y); for speed lines. */
 const streak = (xs: number, xe: number, y: number, th = 0.55) =>
   `M${f(xs)} ${f(y + K * (xe - xs))} ${f(xe)} ${f(y)} ${f(xe)} ${f(y + th)} ${f(xs)} ${f(y + K * (xe - xs) + th)}z`;
-const square = (x: number, y: number, s: number) => `M${f(x)} ${f(y)}h${f(s)}v${f(s)}h${f(-s)}z`;
 
-const LASER_ENDS = [2.2, 25.8] as const;
-const laser = () => {
-  const [x0, x1] = LASER_ENDS;
+const SPEED: Piece[] = [{ d: streak(7.4, 11.5, 8) + streak(6.9, 10.1, 10.6) + streak(6.4, 8.8, 13.2), t: 'd' }];
+/** A copy of the whole mark (both halves) shifted sideways behind it. */
+const ghost = (dx: number, t: Tone): Piece[] => {
+  const off = `translate(${dx} 0)`;
   return [
-    { d: `M${f(x0)} ${f(onCut(x0) - 0.2)} ${f(x1)} ${f(onCut(x1) - 0.2)} ${f(x1)} ${f(onCut(x1) + 0.2)} ${f(x0)} ${f(onCut(x0) + 0.2)}z`, t: 'a' as Tone },
-    { d: square(x0 - 0.7, onCut(x0) - 0.7, 1.4) + square(x1 - 0.7, onCut(x1) - 0.7, 1.4), t: 'a' as Tone },
+    { d: A.d, t, clip: LOW, move: off },
+    { d: BAR, t, clip: LOW, move: off },
+    { d: A.d, t, clip: HIGH, move: `${off} ${SLIDE}` },
+    { d: BAR, t, clip: HIGH, move: `${off} ${SLIDE}` },
   ];
 };
-const DOTS = Array.from({ length: 49 }, (_, i) => square(3.15 + 3.5 * (i % 7), 3.15 + 3.5 * Math.floor(i / 7), 0.7)).join('');
-const PIXEL_HIGH = stairs(-0.8, true);
-const PIXEL_LOW = stairs(0.8, false);
+/** Fading copies of the top piece trailing behind it, like motion blur. */
+const trail: Piece[] = [
+  [-2.8, 'f'],
+  [-1.4, 'd'],
+].flatMap(([dx, t]) => [
+  { d: A.d, t: t as Tone, clip: HIGH, move: `translate(${dx} 0) ${SLIDE}` },
+  { d: BAR, t: t as Tone, clip: HIGH, move: `translate(${dx} 0) ${SLIDE}` },
+]);
+/** A thin band of the top piece knocked sideways, like a glitch. */
+const shift: Piece[] = [
+  { d: 'M8 9.6h12v2.1H8z', t: 'h', move: SLIDE },
+  { d: A.d, t: 'g', clip: '-5,9.6 33,9.6 33,11.7 -5,11.7', move: `${SLIDE} translate(1.6 0)` },
+];
 
 export const LOGO_MARKS = [
   { id: 'thru', name: 'Thru Bar', meaning: 'The A cut through its crossbar, top slid along', pieces: thru() },
-  { id: 'laser', name: 'Laser', meaning: 'A laser line through the cut', pieces: [...laser(), ...thru()] },
-  {
-    id: 'speed',
-    name: 'Speed',
-    meaning: 'Motion lines behind the sliding piece',
-    pieces: [{ d: streak(7.4, 11.5, 8) + streak(6.9, 10.1, 10.6) + streak(6.4, 8.8, 13.2), t: 'd' }, ...thru()],
-  },
-  {
-    id: 'scan',
-    name: 'Scan',
-    meaning: 'Scanlines through the bottom, like a display',
-    pieces: [...thru(), { d: 'M2 20.3h24v.55H2zM2 21.9h24v.55H2zM2 23.3h24v.45H2z', t: 'h', clip: LOW }],
-  },
-  {
-    id: 'pixel',
-    name: 'Pixel Cut',
-    meaning: 'The cut edge in pixel steps',
-    pieces: [
-      { d: A.d, t: 'g', clip: PIXEL_LOW },
-      { d: BAR, t: 'g', clip: PIXEL_LOW },
-      { d: A.d, t: 'g', clip: PIXEL_HIGH, move: SLIDE },
-      { d: BAR, t: 'g', clip: PIXEL_HIGH, move: SLIDE },
-    ],
-  },
-  { id: 'wire', name: 'Wireframe', meaning: 'The top piece as an outline, like a hologram', pieces: thru({ line: 1.1 }) },
-  { id: 'grid', name: 'Grid', meaning: 'A faint dot grid behind', pieces: [{ d: DOTS, t: 'w' }, ...thru()] },
-  {
-    id: 'viewfinder',
-    name: 'Viewfinder',
-    meaning: 'Camera crop brackets around the A',
-    zoom: 0.78,
-    pieces: [{ d: 'M3 7V3h4v1.2H4.2V7zM25 7V3h-4v1.2h2.8V7zM3 21v4h4v-1.2H4.2V21zM25 21v4h-4v-1.2h2.8V21z', t: 'a', fixed: true }, ...thru()],
-  },
-  {
-    id: 'glitch',
-    name: 'Glitch',
-    meaning: 'An offset ghost copy, like a glitch',
-    pieces: [{ d: A.d, t: 'd', clip: LOW, move: 'translate(-1.3 0)' }, { d: BAR, t: 'd', clip: LOW, move: 'translate(-1.3 0)' }, ...thru()],
-  },
-  {
-    id: 'bits',
-    name: 'Bits',
-    meaning: 'Pixel bits breaking off the cut',
-    pieces: [...thru(), { d: square(24.6, onCut(24.6) - 1.9, 1.3) + square(25.8, onCut(25.8) + 0.6, 0.95) + square(25, onCut(25) + 2.1, 0.7), t: 'a' }],
-  },
+  { id: 'glitch', name: 'Glitch', meaning: 'A ghost copy behind the whole mark', pieces: [...ghost(-1.3, 'd'), ...thru()] },
+  { id: 'glitchspeed', name: 'Glitch Speed', meaning: 'Glitch with motion lines', pieces: [...SPEED, ...ghost(-1.3, 'd'), ...thru()] },
+  { id: 'split', name: 'Split', meaning: 'A dark ghost left and a light one right', pieces: [...ghost(-1.3, 'd'), ...ghost(1.1, 'e'), ...thru()] },
+  { id: 'splitspeed', name: 'Split Speed', meaning: 'Split with motion lines', pieces: [...SPEED, ...ghost(-1.3, 'd'), ...ghost(1.1, 'e'), ...thru()] },
+  { id: 'trail', name: 'Trail', meaning: 'Motion trail behind the sliding piece, with speed lines', pieces: [...SPEED, ...thru().slice(0, 2), ...trail, ...thru().slice(2)] },
+  { id: 'shift', name: 'Shift', meaning: 'Glitch with a band knocked sideways', pieces: [...ghost(-1.3, 'd'), ...thru(), ...shift] },
+  { id: 'shiftspeed', name: 'Shift Speed', meaning: 'Shift with motion lines', pieces: [...SPEED, ...ghost(-1.3, 'd'), ...thru(), ...shift] },
 ] as const satisfies readonly Mark[];
 
 export type LogoMarkId = (typeof LOGO_MARKS)[number]['id'];
@@ -198,6 +161,10 @@ export function LogoMark({ mark: forced, className = 'size-7' }: { mark?: LogoMa
         return { fill: `url(#g${id})` };
       case 'd':
         return { style: { fill: 'rgb(var(--brand-b))' }, opacity: 0.5 };
+      case 'e':
+        return { style: { fill: 'rgb(var(--brand-a))' }, opacity: 0.55 };
+      case 'f':
+        return { style: { fill: 'rgb(var(--brand-b))' }, opacity: 0.25 };
       case 'h':
         return { fill: '#0b0b10' };
       case 'w':
