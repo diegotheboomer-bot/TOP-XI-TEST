@@ -1,28 +1,30 @@
 'use client';
 
-// Creator Engine logo: a mark plus the wordmark. Each mark is a sharp Volt
-// shape on a dark tile, built from a play button cut into clean pieces. Shared
-// by the app and the standalone demo.
+// Creator Engine logo: a mark plus the wordmark. Each mark is something that
+// matters to clipping (a stream, a clip, the C, the live dot) cut cleanly in the
+// Volt gradient on a dark tile. Shared by the app and the standalone demo.
 import { useEffect, useId, useState } from 'react';
 
 export const LOGO_MARKS = [
-  { id: 'cut', name: 'Cut' },
-  { id: 'shards', name: 'Shards' },
-  { id: 'facet', name: 'Facet' },
-  { id: 'wedge', name: 'Wedge' },
+  { id: 'stream', name: 'Stream' },
+  { id: 'clip', name: 'Clip' },
+  { id: 'c', name: 'C' },
+  { id: 'live', name: 'Live' },
 ] as const;
 export type LogoMarkId = (typeof LOGO_MARKS)[number]['id'];
-const DEFAULT: LogoMarkId = 'cut';
+const DEFAULT: LogoMarkId = 'stream';
 
-const PLAY = 'M8 6 22 14 8 22z';
+// A C open to the right: an arc from 40° round to 320°, radius 8.
+const C_PATH = 'M20.13 8.86A8 8 0 1 0 20.13 19.14';
 // Clip regions between parallel slices (y = c - 6x/28), each leaving a 1.8-unit gap.
 const band = (top: number, bottom: number) => `0,${top} 28,${top - 6} 28,${bottom - 6} 0,${bottom}`;
 const SLICES = {
   cutHigh: band(-10, 15.4),
   cutLow: band(17.2, 40),
-  shardTop: band(-10, 12.5),
-  shardMid: band(14.3, 18.5),
-  shardLow: band(20.3, 40),
+  // Stream: two vertical cuts around a 9:16 slice of a 16:9 frame.
+  streamLeft: '0,0 9.4,0 9.4,28 0,28',
+  streamMid: '10.6,0 17.4,0 17.4,28 10.6,28',
+  streamRight: '18.6,0 28,0 28,28 18.6,28',
 };
 /** Moves a piece along the slice direction, so its cut edges stay parallel. */
 const slide = (d: number) => `translate(${(d * 0.978).toFixed(2)} ${(-d * 0.21).toFixed(2)})`;
@@ -76,35 +78,51 @@ export function LogoMark({ mark: forced, className = 'size-7' }: { mark?: LogoMa
       {/* Dark tile with a hairline edge. */}
       <rect x="0.5" y="0.5" width="27" height="27" rx="7.5" fill="#0b0b10" stroke="rgb(255 255 255 / 0.14)" />
 
-      {mark === 'cut' && (
-        // A play button in two pieces; the top piece slides along the slice.
+      {mark === 'stream' && (
+        // A 16:9 stream with its vertical 9:16 slice cut out and lifted: what clippers do.
         <>
-          <path d={PLAY} fill={grad} clipPath={`url(#cutLow${id})`} />
-          <path d={PLAY} fill={grad} clipPath={`url(#cutHigh${id})`} transform={slide(1.7)} />
+          <rect x="3.5" y="9" width="21" height="11.8" rx="2.4" fill={grad} opacity="0.55" clipPath={`url(#streamLeft${id})`} />
+          <rect x="3.5" y="9" width="21" height="11.8" rx="2.4" fill={grad} opacity="0.55" clipPath={`url(#streamRight${id})`} />
+          <g transform="translate(0 -3.6)">
+            <rect x="3.5" y="9" width="21" height="11.8" rx="2.4" fill={grad} clipPath={`url(#streamMid${id})`} />
+            <path d="M12.6 12.4 16.2 14.9l-3.6 2.5z" fill={ink} />
+          </g>
         </>
       )}
 
-      {mark === 'shards' && (
-        // Three pieces from two parallel slices; the middle one slides out.
+      {mark === 'clip' && (
+        // A vertical clip (phone-shaped, with its notch) sliced in two; the top piece slides along the cut.
         <>
-          <path d={PLAY} fill={grad} clipPath={`url(#shardTop${id})`} />
-          <path d={PLAY} fill={grad} clipPath={`url(#shardMid${id})`} transform={slide(2)} />
-          <path d={PLAY} fill={grad} clipPath={`url(#shardLow${id})`} />
+          {[
+            [`cutLow`, undefined],
+            [`cutHigh`, slide(1.8)],
+          ].map(([region, move]) => (
+            // The transform sits with the clip, so the whole piece (edges included) moves.
+            <g key={region} transform={move}>
+              <g clipPath={`url(#${region}${id})`}>
+                <rect x="8.5" y="3.5" width="11" height="21" rx="3" fill={grad} />
+                <rect x="12.3" y="5.6" width="3.4" height="1.3" rx="0.65" fill={ink} />
+              </g>
+            </g>
+          ))}
         </>
       )}
 
-      {mark === 'facet' && (
-        // A play button cut into three facets, each a different Volt tone.
-        <g stroke="#0b0b10" strokeWidth="1" strokeLinejoin="round">
-          <path d="M8 6 12.7 14 22 14z" style={{ fill: 'rgb(var(--brand-a))' }} />
-          <path d="M22 14 12.7 14 8 22z" fill={grad} />
-          <path d="M8 22 12.7 14 8 6z" style={{ fill: 'rgb(var(--brand-b))' }} opacity="0.8" />
-        </g>
+      {mark === 'c' && (
+        // A bold C (creator, clip, cut) sliced in two.
+        <>
+          <path d={C_PATH} fill="none" stroke={grad} strokeWidth="4.6" strokeLinecap="round" clipPath={`url(#cutLow${id})`} />
+          <path d={C_PATH} fill="none" stroke={grad} strokeWidth="4.6" strokeLinecap="round" clipPath={`url(#cutHigh${id})`} transform={slide(1.8)} />
+        </>
       )}
 
-      {mark === 'wedge' && (
-        // A play button with a sharp chevron notch cut out of its back.
-        <path d="M7 6 22 14 7 22 11.5 14z" fill={grad} />
+      {mark === 'live' && (
+        // A live / record dot sliced in two inside its ring: a moment cut out of a live stream.
+        <>
+          <circle cx="14" cy="14" r="10.5" fill="none" stroke="#fff" strokeOpacity="0.22" strokeWidth="1.2" />
+          <circle cx="14" cy="14" r="7" fill={grad} clipPath={`url(#cutLow${id})`} />
+          <circle cx="14" cy="14" r="7" fill={grad} clipPath={`url(#cutHigh${id})`} transform={slide(1.8)} />
+        </>
       )}
     </svg>
   );
