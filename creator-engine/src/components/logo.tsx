@@ -1,19 +1,31 @@
 'use client';
 
-// Creator Engine logo: a mark plus the wordmark. Each mark is a Volt shape on a
-// dark tile that shows clipping (cut, snip, pop out, split, trim). Shared by the
-// app and the standalone demo.
+// Creator Engine logo: a mark plus the wordmark. Each mark is a sharp Volt
+// shape on a dark tile, built from a play button cut into clean pieces. Shared
+// by the app and the standalone demo.
 import { useEffect, useId, useState } from 'react';
 
 export const LOGO_MARKS = [
   { id: 'cut', name: 'Cut' },
-  { id: 'snip', name: 'Snip' },
-  { id: 'popout', name: 'Pop out' },
-  { id: 'split', name: 'Split' },
-  { id: 'trim', name: 'Trim' },
+  { id: 'shards', name: 'Shards' },
+  { id: 'facet', name: 'Facet' },
+  { id: 'wedge', name: 'Wedge' },
 ] as const;
 export type LogoMarkId = (typeof LOGO_MARKS)[number]['id'];
 const DEFAULT: LogoMarkId = 'cut';
+
+const PLAY = 'M8 6 22 14 8 22z';
+// Clip regions between parallel slices (y = c - 6x/28), each leaving a 1.8-unit gap.
+const band = (top: number, bottom: number) => `0,${top} 28,${top - 6} 28,${bottom - 6} 0,${bottom}`;
+const SLICES = {
+  cutHigh: band(-10, 15.4),
+  cutLow: band(17.2, 40),
+  shardTop: band(-10, 12.5),
+  shardMid: band(14.3, 18.5),
+  shardLow: band(20.3, 40),
+};
+/** Moves a piece along the slice direction, so its cut edges stay parallel. */
+const slide = (d: number) => `translate(${(d * 0.978).toFixed(2)} ${(-d * 0.21).toFixed(2)})`;
 
 /** The chosen mark: <html data-logo="…"> (set by the demo's picker), else the default. */
 function useMark(): LogoMarkId {
@@ -53,75 +65,46 @@ export function LogoMark({ mark: forced, className = 'size-7' }: { mark?: LogoMa
           <stop offset="0" style={{ stopColor: 'rgb(var(--brand-a))' }} />
           <stop offset="1" style={{ stopColor: 'rgb(var(--brand-b))' }} />
         </linearGradient>
-        {/* Cut: the two sides of a diagonal slice with a gap between them */}
-        <clipPath id={`t${id}`}>
-          <polygon points="0,0 28,0 28,8.9 0,14.9" />
-        </clipPath>
-        <clipPath id={`b${id}`}>
-          <polygon points="0,17.7 28,11.7 28,28 0,28" />
-        </clipPath>
-        {/* Split: three vertical strips */}
-        {[
-          [5, 9.6],
-          [10.9, 15.5],
-          [16.8, 23],
-        ].map(([x1, x2], i) => (
-          <clipPath key={i} id={`s${i}${id}`}>
-            <rect x={x1} y="0" width={x2 - x1} height="28" />
+        {/* Slices all share one angle (rise 6 over 28) so every gap is parallel. */}
+        {Object.entries(SLICES).map(([key, points]) => (
+          <clipPath key={key} id={`${key}${id}`}>
+            <polygon points={points} />
           </clipPath>
         ))}
       </defs>
 
-      {/* All marks share the dark tile with a hairline edge. */}
+      {/* Dark tile with a hairline edge. */}
       <rect x="0.5" y="0.5" width="27" height="27" rx="7.5" fill="#0b0b10" stroke="rgb(255 255 255 / 0.14)" />
 
       {mark === 'cut' && (
-        // A play button sliced along a dashed "cut here" line, the top half pulled away.
+        // A play button in two pieces; the top piece slides along the slice.
         <>
-          <path d="M8.5 6 21.5 14 8.5 22z" fill={grad} clipPath={`url(#b${id})`} />
-          <path d="M8.5 6 21.5 14 8.5 22z" fill={grad} clipPath={`url(#t${id})`} transform="translate(1.6 -1.7) rotate(-5 15 11)" />
-          <path d="M3.5 17.3 24.5 12.8" stroke="#fff" strokeOpacity="0.7" strokeWidth="1" strokeDasharray="1.6 1.5" strokeLinecap="round" />
+          <path d={PLAY} fill={grad} clipPath={`url(#cutLow${id})`} />
+          <path d={PLAY} fill={grad} clipPath={`url(#cutHigh${id})`} transform={slide(1.7)} />
         </>
       )}
 
-      {mark === 'snip' && (
-        // The tip of a play button snipped off and drifting away: a clip is a piece of the stream.
+      {mark === 'shards' && (
+        // Three pieces from two parallel slices; the middle one slides out.
         <>
-          <path d="M6.5 6 14 10.14v7.72L6.5 22z" fill={grad} />
-          <path d="M14 10.14 21 14l-7 3.86z" fill={grad} transform="translate(3 -2.8) rotate(16 17 14)" />
-          <path d="M15.6 6.5v15" stroke="#fff" strokeOpacity="0.7" strokeWidth="1" strokeDasharray="1.6 1.5" strokeLinecap="round" />
+          <path d={PLAY} fill={grad} clipPath={`url(#shardTop${id})`} />
+          <path d={PLAY} fill={grad} clipPath={`url(#shardMid${id})`} transform={slide(2)} />
+          <path d={PLAY} fill={grad} clipPath={`url(#shardLow${id})`} />
         </>
       )}
 
-      {mark === 'popout' && (
-        // A widescreen stream with its vertical 9:16 slice popping out.
-        <>
-          <rect x="3.5" y="9" width="21" height="12" rx="2.2" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="1.3" />
-          <rect x="10.5" y="9" width="7" height="12" rx="1.6" fill="none" stroke="#fff" strokeOpacity="0.5" strokeWidth="1" strokeDasharray="1.5 1.4" />
-          <g transform="translate(2.2 -4)">
-            <rect x="10.5" y="9" width="7" height="12.4" rx="1.8" fill={grad} />
-            <path d="M12.9 12.9 15.6 15.2l-2.7 2.3z" fill={ink} />
-          </g>
-        </>
+      {mark === 'facet' && (
+        // A play button cut into three facets, each a different Volt tone.
+        <g stroke="#0b0b10" strokeWidth="1" strokeLinejoin="round">
+          <path d="M8 6 12.7 14 22 14z" style={{ fill: 'rgb(var(--brand-a))' }} />
+          <path d="M22 14 12.7 14 8 22z" fill={grad} />
+          <path d="M8 22 12.7 14 8 6z" style={{ fill: 'rgb(var(--brand-b))' }} opacity="0.8" />
+        </g>
       )}
 
-      {mark === 'split' && (
-        // A play button cut into three strips: one stream, three platforms.
-        <>
-          {[0, -1.6, 1.6].map((dy, i) => (
-            <path key={i} d="M5 4.5 23 14 5 23.5z" fill={grad} clipPath={`url(#s${i}${id})`} transform={`translate(0 ${dy})`} />
-          ))}
-        </>
-      )}
-
-      {mark === 'trim' && (
-        // An editor's trim: in and out markers around the highlighted part of the timeline, playing above.
-        <>
-          <path d="M11 5 18.5 9.5 11 14z" fill={grad} />
-          <path d="M5 20.5h18" stroke="#fff" strokeOpacity="0.3" strokeWidth="2" strokeLinecap="round" />
-          <path d="M10 20.5h8" style={{ stroke: 'rgb(var(--brand-a))' }} strokeWidth="2.6" strokeLinecap="round" />
-          <path d="M9.6 17.4v6.2M18.4 17.4v6.2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-        </>
+      {mark === 'wedge' && (
+        // A play button with a sharp chevron notch cut out of its back.
+        <path d="M7 6 22 14 7 22 11.5 14z" fill={grad} />
       )}
     </svg>
   );
