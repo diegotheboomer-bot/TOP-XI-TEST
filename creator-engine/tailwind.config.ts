@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss';
-import { boxShadow, colors } from './tailwind.theme';
+import { backgroundImage, boxShadow, colors } from './tailwind.theme';
 
 export default {
   content: ['./src/**/*.{ts,tsx}'],
@@ -11,6 +11,7 @@ export default {
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
       },
       boxShadow,
+      backgroundImage,
     },
   },
   plugins: [],

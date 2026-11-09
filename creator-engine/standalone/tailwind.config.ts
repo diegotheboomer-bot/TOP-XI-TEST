@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss';
-import { boxShadow, colors } from '../tailwind.theme';
+import { backgroundImage, boxShadow, colors } from '../tailwind.theme';
 
 // Same design tokens as the app (src/styles/tokens.css), Google-hosted fonts.
 export default {
@@ -12,6 +12,7 @@ export default {
         mono: ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow,
+      backgroundImage,
     },
   },
   plugins: [],

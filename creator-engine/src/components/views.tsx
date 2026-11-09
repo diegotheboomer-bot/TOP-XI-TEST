@@ -139,7 +139,7 @@ export function BudgetMeter({ budget, className }: { budget: BudgetStats; classN
         </span>
         <span className={cn('font-medium', days.urgent ? 'text-amber-700' : 'text-zinc-700')}>{days.text}</span>
       </div>
-      <Progress value={budget.committed} max={budget.deposited} tone={budget.usedShare > 0.85 ? 'amber' : 'neutral'} />
+      <Progress value={budget.committed} max={budget.deposited} tone={budget.usedShare > 0.85 ? 'amber' : 'brand'} />
     </div>
   );
 }
@@ -367,7 +367,7 @@ export function Checklist({ steps, title = 'Get started' }: { steps: ChecklistSt
             <span
               className={cn(
                 'grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold',
-                s.done ? 'bg-accent-500 text-white' : i === next ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500',
+                s.done ? 'bg-accent-500 text-white' : i === next ? 'bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-500',
               )}
             >
               {s.done ? <Check className="size-3.5" /> : i + 1}
@@ -567,7 +567,7 @@ export function NextStep({
       <ol className="mt-3 grid grid-cols-4 gap-1.5" aria-label="Progress">
         {STAGE_TRACK.map((s, i) => (
           <li key={s.label} className="min-w-0">
-            <div className={cn('h-1 rounded-full', i < current ? 'bg-accent-500' : i === current ? 'bg-zinc-900' : 'bg-zinc-200')} />
+            <div className={cn('h-1 rounded-full', i < current ? 'bg-accent-500' : i === current ? 'bg-brand' : 'bg-zinc-200')} />
             <p className={cn('mt-1.5 truncate text-xs', i === current ? 'font-medium text-zinc-900' : 'text-zinc-500')}>{s.label}</p>
           </li>
         ))}

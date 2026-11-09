@@ -141,7 +141,7 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
                     key={value}
                     className={cn(
                       'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-accent-500',
-                      on ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300',
+                      on ? 'border-transparent bg-brand text-brand-ink' : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300',
                     )}
                   >
                     <input

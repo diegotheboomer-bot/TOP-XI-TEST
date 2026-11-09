@@ -32,6 +32,7 @@ import { CopyField } from '@/components/copy-button';
 import { trackingLink } from '@/lib/attribution';
 import { RolePicker } from '@/components/role-picker';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { ColorwayPicker } from '@/components/colorway-picker';
 import { EarningsEstimator } from '@/components/estimator';
 import { CampaignFormBody } from '@/components/forms/campaign-form-body';
 import {
@@ -234,6 +235,7 @@ function App() {
           <RolePicker streamerHref="#brand" clipperHref="#creator" assetBase={ASSETS} />
         )}
         <Toast state={store.toast} />
+        <ColorwayPicker />
       </>
     );
   }
@@ -270,6 +272,7 @@ function App() {
         {route.name === 'payouts' && <Payouts store={store} />}
       </AppShell>
       <Toast state={store.toast} />
+      <ColorwayPicker />
     </>
   );
 }
@@ -279,7 +282,7 @@ function LandingHeader() {
     <header className="site-header sticky z-20 border-b border-zinc-200/70 bg-zinc-50/85 backdrop-blur">
       <div className="gutter mx-auto flex h-16 max-w-6xl items-center justify-between gap-3">
         <a href="#home" className="flex items-center gap-2.5 font-semibold tracking-tight">
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-zinc-900 text-white">
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-brand text-brand-ink">
             <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 17 9.5 11l4 4L20 8" />
             </svg>

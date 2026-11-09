@@ -97,7 +97,7 @@ export function PayoutsView({
               onClick={() => setChoice(o.method)}
               className={cn(
                 'flex items-start gap-3 rounded-xl border p-3.5 text-left transition sm:flex-col sm:gap-2',
-                choice === o.method ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-300',
+                choice === o.method ? 'border-brand-a bg-brand-a/5 ring-1 ring-brand-a' : 'border-zinc-200 hover:border-zinc-300',
               )}
             >
               <span className={cn('mt-0.5 [&>svg]:size-5', choice === o.method ? 'text-zinc-900' : 'text-zinc-400')}>{o.icon}</span>

@@ -50,7 +50,7 @@ export function MockOnboarding({ onDone }: { onDone: () => Promise<ActionState> 
             <span
               className={cn(
                 'grid size-6 shrink-0 place-items-center rounded-full text-xs font-medium',
-                i < step ? 'bg-accent-600 text-white' : i === step ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500',
+                i < step ? 'bg-accent-600 text-white' : i === step ? 'bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-500',
               )}
             >
               {i < step ? <Check className="size-3.5" /> : i + 1}

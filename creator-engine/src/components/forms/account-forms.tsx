@@ -39,7 +39,7 @@ export function OnboardingForm({ defaultRole = 'brand' }: { defaultRole?: 'brand
             key={r.value}
             className={cn(
               'flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition',
-              role === r.value ? 'border-zinc-900 bg-white ring-4 ring-zinc-900/5' : 'border-zinc-200 bg-white hover:border-zinc-300',
+              role === r.value ? 'border-brand-a bg-white ring-4 ring-brand-a/15' : 'border-zinc-200 bg-white hover:border-zinc-300',
             )}
           >
             <input type="radio" name="role" value={r.value} checked={role === r.value} onChange={() => setRole(r.value)} className="sr-only" />

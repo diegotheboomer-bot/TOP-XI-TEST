@@ -29,7 +29,7 @@ export function activeHref(sections: NavSection[], path: string): string | null 
 function Logo({ link: Link, href }: { link: LinkLike; href: string }) {
   return (
     <Link href={href} className="flex items-center gap-2.5 font-semibold tracking-tight">
-      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-zinc-900 text-white">
+      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-brand text-brand-ink">
         <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 17 9.5 11l4 4L20 8" />
         </svg>
@@ -71,12 +71,12 @@ export function AppShell({
         className={cn(
           'flex items-center gap-2.5 rounded-md text-sm transition-colors [&>svg]:size-4 [&>svg]:shrink-0',
           mobile ? 'shrink-0 px-3 py-1.5' : 'px-2.5 py-2',
-          on ? 'bg-zinc-900 text-white' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900',
+          on ? 'bg-brand-a/15 font-medium text-zinc-900 ring-1 ring-inset ring-brand-a/30' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900',
         )}
       >
         {item.icon}
         <span className="truncate">{item.label}</span>
-        {!!item.count && <span className={cn('ml-auto rounded px-1.5 text-xs tabular-nums', on ? 'bg-white/20' : 'bg-amber-50 text-amber-700')}>{item.count}</span>}
+        {!!item.count && <span className={cn('ml-auto rounded px-1.5 text-xs tabular-nums', on ? 'bg-brand-a/25' : 'bg-amber-50 text-amber-700')}>{item.count}</span>}
       </Link>
     );
   };

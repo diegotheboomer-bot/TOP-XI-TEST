@@ -130,7 +130,7 @@ function Checkout({
             aria-pressed={quote?.amount === n}
             className={cn(
               'h-8 rounded-full border px-3.5 text-[13px] font-medium tabular-nums transition',
-              quote?.amount === n ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900',
+              quote?.amount === n ? 'border-transparent bg-brand text-brand-ink' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900',
             )}
           >
             {usd(n)}

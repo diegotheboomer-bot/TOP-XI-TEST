@@ -68,7 +68,9 @@ export function Landing({
       <section className="grid grid-cols-1 items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="min-w-0">
           <p className="text-sm font-medium text-accent-700">For streamers and the clippers who grow them</p>
-          <h1 className="balance mt-3 text-4xl font-semibold leading-[1.06] tracking-tight sm:text-5xl">Your stream, clipped everywhere.</h1>
+          <h1 className="balance mt-3 text-4xl font-semibold leading-[1.06] tracking-tight sm:text-5xl">
+            Your stream, <span className="text-brand">clipped everywhere.</span>
+          </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
             Post a campaign, pin the moments worth clipping, and pay clippers only for the views their clips get on TikTok, YouTube Shorts and Instagram Reels.
           </p>
@@ -97,7 +99,7 @@ export function Landing({
             <ol className="mt-5 space-y-5">
               {STEPS[who].map(([title, body], i) => (
                 <li key={title} className="flex gap-4">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-md bg-zinc-900 text-xs font-semibold text-white">{i + 1}</span>
+                  <span className="grid size-7 shrink-0 place-items-center rounded-md bg-brand text-xs font-semibold text-brand-ink">{i + 1}</span>
                   <div className="min-w-0">
                     <p className="font-medium">{title}</p>
                     <p className="mt-0.5 text-sm leading-relaxed text-zinc-600">{withFee(body)}</p>
