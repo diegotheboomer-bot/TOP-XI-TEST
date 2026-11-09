@@ -6,17 +6,16 @@ import { cn } from './ui/cn';
 
 // Same stops as tokens.css, so each swatch shows its own colorway.
 const COLORWAYS = [
-  { id: 'aqua', name: 'Aqua', a: '#22d3ee', b: '#34d399' },
-  { id: 'electric', name: 'Electric', a: '#2563eb', b: '#4f46e5' },
-  { id: 'mint', name: 'Mint', a: '#34d399', b: '#2dd4bf' },
   { id: 'volt', name: 'Volt', a: '#bef264', b: '#4ade80' },
-  { id: 'violet', name: 'Violet', a: '#7c3aed', b: '#c026d3' },
-  { id: 'sunset', name: 'Sunset', a: '#fb923c', b: '#f472b6' },
-  { id: 'mono', name: 'Mono', a: '#a1a1aa', b: '#52525b' },
+  { id: 'volt-neon', name: 'Neon', a: '#d4ff2e', b: '#a3e635' },
+  { id: 'volt-citrus', name: 'Citrus', a: '#fde047', b: '#a3e635' },
+  { id: 'volt-aqua', name: 'Lime to teal', a: '#bef264', b: '#2dd4bf' },
+  { id: 'volt-deep', name: 'Deep', a: '#84cc16', b: '#16a34a' },
+  { id: 'volt-flat', name: 'Flat (no gradient)', a: '#bef264', b: '#bef264' },
 ] as const;
 
 const KEY = 'ce-colorway';
-const DEFAULT = 'aqua';
+const DEFAULT = 'volt';
 
 /** Demo-only switcher for comparing colorways on the real screens. Remembered per browser. */
 export function ColorwayPicker() {
@@ -42,7 +41,7 @@ export function ColorwayPicker() {
       {open && (
         <div role="dialog" aria-label="Colorway" className="w-60 rounded-xl border border-zinc-200 bg-white p-3 shadow-2xl">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold">Colorway</p>
+            <p className="text-sm font-semibold">Volt variants</p>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid size-7 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900">
               <X className="size-4" />
             </button>
@@ -62,7 +61,7 @@ export function ColorwayPicker() {
               </li>
             ))}
           </ul>
-          <p className="mt-2 px-2 text-xs text-zinc-500">Preview only. Pick one and I’ll make it the default.</p>
+          <p className="mt-2 px-2 text-xs text-zinc-500">Volt variants. Pick one and I’ll make it the default.</p>
         </div>
       )}
       <button

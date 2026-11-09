@@ -67,73 +67,67 @@
 }
 
 /*
- * Colorways: the brand colour used on buttons, the logo, active states and
- * meters, as a two-stop gradient (--brand-a → --brand-b). --brand-ink is text
- * on top of it; --brand-ta/--brand-tb are the stops for gradient text, darker
- * in light mode where a bright colour would be hard to read on white.
+ * Colorway: the brand colour used on buttons, the logo, active states and
+ * meters, as a slight two-stop gradient (--brand-a → --brand-b). --brand-ink
+ * is text on top of it; --brand-ta/--brand-tb are the stops for gradient
+ * text, darker in light mode where lime would be hard to read on white.
  * --glow is the strength of the faint wash at the top of each page.
- * Set with <html data-colorway="…">; :root holds the default.
+ * Volt is the default; the variants are picked with <html data-colorway="…">.
  */
 :root,
-:root[data-colorway="aqua"] {
-  --brand-a: 34 211 238;   /* cyan 400 */
-  --brand-b: 52 211 153;   /* emerald 400 */
-  --brand-ink: 4 47 46;
-  --brand-ta: var(--brand-a);
-  --brand-tb: var(--brand-b);
-  --glow: 0.13;
-}
-:root[data-colorway="electric"] {
-  --brand-a: 37 99 235;    /* blue 600 */
-  --brand-b: 79 70 229;    /* indigo 600 */
-  --brand-ink: 255 255 255;
-  --brand-ta: 96 165 250;
-  --brand-tb: 129 140 248;
-}
-:root[data-colorway="mint"] {
-  --brand-a: 52 211 153;   /* emerald 400 */
-  --brand-b: 45 212 191;   /* teal 400 */
-  --brand-ink: 2 44 34;
-  --brand-ta: var(--brand-a);
-  --brand-tb: var(--brand-b);
-}
 :root[data-colorway="volt"] {
   --brand-a: 190 242 100;  /* lime 300 */
   --brand-b: 74 222 128;   /* green 400 */
   --brand-ink: 26 46 5;
   --brand-ta: var(--brand-a);
   --brand-tb: var(--brand-b);
+  --glow: 0.13;
 }
-:root[data-colorway="violet"] {
-  --brand-a: 124 58 237;   /* violet 600 */
-  --brand-b: 192 38 211;   /* fuchsia 600 */
-  --brand-ink: 255 255 255;
-  --brand-ta: 167 139 250;
-  --brand-tb: 232 121 249;
+/* Neon: punchier, highlighter lime. */
+:root[data-colorway="volt-neon"] {
+  --brand-a: 212 255 46;
+  --brand-b: 163 230 53;   /* lime 400 */
+  --brand-ink: 22 36 0;
+  --brand-ta: var(--brand-a);
+  --brand-tb: var(--brand-b);
+  --glow: 0.17;
 }
-:root[data-colorway="sunset"] {
-  --brand-a: 251 146 60;   /* orange 400 */
-  --brand-b: 244 114 182;  /* pink 400 */
-  --brand-ink: 43 11 18;
+/* Citrus: lime into yellow. */
+:root[data-colorway="volt-citrus"] {
+  --brand-a: 253 224 71;   /* yellow 300 */
+  --brand-b: 163 230 53;   /* lime 400 */
+  --brand-ink: 38 36 4;
   --brand-ta: var(--brand-a);
   --brand-tb: var(--brand-b);
 }
-:root[data-colorway="mono"] {
-  --brand-a: var(--zinc-900);
-  --brand-b: var(--zinc-700);
-  --brand-ink: var(--white);
-  --brand-ta: var(--zinc-900);
-  --brand-tb: var(--zinc-600);
-  --glow: 0;
+/* Aqua: lime into teal, cooler. */
+:root[data-colorway="volt-aqua"] {
+  --brand-a: 190 242 100;  /* lime 300 */
+  --brand-b: 45 212 191;   /* teal 400 */
+  --brand-ink: 4 40 30;
+  --brand-ta: var(--brand-a);
+  --brand-tb: var(--brand-b);
+}
+/* Deep: darker, more grown-up green. */
+:root[data-colorway="volt-deep"] {
+  --brand-a: 132 204 22;   /* lime 500 */
+  --brand-b: 22 163 74;    /* green 600 */
+  --brand-ink: 3 26 11;
+  --brand-ta: 163 230 53;
+  --brand-tb: 74 222 128;
+  --glow: 0.11;
+}
+/* Flat: one solid lime, no gradient. */
+:root[data-colorway="volt-flat"] {
+  --brand-a: 190 242 100;
+  --brand-b: 190 242 100;
+  --brand-ink: 26 46 5;
+  --brand-ta: var(--brand-a);
+  --brand-tb: 132 204 22;
 }
 
 /* Light mode: a softer wash, and darker stops for gradient text. */
-:root[data-app-theme="light"] { --glow: 0.09; }
-:root[data-app-theme="light"][data-colorway="mono"] { --glow: 0; }
-:root[data-app-theme="light"]:not([data-colorway]),
-:root[data-app-theme="light"][data-colorway="aqua"] { --brand-ta: 8 145 178; --brand-tb: 5 150 105; }
-:root[data-app-theme="light"][data-colorway="electric"] { --brand-ta: 37 99 235; --brand-tb: 79 70 229; }
-:root[data-app-theme="light"][data-colorway="mint"] { --brand-ta: 5 150 105; --brand-tb: 13 148 136; }
-:root[data-app-theme="light"][data-colorway="volt"] { --brand-ta: 77 124 15; --brand-tb: 21 128 61; }
-:root[data-app-theme="light"][data-colorway="violet"] { --brand-ta: 124 58 237; --brand-tb: 192 38 211; }
-:root[data-app-theme="light"][data-colorway="sunset"] { --brand-ta: 234 88 12; --brand-tb: 219 39 119; }
+:root[data-app-theme="light"] { --glow: 0.1; --brand-ta: 77 124 15; --brand-tb: 21 128 61; }
+:root[data-app-theme="light"][data-colorway="volt-citrus"] { --brand-ta: 101 163 13; --brand-tb: 161 98 7; }
+:root[data-app-theme="light"][data-colorway="volt-aqua"] { --brand-ta: 77 124 15; --brand-tb: 15 118 110; }
+:root[data-app-theme="light"][data-colorway="volt-flat"] { --brand-ta: 77 124 15; --brand-tb: 77 124 15; }
