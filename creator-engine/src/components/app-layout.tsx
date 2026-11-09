@@ -3,6 +3,7 @@ import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw } f
 import { isDemo } from '@/lib/env';
 import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
+import { ThemeToggle } from './theme-toggle';
 import type { NavSection } from './app-shell';
 
 export type Role = 'streamer' | 'clipper';
@@ -31,6 +32,7 @@ export function AppLayout({ role, children }: { role: Role; children: React.Reac
   const other: Role = role === 'streamer' ? 'clipper' : 'streamer';
   const footer = isDemo ? (
     <div className="flex gap-1 lg:block lg:space-y-0.5">
+      <ThemeToggle className="w-full" labelClassName="hidden lg:inline" />
       <Link href={`/${other}`} className={footerItem}>
         <ArrowLeftRight /> <span className="hidden lg:inline">Switch to {other} view</span>
         <span className="lg:hidden">{other === 'streamer' ? 'Streamer' : 'Clipper'}</span>
@@ -43,11 +45,14 @@ export function AppLayout({ role, children }: { role: Role; children: React.Reac
       </form>
     </div>
   ) : (
-    <form action={signOut}>
-      <button className={footerItem}>
-        <LogOut /> Sign out
-      </button>
-    </form>
+    <div className="flex gap-1 lg:block lg:space-y-0.5">
+      <ThemeToggle className="w-full" labelClassName="hidden lg:inline" />
+      <form action={signOut}>
+        <button className={footerItem}>
+          <LogOut /> Sign out
+        </button>
+      </form>
+    </div>
   );
   return (
     <NextShell sections={[SECTIONS[role]]} demo={isDemo} footer={footer}>

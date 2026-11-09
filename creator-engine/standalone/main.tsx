@@ -26,6 +26,7 @@ import { Landing } from '@/components/landing';
 import { CopyField } from '@/components/copy-button';
 import { trackingLink } from '@/lib/attribution';
 import { RolePicker } from '@/components/role-picker';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { EarningsEstimator } from '@/components/estimator';
 import { CampaignFormBody } from '@/components/forms/campaign-form-body';
 import {
@@ -239,6 +240,7 @@ function App() {
         demo
         footer={
           <div className="flex gap-1 lg:block lg:space-y-0.5">
+            <ThemeToggle className="w-full" labelClassName="hidden lg:inline" />
             <a href={other === 'streamer' ? '#brand' : '#creator'} className={footerItem}>
               <ArrowLeftRight /> <span className="hidden lg:inline">Switch to {other} view</span>
               <span className="lg:hidden">{other === 'streamer' ? 'Streamer' : 'Clipper'}</span>
@@ -274,7 +276,8 @@ function LandingHeader() {
           </span>
           <span className="hidden min-[400px]:inline">Creator Engine</span>
         </a>
-        <nav className="flex items-center gap-0.5 text-sm">
+        <nav className="flex items-center gap-1 text-sm">
+          <ThemeToggle labelled={false} />
           <a href="#start" className={buttonClass('primary', 'sm')}>
             Get started
           </a>

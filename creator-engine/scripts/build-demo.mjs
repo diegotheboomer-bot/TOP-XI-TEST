@@ -7,6 +7,9 @@ import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } fro
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
+// Applies a saved light preference before first paint (dark is the default).
+const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('ce-theme')==='light')document.documentElement.dataset.appTheme='light'}catch(e){}`;
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'demo-dist');
 mkdirSync(out, { recursive: true });
@@ -59,6 +62,7 @@ const html = `<title>Creator Engine Demo</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
 <style>${css}</style>
+<script>${THEME_BOOT_SCRIPT}</script>
 <div id="root"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>

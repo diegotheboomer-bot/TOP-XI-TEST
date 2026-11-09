@@ -1,19 +1,16 @@
 import type { Config } from 'tailwindcss';
+import { boxShadow, colors } from './tailwind.theme';
 
 export default {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
+    colors,
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
       },
-      colors: {
-        accent: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857' },
-      },
-      boxShadow: {
-        card: '0 1px 2px rgba(24,24,27,0.04), 0 1px 1px rgba(24,24,27,0.02)',
-      },
+      boxShadow,
     },
   },
   plugins: [],
