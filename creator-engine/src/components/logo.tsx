@@ -34,14 +34,14 @@ const MOVE = `translate(${f(SLIDE / norm)} ${f((-SLIDE * K) / norm)})`;
 
 export function Logo({ className = '' }: { className?: string }) {
   return (
-    <span className={`flex items-center gap-2.5 font-semibold tracking-tight ${className}`}>
+    <span className={`flex items-center gap-3 text-lg font-semibold tracking-tight ${className}`}>
       <LogoMark />
       <span>Atlas Clips</span>
     </span>
   );
 }
 
-export function LogoMark({ className = 'size-7' }: { className?: string }) {
+export function LogoMark({ className = 'size-9' }: { className?: string }) {
   const id = useId().replace(/:/g, '');
   const ghost = { style: { fill: 'rgb(var(--brand-b))' }, opacity: 0.5 };
   const solid = { fill: `url(#g${id})` };
@@ -61,7 +61,7 @@ export function LogoMark({ className = 'size-7' }: { className?: string }) {
           <polygon points={HIGH} />
         </clipPath>
       </defs>
-      <rect x="0.5" y="0.5" width="27" height="27" rx="7.5" fill="#0b0b10" stroke="rgb(255 255 255 / 0.14)" />
+      <rect width="28" height="28" rx="7.5" fill="#0b0b10" />
       {/* Ghost copy of the whole mark, a little to the left */}
       <g transform="translate(-1.3 0)">
         <path d={A.body} {...ghost} clipPath={lowClip} />

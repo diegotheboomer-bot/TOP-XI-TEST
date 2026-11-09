@@ -1,6 +1,7 @@
 // Landing page content, shared by the Next app and the standalone demo.
 import { type LinkLike } from './views';
 import { HeroClip } from './hero-clip';
+import { LogoMark } from './logo';
 import { buttonClass } from './ui/button';
 import credits from '../../public/demo/thumbs/credits.json';
 
@@ -114,6 +115,14 @@ export function Landing({
             </div>
           ))}
         </dl>
+      </section>
+
+      <section className="flex flex-col items-center gap-5 border-t border-zinc-200/80 py-16 text-center">
+        <LogoMark className="size-24" />
+        <p className="text-2xl font-semibold tracking-tight">Atlas Clips</p>
+        <Link href={startHref} className={buttonClass('primary', 'md', 'h-11 px-5')}>
+          Get started
+        </Link>
       </section>
 
       <footer className="flex flex-col gap-3 border-t border-zinc-200/80 py-8 text-xs text-zinc-500 sm:flex-row sm:items-start sm:justify-between">
