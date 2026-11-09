@@ -1,22 +1,17 @@
-import { BadgeCheck, CircleDollarSign, Clock, Eye, Music2, ShoppingBag, Sparkles, Wallet } from 'lucide-react';
+import { CircleDollarSign, Eye, Music2, ShoppingBag, Sparkles, Wallet } from 'lucide-react';
 import { getCreatorDashboard } from '@/lib/data';
-import { compact, termsLabel, usd } from '@/lib/format';
-import { trackingLink } from '@/lib/attribution';
+import { compact, usd } from '@/lib/format';
 import { connectTikTok, joinCampaign, startPayoutOnboarding } from '@/actions/creator';
 import { isDemo } from '@/lib/env';
 import { currentCreatorId, demoCreators } from '@/lib/demo';
 import { CreatorSwitcher } from '@/components/creator-switcher';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardHeader } from '@/components/ui/card';
 import { Stat } from '@/components/ui/stat';
-import { Badge } from '@/components/ui/badge';
 import { Empty } from '@/components/ui/empty';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/components/action-button';
-import { CopyField } from '@/components/copy-button';
-import { SubmissionBadge } from '@/components/status';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
+import { ConnectionCard, EnrollmentCard, OpenCampaignCard } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +44,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Connection
+        <ConnectionCard
           icon={<Music2 />}
           title="TikTok"
           connected={!!d.tiktok}
@@ -62,7 +57,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             </form>
           }
         />
-        <Connection
+        <ConnectionCard
           icon={<Wallet />}
           title="Payouts"
           connected={d.payoutsEnabled}
@@ -90,48 +85,9 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
           <Empty icon={<Sparkles />} title="You haven’t joined a campaign" body="Pick one below — you’ll get a personal discount code and tracking link instantly." />
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {d.enrollments.map(({ enrollment, campaign, brandName, shopDomain, submission }) => {
-              const link = trackingLink(shopDomain, enrollment.ref_param);
-              return (
-                <Card key={enrollment.id} className="flex min-w-0 flex-col gap-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-zinc-500">{brandName}</p>
-                      <h3 className="mt-0.5 truncate font-semibold tracking-tight">{campaign.title}</h3>
-                      <p className="mt-1 text-sm text-zinc-500">{termsLabel(campaign)}</p>
-                    </div>
-                    {submission && <SubmissionBadge status={submission.status} />}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <CopyField label="Discount code" value={enrollment.discount_code} />
-                    {link ? <CopyField label="Tracking link" value={link} /> : <CopyField label="Ref parameter" value={`?ref=${enrollment.ref_param}`} />}
-                  </div>
-
-                  {submission ? (
-                    <div className="space-y-2 rounded-xl bg-zinc-50 p-4">
-                      <div className="flex items-center justify-between gap-3 text-sm">
-                        <span className="text-zinc-500">
-                          {compact(submission.current_view_count)} views · {submission.current_conversions} orders
-                        </span>
-                        <span className="font-medium tabular-nums">
-                          {usd(submission.payout_earned)} <span className="text-zinc-400">/ {usd(campaign.cpm_cap)}</span>
-                        </span>
-                      </div>
-                      <Progress value={submission.payout_earned} max={campaign.cpm_cap} />
-                      {submission.status === 'pending_review' && (
-                        <p className="flex items-center gap-1.5 pt-1 text-xs text-zinc-500">
-                          <Clock className="size-3.5" /> Waiting for brand approval
-                        </p>
-                      )}
-                      {submission.flag_reason && <p className="pt-1 text-xs text-rose-600">{submission.flag_reason}</p>}
-                    </div>
-                  ) : (
-                    <SubmitVideoForm campaignId={campaign.id} />
-                  )}
-                </Card>
-              );
-            })}
+            {d.enrollments.map((e) => (
+              <EnrollmentCard key={e.enrollment.id} {...e} submitForm={<SubmitVideoForm campaignId={e.campaign.id} />} />
+            ))}
           </div>
         )}
       </section>
@@ -143,39 +99,19 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {d.openCampaigns.map((c) => (
-              <Card key={c.id} className="flex min-w-0 flex-col justify-between gap-5">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-zinc-500">{c.brandName}</p>
-                  <h3 className="mt-0.5 truncate font-semibold tracking-tight">{c.title}</h3>
-                  <p className="mt-1 text-sm text-zinc-500">{termsLabel(c)}</p>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Badge tone="green">{usd(c.escrow_balance)} in escrow</Badge>
+              <OpenCampaignCard
+                key={c.id}
+                c={c}
+                action={
                   <ActionButton variant="primary" action={joinCampaign.bind(null, c.id)}>
                     Join
                   </ActionButton>
-                </div>
-              </Card>
+                }
+              />
             ))}
           </div>
         )}
       </section>
     </>
-  );
-}
-
-function Connection({ icon, title, connected, detail, action }: { icon: React.ReactNode; title: string; connected: boolean; detail: string; action: React.ReactNode }) {
-  return (
-    <Card className="flex min-w-0 items-center gap-4 p-5 sm:p-5">
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-700 [&>svg]:size-[18px]">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="font-medium">{title}</p>
-          {connected && <BadgeCheck className="size-4 text-accent-600" aria-label="Connected" />}
-        </div>
-        <p className="text-sm text-zinc-500">{detail}</p>
-      </div>
-      <div className="shrink-0">{action}</div>
-    </Card>
   );
 }

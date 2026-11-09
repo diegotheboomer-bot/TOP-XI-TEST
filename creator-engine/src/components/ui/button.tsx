@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { cn } from './cn';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -24,24 +23,4 @@ export function Button({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }) {
   return <button className={buttonClass(variant, size, className)} {...props} />;
-}
-
-export function ButtonLink({
-  href,
-  variant,
-  size,
-  className,
-  children,
-}: {
-  href: string;
-  variant?: Variant;
-  size?: Size;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link href={href} className={buttonClass(variant, size, className)}>
-      {children}
-    </Link>
-  );
 }

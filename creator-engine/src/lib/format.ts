@@ -1,6 +1,9 @@
 export const usd = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: n % 1 === 0 ? 0 : 2 }).format(n);
 
+/** Always two decimals, e.g. $2,665.65 or $1,200.00. */
+export const usdCents = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
+
 export const compact = (n: number) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 
 export const percent = (n: number) => `${(n * 100).toFixed(n < 0.01 ? 2 : 1)}%`;

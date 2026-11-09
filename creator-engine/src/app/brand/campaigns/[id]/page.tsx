@@ -1,18 +1,17 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Store, Users } from 'lucide-react';
+import { ArrowLeft, Users } from 'lucide-react';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
-import { compact, payoutModelLabel, percent, termsLabel, timeAgo, usd } from '@/lib/format';
-import { releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
+import { compact, payoutModelLabel, termsLabel, usd } from '@/lib/format';
 import { isDemo } from '@/lib/env';
+import { releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Stat } from '@/components/ui/stat';
-import { Badge } from '@/components/ui/badge';
 import { Empty } from '@/components/ui/empty';
-import { Progress } from '@/components/ui/progress';
 import { ActionButton } from '@/components/action-button';
-import { CampaignBadge, FraudBadge, SubmissionBadge } from '@/components/status';
+import { CampaignBadge } from '@/components/status';
+import { DemoBar, StorefrontStatus, SubmissionCard, submissionActionKinds } from '@/components/views';
 import { ConnectStoreForm, FundEscrowForm } from '@/components/forms/campaign-forms';
 import type { Campaign } from '@/lib/types';
 
@@ -36,13 +35,10 @@ export default async function CampaignPage({ params, searchParams }: { params: {
       />
 
       {isDemo && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-3">
-          <p className="text-sm text-amber-800">Demo controls — fake data, mock money.</p>
-          <div className="flex flex-wrap gap-2">
-            <ActionButton action={simulateSync.bind(null, c.id)}>Run 4h sync</ActionButton>
-            <ActionButton action={simulateSale.bind(null, c.id)}>Simulate sale</ActionButton>
-          </div>
-        </div>
+        <DemoBar>
+          <ActionButton action={simulateSync.bind(null, c.id)}>Run 4h sync</ActionButton>
+          <ActionButton action={simulateSale.bind(null, c.id)}>Simulate sale</ActionButton>
+        </DemoBar>
       )}
 
       {searchParams.funded && (
@@ -64,7 +60,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           ) : (
             <ul className="space-y-3">
               {submissions.map((s) => (
-                <SubmissionItem key={s.id} s={s} cap={c.cpm_cap} />
+                <SubmissionCard key={s.id} s={s} cap={c.cpm_cap} actions={<SubmissionActions s={s} />} />
               ))}
             </ul>
           )}
@@ -72,20 +68,15 @@ export default async function CampaignPage({ params, searchParams }: { params: {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Fund escrow" description={isDemo ? 'Mock money — adds to escrow instantly.' : 'Card or ACH via Stripe. Creators are paid from this balance.'} />
+            <CardHeader
+              title="Fund escrow"
+              description={isDemo ? 'Mock money — adds to escrow instantly.' : 'Card or ACH via Stripe. Creators are paid from this balance.'}
+            />
             <FundEscrowForm campaignId={c.id} />
           </Card>
           <Card>
             <CardHeader title="Storefront" description="Orders from this store are matched to creator codes and links." />
-            {shopDomain ? (
-              <div className="flex items-center gap-3 rounded-xl bg-zinc-50 px-3.5 py-3">
-                <Store className="size-4 shrink-0 text-zinc-500" />
-                <span className="min-w-0 flex-1 break-all text-sm font-medium">{shopDomain}</span>
-                <Badge tone="green">Connected</Badge>
-              </div>
-            ) : (
-              <ConnectStoreForm campaignId={c.id} />
-            )}
+            {shopDomain ? <StorefrontStatus shopDomain={shopDomain} /> : <ConnectStoreForm campaignId={c.id} />}
           </Card>
         </div>
       </div>
@@ -108,60 +99,22 @@ function StatusActions({ campaign }: { campaign: Campaign }) {
   );
 }
 
-function SubmissionItem({ s, cap }: { s: SubmissionRow; cap: number }) {
-  const ratio = s.current_view_count > 0 ? s.current_comment_count / s.current_view_count : 0;
-  const owed = s.payout_earned - s.payout_transferred;
+function SubmissionActions({ s }: { s: SubmissionRow }) {
+  const kinds = submissionActionKinds(s);
+  if (!kinds.length) return null;
   return (
-    <li className="rounded-2xl border border-zinc-200/80 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <a href={s.video_url} target="_blank" rel="noreferrer" className="block truncate font-medium hover:underline">
-            {s.creator_name}
-          </a>
-          <p className="mt-0.5 text-xs text-zinc-500">TikTok · synced {timeAgo(s.last_synced_at)}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <SubmissionBadge status={s.status} />
-          {s.fraud_score > 0 && <FraudBadge score={s.fraud_score} />}
-        </div>
-      </div>
-
-      {s.flag_reason && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-700">{s.flag_reason}</p>}
-
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-        {[
-          ['Views', compact(s.current_view_count)],
-          ['Comment rate', percent(ratio)],
-          ['Orders', String(s.current_conversions)],
-          ['Earned', usd(s.payout_earned)],
-        ].map(([k, v]) => (
-          <div key={k} className="min-w-0">
-            <dt className="text-xs text-zinc-500">{k}</dt>
-            <dd className="mt-0.5 truncate text-sm font-medium tabular-nums">{v}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className="mt-4 flex items-center gap-3">
-        <Progress value={s.payout_earned} max={cap} />
-        <span className="shrink-0 text-xs tabular-nums text-zinc-500">{usd(s.payout_transferred)} paid</span>
-      </div>
-
-      <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-zinc-100 pt-4 empty:hidden">
-          {s.status === 'pending_review' && (
-            <>
-              <ActionButton variant="primary" action={reviewSubmission.bind(null, s.id, 'approve')}>Approve</ActionButton>
-              <ActionButton variant="danger" action={reviewSubmission.bind(null, s.id, 'flag')}>Flag</ActionButton>
-            </>
-          )}
-          {s.status === 'live_tracking' && (
-            <>
-              {owed >= 1 && <ActionButton variant="primary" action={releasePayout.bind(null, s.id)}>Pay {usd(owed)}</ActionButton>}
-              <ActionButton variant="danger" action={reviewSubmission.bind(null, s.id, 'flag')}>Flag</ActionButton>
-            </>
-          )}
-          {s.status === 'flagged' && <ActionButton action={reviewSubmission.bind(null, s.id, 'approve')}>Clear flag</ActionButton>}
-      </div>
-    </li>
+    <>
+      {kinds.map((k) =>
+        k === 'approve' ? (
+          <ActionButton key={k} variant="primary" action={reviewSubmission.bind(null, s.id, 'approve')}>Approve</ActionButton>
+        ) : k === 'pay' ? (
+          <ActionButton key={k} variant="primary" action={releasePayout.bind(null, s.id)}>Pay {usd(s.payout_earned - s.payout_transferred)}</ActionButton>
+        ) : k === 'flag' ? (
+          <ActionButton key={k} variant="danger" action={reviewSubmission.bind(null, s.id, 'flag')}>Flag</ActionButton>
+        ) : (
+          <ActionButton key={k} action={reviewSubmission.bind(null, s.id, 'approve')}>Clear flag</ActionButton>
+        ),
+      )}
+    </>
   );
 }

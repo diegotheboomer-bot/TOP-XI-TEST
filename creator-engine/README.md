@@ -20,6 +20,10 @@ With no Supabase keys the app runs in **demo mode** (`src/lib/demo.ts`). Everyth
 
 Well-known streamer names appear only in ordinary example rows. Fraud examples use made-up handles, and every brand is fictional.
 
+### Shareable single-page demo
+
+`npm run build:demo` builds the same demo as one self-contained page, `demo-dist/index.html`, that runs entirely in the browser (`standalone/main.tsx`). It reuses the app's components and demo logic (`src/lib/demo-core.ts`), follows light/dark mode, uses fictional creators only, and keeps each visitor's changes in their own browser.
+
 ## Set up for real
 
 1. Create a Supabase project and run `supabase/migrations/0001_init.sql` (SQL editor or `supabase db push`).

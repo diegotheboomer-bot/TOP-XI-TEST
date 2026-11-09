@@ -1,13 +1,12 @@
 import Link from 'next/link';
-import { ArrowUpRight, CircleDollarSign, Eye, Megaphone, Plus, ShoppingBag, Wallet } from 'lucide-react';
+import { CircleDollarSign, Eye, Megaphone, Plus, ShoppingBag, Wallet } from 'lucide-react';
 import { getBrandDashboard } from '@/lib/data';
-import { compact, payoutModelLabel, termsLabel, usd } from '@/lib/format';
+import { compact, usd } from '@/lib/format';
 import { PageHeader } from '@/components/ui/page-header';
-import { ButtonLink } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { ButtonLink } from '@/components/ui/button-link';
 import { Stat } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
-import { CampaignBadge } from '@/components/status';
+import { CampaignRow } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,31 +45,7 @@ export default async function BrandDashboardPage() {
         ) : (
           campaigns.map((c) => (
             <Link key={c.id} href={`/brand/campaigns/${c.id}`} className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20">
-              <Card className="grid gap-5 transition group-hover:border-zinc-300 md:grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_auto] md:items-center">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="truncate font-semibold tracking-tight">{c.title}</h3>
-                    <CampaignBadge status={c.status} />
-                  </div>
-                  <p className="mt-1 truncate text-sm text-zinc-500">
-                    {payoutModelLabel[c.payout_model]} · {termsLabel(c)}
-                  </p>
-                </div>
-                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {[
-                    ['Creators', String(c.submissions)],
-                    ['Views', compact(c.views)],
-                    ['Orders', compact(c.conversions)],
-                    ['Escrow', usd(c.escrow_balance)],
-                  ].map(([k, v]) => (
-                    <div key={k} className="min-w-0">
-                      <dt className="text-xs text-zinc-500">{k}</dt>
-                      <dd className="mt-0.5 truncate font-medium tabular-nums">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <ArrowUpRight className="hidden size-5 text-zinc-400 transition group-hover:text-zinc-900 md:block" />
-              </Card>
+              <CampaignRow c={c} />
             </Link>
           ))
         )}

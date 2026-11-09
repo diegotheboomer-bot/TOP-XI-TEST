@@ -1,6 +1,6 @@
 import { ArrowRight, Link2, ShieldCheck, Wallet } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
-import { ButtonLink } from '@/components/ui/button';
+import { ButtonLink } from '@/components/ui/button-link';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

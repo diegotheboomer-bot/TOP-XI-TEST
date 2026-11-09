@@ -2,12 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
 import { isDemo, appUrl } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
 import { splitFee } from '@/lib/payout';
+import { CampaignSchema, DepositSchema, ShopDomainSchema } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import type { ActionState } from './result';
 
@@ -24,21 +24,6 @@ async function requireOwnCampaign(campaignId: string) {
   if (!data) throw new Error('Campaign not found.');
   return { admin, campaign: data, brandId };
 }
-
-const money = (max: number) => z.coerce.number().min(0).max(max).multipleOf(0.01);
-
-const CampaignSchema = z
-  .object({
-    title: z.string().trim().min(3).max(255),
-    payout_model: z.enum(['hybrid', 'pure_cpm', 'cps_performance']),
-    base_payout: money(99_999_999),
-    cpm_rate: money(9_999),
-    cpm_cap: money(99_999_999).refine((n) => n > 0, 'Set a payout cap above $0'),
-    cps_commission_pct: z.coerce.number().min(0).max(100),
-    code_prefix: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{2,12}$/, 'Code prefix: 2–12 letters or digits'),
-    asset_folder_url: z.union([z.literal(''), z.string().url()]),
-  })
-  .refine((c) => c.cpm_cap >= c.base_payout, { message: 'The cap must be at least the base payout.' });
 
 export async function createCampaign(_prev: ActionState, form: FormData): Promise<ActionState> {
   const parsed = CampaignSchema.safeParse(Object.fromEntries(form));
@@ -71,7 +56,7 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
 /** Brand deposit → Stripe Checkout (creates a PaymentIntent). Escrow is credited by the webhook. */
 export async function fundEscrow(_prev: ActionState, form: FormData): Promise<ActionState> {
   const campaignId = String(form.get('campaignId'));
-  const amount = z.coerce.number().min(50).max(1_000_000).safeParse(form.get('amount'));
+  const amount = DepositSchema.safeParse(form.get('amount'));
   if (!amount.success) return { error: 'Deposit between $50 and $1,000,000.' };
   if (isDemo) return done(demo.fundEscrow(campaignId, amount.data), campaignId);
   const { campaign } = await requireOwnCampaign(campaignId);
@@ -93,12 +78,7 @@ export async function fundEscrow(_prev: ActionState, form: FormData): Promise<Ac
 }
 
 export async function connectStore(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const domain = z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/, 'Use your store’s myshopify.com domain')
-    .safeParse(form.get('shopDomain'));
+  const domain = ShopDomainSchema.safeParse(form.get('shopDomain'));
   if (!domain.success) return { error: domain.error.issues[0].message };
   const campaignId = String(form.get('campaignId'));
   if (isDemo) return done(demo.connectStore(campaignId, domain.data), campaignId);

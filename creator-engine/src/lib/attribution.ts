@@ -1,11 +1,11 @@
-import { randomInt } from 'node:crypto';
-
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
 
 /** e.g. ACME + 4 random chars → ACME7K2Q */
 export function generateDiscountCode(prefix: string): string {
+  // Web Crypto works in Node and the browser. 32 symbols divide 256 evenly, so no modulo bias.
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(4));
   let suffix = '';
-  for (let i = 0; i < 4; i++) suffix += ALPHABET[randomInt(ALPHABET.length)];
+  for (const b of bytes) suffix += ALPHABET[b % ALPHABET.length];
   return `${prefix}${suffix}`;
 }
 
