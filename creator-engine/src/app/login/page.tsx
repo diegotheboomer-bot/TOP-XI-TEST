@@ -16,7 +16,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
         </div>
         <Card className="p-6 sm:p-7">
           <h1 className="text-lg font-semibold tracking-tight">Sign in</h1>
-          <p className="mb-6 mt-1 text-sm text-zinc-500">We’ll email you a one-time link — no password.</p>
+          <p className="mb-6 mt-1 text-sm text-zinc-500">We’ll email you a one-time sign-in link. No password needed.</p>
           {searchParams.error && <p className="mb-4 rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">That link expired. Request a new one.</p>}
           <LoginForm />
         </Card>

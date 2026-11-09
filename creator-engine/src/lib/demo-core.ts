@@ -2,7 +2,7 @@
 // No server-only imports, so it runs in Next (src/lib/demo.ts) and in the
 // standalone browser demo (standalone/). Mock money, invented numbers, fictional brands.
 // Fraud examples always use made-up handles; the creator roster is supplied by the caller.
-import type { BrandDashboard, CampaignDetail, CreatorDashboard, SubmissionRow } from './data';
+import type { BrandDashboard, CampaignDetail, CreatorCampaignDetail, CreatorDashboard, MarketCampaign, SubmissionRow } from './data';
 import type { Campaign, Enrollment, Submission } from './types';
 import type { ActionState } from '@/actions/result';
 import { calculatePayout, splitFee } from './payout';
@@ -10,6 +10,8 @@ import { usd, usdCents } from './format';
 import { detectBotVelocity } from './fraud';
 import { parseVideoUrl } from './video-url';
 import { generateDiscountCode, refParam } from './attribution';
+import { budgetStats, type BudgetStats } from './budget';
+import { shouldAutoApprove } from './compliance';
 
 interface DemoCreator {
   id: string;
@@ -58,7 +60,7 @@ const cents = (n: number) => Math.round(n * 100) / 100;
 
 // ─── Seed ──────────────────────────────────────────────────────────────────
 /**
- * roster: seven creators, in this order of roles — [0] default viewer, [1] fully paid,
+ * roster: seven creators, in this order of roles: [0] default viewer, [1] fully paid,
  * [2] owed a payout, [3] awaiting review, [4] top seller, [5] payouts not set up,
  * [6] nothing connected yet.
  */
@@ -86,9 +88,10 @@ export function seedDemo(roster: CreatorSeed[], feePercent: number): State {
   h.payoutsEnabled = false;
   const creators = [
     a, b, c, d, e, f, h,
-    // fictional accounts used for fraud examples
+    // fictional accounts used for fraud and compliance examples
     creator('clipfarm.247', 'clipfarm.247', 41_000),
     creator('reupload.king', 'reupload.king', 9_800),
+    creator('dailyclips.hq', 'dailyclips.hq', 64_000),
   ];
 
   const campaign = (c: Partial<DemoCampaign> & Pick<Campaign, 'id' | 'brand_id' | 'title' | 'payout_model' | 'cpm_cap' | 'code_prefix'>): DemoCampaign => ({
@@ -101,16 +104,50 @@ export function seedDemo(roster: CreatorSeed[], feePercent: number): State {
     status: 'active',
     created_at: iso(300),
     shopDomain: null,
+    thumbnail_url: null,
+    cover_color: '#18181b',
+    brief: null,
+    requirements: [],
+    auto_approve_hours: 48,
     ...c,
   });
+  const STANDARD = ['Post natively on TikTok (no reuploads)', 'Include #ad in the caption'];
   const campaigns = [
-    campaign({ id: 'cmp-zero', brand_id: DEMO_BRAND_ID, title: 'Voltline Zero — Launch Week', payout_model: 'hybrid', base_payout: 500, cpm_rate: 4, cpm_cap: 5000, code_prefix: 'VOLT', escrow_balance: 31_000, shopDomain: 'voltline.myshopify.com', created_at: iso(500) }),
-    campaign({ id: 'cmp-snack', brand_id: DEMO_BRAND_ID, title: 'Stream Snack Bundle', payout_model: 'cps_performance', cps_commission_pct: 15, cpm_cap: 3000, code_prefix: 'SNACK', escrow_balance: 12_000, shopDomain: 'voltline.myshopify.com', created_at: iso(200) }),
-    campaign({ id: 'cmp-latenight', brand_id: DEMO_BRAND_ID, title: 'Late Night Gaming Clips', payout_model: 'pure_cpm', cpm_rate: 2.5, cpm_cap: 1500, code_prefix: 'NIGHT', status: 'draft', created_at: iso(10) }),
-    campaign({ id: 'cmp-desk', brand_id: 'b-pixelforge', title: 'Desk Setup Tour', payout_model: 'pure_cpm', cpm_rate: 3, cpm_cap: 2000, code_prefix: 'FORGE', escrow_balance: 18_000, shopDomain: 'pixelforge.myshopify.com' }),
-    campaign({ id: 'cmp-irl', brand_id: 'b-ridgeline', title: 'IRL Stream Gear', payout_model: 'hybrid', base_payout: 250, cpm_rate: 2, cpm_cap: 1500, code_prefix: 'RIDGE', escrow_balance: 9_500, shopDomain: 'ridgeline.myshopify.com' }),
-    campaign({ id: 'cmp-coffee', brand_id: 'b-northwind', title: 'Morning Stream Coffee', payout_model: 'cps_performance', cps_commission_pct: 12, cpm_cap: 1200, code_prefix: 'BREW', escrow_balance: 6_000, shopDomain: 'northwind.myshopify.com' }),
+    campaign({
+      id: 'cmp-zero', brand_id: DEMO_BRAND_ID, title: 'Voltline Zero Launch', payout_model: 'hybrid', base_payout: 500, cpm_rate: 4, cpm_cap: 5000,
+      code_prefix: 'VOLT', escrow_balance: 31_000, shopDomain: 'voltline.myshopify.com', created_at: iso(500), cover_color: '#0e2a47',
+      brief: 'Zero sugar, same kick. Show your real reaction to the first sip, mid-stream or mid-game. Keep it unscripted. Your code gets viewers 15% off.',
+      requirements: [...STANDARD, 'Can visible in the first 3 seconds', 'Tag @voltline', '15 to 60 seconds'],
+    }),
+    campaign({
+      id: 'cmp-snack', brand_id: DEMO_BRAND_ID, title: 'Stream Snack Bundle', payout_model: 'cps_performance', cps_commission_pct: 15, cpm_cap: 3000,
+      code_prefix: 'SNACK', escrow_balance: 12_000, shopDomain: 'voltline.myshopify.com', created_at: iso(200), cover_color: '#9a3412',
+      brief: 'Unbox the bundle on camera and rank the flavours. You earn 15% of every order placed with your code.',
+      requirements: [...STANDARD, 'Say your discount code out loud', 'Show at least three flavours'],
+    }),
+    campaign({
+      id: 'cmp-latenight', brand_id: DEMO_BRAND_ID, title: 'Late Night Gaming Clips', payout_model: 'pure_cpm', cpm_rate: 2.5, cpm_cap: 1500,
+      code_prefix: 'NIGHT', status: 'draft', created_at: iso(10), cover_color: '#2a1f4a',
+      brief: 'Your best clutch moment after midnight, with a Voltline can somewhere in frame.', requirements: [...STANDARD],
+    }),
+    campaign({
+      id: 'cmp-desk', brand_id: 'b-pixelforge', title: 'Desk Setup Tour', payout_model: 'pure_cpm', cpm_rate: 3, cpm_cap: 2000,
+      code_prefix: 'FORGE', escrow_balance: 18_000, shopDomain: 'pixelforge.myshopify.com', cover_color: '#16403a',
+      brief: 'Walk us through your setup and land on the Pixelforge keyboard. Typing sounds encouraged.',
+      requirements: [...STANDARD, 'Keyboard on screen for 5+ seconds'],
+    }),
+    campaign({
+      id: 'cmp-irl', brand_id: 'b-ridgeline', title: 'IRL Stream Gear', payout_model: 'hybrid', base_payout: 250, cpm_rate: 2, cpm_cap: 1500,
+      code_prefix: 'RIDGE', escrow_balance: 9_500, shopDomain: 'ridgeline.myshopify.com', cover_color: '#3d3320',
+      brief: 'Take the Ridgeline sling bag on an IRL stream and show what you carry.', requirements: [...STANDARD, 'Filmed outdoors'],
+    }),
+    campaign({
+      id: 'cmp-coffee', brand_id: 'b-northwind', title: 'Morning Stream Coffee', payout_model: 'cps_performance', cps_commission_pct: 12, cpm_cap: 1200,
+      code_prefix: 'BREW', escrow_balance: 6_000, shopDomain: 'northwind.myshopify.com', cover_color: '#4a2a1c',
+      brief: 'Brew a cup on stream before you go live. 12% of every order with your code.', requirements: [...STANDARD, 'Mention it is a sponsored brew'],
+    }),
   ];
+
 
   const enrollments: Enrollment[] = [];
   const enroll = (creatorId: string, campaignId: string, code: string) => {
@@ -141,6 +178,7 @@ export function seedDemo(roster: CreatorSeed[], feePercent: number): State {
       fraud_score: 0,
       flag_reason: null,
       phash: null,
+      has_disclosure: true,
       last_synced_at: iso(1.2),
       created_at: iso(120),
       prevSample: { at: Date.now() - 1.2 * HOUR, views, comments },
@@ -148,7 +186,7 @@ export function seedDemo(roster: CreatorSeed[], feePercent: number): State {
     });
   };
 
-  // Voltline Zero — hybrid
+  // Voltline Zero: hybrid
   enroll(a.id, 'cmp-zero', 'VOLTK41C');
   enroll(b.id, 'cmp-zero', 'VOLTSP3D');
   enroll(c.id, 'cmp-zero', 'VOLTP0K1');
@@ -157,14 +195,17 @@ export function seedDemo(roster: CreatorSeed[], feePercent: number): State {
   submit(a.id, 'cmp-zero', 1_120_000, 0.014, { payout_transferred: 3000 });
   submit(b.id, 'cmp-zero', 2_310_000, 0.017, { payout_transferred: 5000, status: 'paid' });
   submit(c.id, 'cmp-zero', 612_400, 0.011);
-  submit(d.id, 'cmp-zero', 298_700, 0.013, { status: 'pending_review' });
+  submit(d.id, 'cmp-zero', 298_700, 0.013, { status: 'pending_review', created_at: iso(30) });
+  enroll('cr-dailyclipshq', 'cmp-zero', 'VOLTDC7Q');
+  // Overdue but not auto-approved: the caption is missing #ad.
+  submit('cr-dailyclipshq', 'cmp-zero', 41_800, 0.009, { status: 'pending_review', created_at: iso(52), has_disclosure: false });
   submit('cr-clipfarm247', 'cmp-zero', 486_000, 0.00008, {
     status: 'flagged',
     fraud_score: 90,
     flag_reason: 'Bot farm activity: 3,120 views/min, 0.008% comment ratio',
   });
 
-  // Stream Snack Bundle — cost per sale
+  // Stream Snack Bundle: cost per sale
   enroll(e.id, 'cmp-snack', 'SNACKV4L');
   enroll(f.id, 'cmp-snack', 'SNACKX9C');
   enroll(a.id, 'cmp-snack', 'SNACKK2T');
@@ -230,9 +271,23 @@ export const hasCreator = (s: State, id: string) => s.creators.some((c) => c.id 
 export const demoCreators = (s: State) => s.creators.filter((c) => !c.handle.includes('.')).map((c) => ({ id: c.id, name: c.displayName }));
 
 // ─── Queries ───────────────────────────────────────────────────────────────
+function budgetOf(s: State, c: DemoCampaign): BudgetStats {
+  const deposited = s.ledger.filter((l) => l.campaignId === c.id && l.type === 'deposit').reduce((a, l) => a + l.amount, 0);
+  const owed = s.submissions
+    .filter((x) => x.campaign_id === c.id && x.status === 'live_tracking')
+    .reduce((a, x) => a + x.payout_earned - x.payout_transferred, 0);
+  return budgetStats({ deposited, escrow: c.escrow_balance, owed, createdAt: c.created_at });
+}
+
+const brandNameOf = (s: State, id: string) => s.brands.find((b) => b.id === id)?.name ?? '';
+
+function market(s: State, c: DemoCampaign): MarketCampaign {
+  return { ...strip(c), brandName: brandNameOf(s, c.brand_id), budget: budgetOf(s, c), creators: s.submissions.filter((x) => x.campaign_id === c.id).length };
+}
+
 export function brandDashboard(s: State): BrandDashboard {
   return {
-    brandName: s.brands.find((b) => b.id === DEMO_BRAND_ID)!.name,
+    brandName: brandNameOf(s, DEMO_BRAND_ID),
     campaigns: s.campaigns
       .filter((c) => c.brand_id === DEMO_BRAND_ID)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -241,9 +296,11 @@ export function brandDashboard(s: State): BrandDashboard {
         return {
           ...strip(c),
           submissions: own.length,
+          pendingReview: own.filter((x) => x.status === 'pending_review').length,
           views: own.reduce((a, x) => a + x.current_view_count, 0),
           conversions: own.reduce((a, x) => a + x.current_conversions, 0),
           earned: own.reduce((a, x) => a + x.payout_earned, 0),
+          budget: budgetOf(s, c),
         };
       }),
   };
@@ -253,23 +310,24 @@ export function campaignDetail(s: State, id: string): CampaignDetail | null {
   const c = s.campaigns.find((x) => x.id === id && x.brand_id === DEMO_BRAND_ID);
   if (!c) return null;
   const sum = (type: Ledger['type']) => cents(s.ledger.filter((l) => l.campaignId === id && l.type === type).reduce((a, l) => a + l.amount, 0));
+  const order = { pending_review: 0, flagged: 1, live_tracking: 2, paid: 3 } as const;
   return {
     campaign: strip(c),
     shopDomain: c.shopDomain,
     submissions: s.submissions
       .filter((x) => x.campaign_id === id)
-      .sort((a, b) => b.current_view_count - a.current_view_count)
+      .sort((a, b) => order[a.status] - order[b.status] || b.current_view_count - a.current_view_count)
       .map((x): SubmissionRow => ({ ...stripSub(x), creator_name: '@' + s.creators.find((cr) => cr.id === x.creator_id)!.handle })),
     deposited: sum('deposit'),
     paidOut: sum('creator_payout'),
     fees: sum('platform_fee'),
+    budget: budgetOf(s, c),
   };
 }
 
 export function creatorDashboard(s: State, viewer: string): CreatorDashboard {
   const me = s.creators.find((c) => c.id === viewer) ?? s.creators[0];
   const mine = s.enrollments.filter((e) => e.creator_id === me.id);
-  const brandName = (id: string) => s.brands.find((b) => b.id === id)?.name ?? '';
   return {
     name: me.displayName,
     tiktok: me.tiktokConnected ? { username: me.handle, followers: me.followers } : null,
@@ -277,11 +335,26 @@ export function creatorDashboard(s: State, viewer: string): CreatorDashboard {
     enrollments: mine.map((e) => {
       const c = s.campaigns.find((x) => x.id === e.campaign_id)!;
       const sub = s.submissions.find((x) => x.creator_id === me.id && x.campaign_id === c.id);
-      return { enrollment: e, campaign: strip(c), brandName: brandName(c.brand_id), shopDomain: c.shopDomain, submission: sub ? stripSub(sub) : null };
+      return { enrollment: e, campaign: strip(c), brandName: brandNameOf(s, c.brand_id), shopDomain: c.shopDomain, submission: sub ? stripSub(sub) : null };
     }),
-    openCampaigns: s.campaigns
-      .filter((c) => c.status === 'active' && !mine.some((e) => e.campaign_id === c.id))
-      .map((c) => ({ ...strip(c), brandName: brandName(c.brand_id) })),
+    openCampaigns: s.campaigns.filter((c) => c.status === 'active' && !mine.some((e) => e.campaign_id === c.id)).map((c) => market(s, c)),
+  };
+}
+
+export function creatorCampaign(s: State, viewer: string, id: string): CreatorCampaignDetail | null {
+  const me = s.creators.find((c) => c.id === viewer) ?? s.creators[0];
+  const c = s.campaigns.find((x) => x.id === id);
+  if (!c) return null;
+  const enrollment = s.enrollments.find((e) => e.creator_id === me.id && e.campaign_id === id) ?? null;
+  if (c.status !== 'active' && !enrollment) return null;
+  const sub = s.submissions.find((x) => x.creator_id === me.id && x.campaign_id === id);
+  return {
+    campaign: market(s, c),
+    shopDomain: c.shopDomain,
+    enrollment,
+    submission: sub ? stripSub(sub) : null,
+    tiktokConnected: me.tiktokConnected,
+    payoutsEnabled: me.payoutsEnabled,
   };
 }
 
@@ -324,7 +397,7 @@ export function reviewSubmission(s: State, id: string, decision: 'approve' | 'fl
     Object.assign(sub, { status: 'live_tracking', flag_reason: null, fraud_score: 0 });
     const c = ownCampaign(s, sub.campaign_id)!;
     sub.payout_earned = Math.max(sub.payout_earned, calculatePayout(c, sub.current_view_count, revenueFor(s, enrollmentOf(s, sub).id)));
-    return { success: 'Approved — tracking started.' };
+    return { success: 'Approved. Tracking started.' };
   }
   Object.assign(sub, { status: 'flagged', flag_reason: 'Flagged by brand review' });
   return { success: 'Flagged.' };
@@ -339,17 +412,21 @@ export function releasePayout(s: State, id: string): ActionState {
   if (!creator.payoutsEnabled) return { error: `@${creator.handle} has not finished payout setup.` };
   const gross = cents(sub.payout_earned - sub.payout_transferred);
   if (gross < 1) return { error: 'Nothing to pay out yet.' };
-  if (c.escrow_balance < gross) return { error: 'Not enough escrow — top up the campaign first.' };
+  if (c.escrow_balance < gross) return { error: 'Not enough escrow. Top up the campaign first.' };
 
   const { net, fee } = splitFee(gross, s.feePercent);
   c.escrow_balance = cents(c.escrow_balance - gross);
   sub.payout_transferred = cents(sub.payout_transferred + gross);
   s.ledger.push({ campaignId: c.id, type: 'creator_payout', amount: net }, { campaignId: c.id, type: 'platform_fee', amount: fee });
   if (sub.payout_transferred >= c.cpm_cap) sub.status = 'paid';
-  return { success: `Paid ${usdCents(net)} to @${creator.handle} (${usdCents(fee)} fee) — mock money.` };
+  return { success: `Paid ${usdCents(net)} to @${creator.handle} (${usdCents(fee)} fee). Mock money.` };
 }
 
-/** One simulated 4-hour sync: views grow, the real velocity watchdog and payout formula run. */
+/**
+ * One simulated 4-hour sync: views grow, the real velocity watchdog and payout
+ * formula run, and 4 hours pass for review deadlines (clean, overdue
+ * submissions are auto-approved).
+ */
 export function simulateSync(s: State, campaignId: string): ActionState {
   const c = ownCampaign(s, campaignId);
   if (!c) return { error: 'Campaign not found.' };
@@ -358,7 +435,15 @@ export function simulateSync(s: State, campaignId: string): ActionState {
 
   const now = Date.now();
   let flagged = 0;
+  let approved = 0;
   for (const sub of subs) {
+    if (sub.status === 'pending_review') {
+      sub.created_at = new Date(new Date(sub.created_at).getTime() - 4 * HOUR).toISOString(); // 4 hours pass
+      if (shouldAutoApprove(sub, c.auto_approve_hours, now)) {
+        sub.status = 'live_tracking';
+        approved++;
+      }
+    }
     const growth = 1.04 + Math.random() * 0.22;
     const views = Math.round(sub.current_view_count * growth);
     const comments = Math.round(sub.current_comment_count + (views - sub.current_view_count) * (sub.current_comment_count / Math.max(sub.current_view_count, 1)));
@@ -380,7 +465,8 @@ export function simulateSync(s: State, campaignId: string): ActionState {
       if (sub.payout_transferred >= c.cpm_cap) sub.status = 'paid';
     }
   }
-  return { success: `Synced ${subs.length} videos${flagged ? `, ${flagged} flagged` : ''}.` };
+  const notes = [flagged && `${flagged} flagged`, approved && `${approved} auto-approved`].filter(Boolean).join(', ');
+  return { success: `Synced ${subs.length} ${subs.length === 1 ? 'video' : 'videos'}${notes ? `. ${notes}` : ''}.` };
 }
 
 /** A storefront order arrives with one creator's code or ref link. */
@@ -409,20 +495,21 @@ export function joinCampaign(s: State, me: string, campaignId: string): ActionSt
   if (!c || c.status !== 'active') return { error: 'This campaign is not accepting creators.' };
   if (s.enrollments.some((e) => e.creator_id === me && e.campaign_id === campaignId)) return { error: 'You already joined this campaign.' };
   s.enrollments.push({ id: `en-${randomUUID().slice(0, 8)}`, campaign_id: campaignId, creator_id: me, ref_param: refParam(me, campaignId), discount_code: generateDiscountCode(c.code_prefix) });
-  return { success: 'Joined — your code and tracking link are ready.' };
+  return { success: 'Joined. Your code and tracking link are ready.' };
 }
 
 export function submitVideo(s: State, viewer: string, campaignId: string, url: string): ActionState {
   const me = s.creators.find((c) => c.id === viewer)!;
   if (!s.enrollments.some((e) => e.creator_id === me.id && e.campaign_id === campaignId)) return { error: 'Join the campaign before submitting.' };
   if (!me.tiktokConnected) return { error: 'Connect your TikTok account first.' };
+  const camp = s.campaigns.find((x) => x.id === campaignId)!;
 
   const parsed = parseVideoUrl(url);
   if (!parsed.ok) {
     if (parsed.reason === 'needs_resolution') return { error: 'In demo mode, paste the full tiktok.com/@user/video/… link.' };
     return { error: parsed.reason === 'unsupported_host' ? 'Only TikTok, Instagram Reels and YouTube Shorts links are recognised.' : 'That link does not point to a single video.' };
   }
-  if (parsed.video.platform !== 'tiktok') return { error: 'Instagram and YouTube tracking is not live yet — submit a TikTok video.' };
+  if (parsed.video.platform !== 'tiktok') return { error: 'Instagram and YouTube tracking is not live yet. Submit a TikTok video.' };
   if (s.submissions.some((x) => x.creator_id === me.id && x.campaign_id === campaignId)) return { error: 'You already have a submission in this campaign.' };
   if (s.submissions.some((x) => x.campaign_id === campaignId && x.social_platform_video_id === parsed.video.videoId)) {
     return { error: 'This video was already submitted to this campaign.' };
@@ -449,11 +536,12 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
     fraud_score: 0,
     flag_reason: null,
     phash: null,
+    has_disclosure: true, // mock caption includes #ad
     last_synced_at: new Date(now).toISOString(),
     created_at: new Date(now).toISOString(),
     prevSample: { at: now, views, comments },
   });
-  return { success: 'Submitted — the brand will review it shortly.' };
+  return { success: `Submitted. Caption has #ad. Auto-approves in ${camp.auto_approve_hours}h if the brand doesn't review it first.` };
 }
 
 export function connectTikTok(s: State, viewer: string): void {

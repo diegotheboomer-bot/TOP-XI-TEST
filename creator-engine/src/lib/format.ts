@@ -25,3 +25,20 @@ export function termsLabel(c: { payout_model: keyof typeof payoutModelLabel; bas
   if (c.payout_model === 'pure_cpm') return `${usd(c.cpm_rate)} CPM · ${cap}`;
   return `${c.cps_commission_pct}% per sale · ${cap}`;
 }
+
+/** $31K, $4.2K, $950 */
+export const usdCompact = (n: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: n >= 1000 ? 1 : 0 }).format(n);
+
+/** Headline rate and the smaller terms line for a campaign card. */
+export function rateParts(c: { payout_model: keyof typeof payoutModelLabel; base_payout: number; cpm_rate: number; cpm_cap: number; cps_commission_pct: number }): { rate: string; unit: string; terms: string } {
+  const cap = `up to ${usd(c.cpm_cap)}`;
+  if (c.payout_model === 'cps_performance') return { rate: `${c.cps_commission_pct}%`, unit: 'of each sale', terms: cap };
+  const rate = usdCents(c.cpm_rate);
+  return { rate, unit: 'per 1K views', terms: c.payout_model === 'hybrid' ? `${usd(c.base_payout)} base · ${cap}` : cap };
+}
+
+export function hoursLabel(ms: number): string {
+  const h = Math.ceil(ms / 3_600_000);
+  return h >= 48 ? `${Math.round(h / 24)}d` : `${Math.max(h, 1)}h`;
+}

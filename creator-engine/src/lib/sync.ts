@@ -2,15 +2,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, type PayoutTerms } from './payout';
 import { detectBotVelocity, hashSimilarity, DUPLICATE_THRESHOLD } from './fraud';
 import { perceptualHashFromUrl } from './phash';
+import { hasDisclosure, shouldAutoApprove } from './compliance';
 import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
 import { getTikTokAccessToken } from './tokens';
 import type { Submission } from './types';
 
-type SubmissionWithCampaign = Submission & { campaigns: PayoutTerms };
+type SubmissionWithCampaign = Submission & { campaigns: PayoutTerms & { auto_approve_hours: number } };
 
 export interface SyncReport {
   synced: number;
   flagged: number;
+  autoApproved: number;
   failed: { submissionId: string; error: string }[];
 }
 
@@ -21,12 +23,12 @@ export interface SyncReport {
 export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncReport> {
   const { data, error } = await admin
     .from('submissions')
-    .select('*, campaigns(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct)')
-    .eq('status', 'live_tracking')
+    .select('*, campaigns(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, auto_approve_hours)')
+    .in('status', ['live_tracking', 'pending_review'])
     .eq('platform', 'tiktok');
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
-  const report: SyncReport = { synced: 0, flagged: 0, failed: [] };
+  const report: SyncReport = { synced: 0, flagged: 0, autoApproved: 0, failed: [] };
   const byCreator = new Map<string, SubmissionWithCampaign[]>();
   for (const s of (data ?? []) as SubmissionWithCampaign[]) {
     byCreator.set(s.creator_id, [...(byCreator.get(s.creator_id) ?? []), s]);
@@ -44,9 +46,10 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
     }
     for (const sub of subs) {
       try {
-        const flagged = await applyStats(admin, sub, stats.get(sub.social_platform_video_id));
+        const outcome = await applyStats(admin, sub, stats.get(sub.social_platform_video_id));
         report.synced++;
-        if (flagged) report.flagged++;
+        if (outcome === 'flagged') report.flagged++;
+        if (outcome === 'auto_approved') report.autoApproved++;
       } catch (e) {
         report.failed.push({ submissionId: sub.id, error: String(e) });
       }
@@ -55,14 +58,18 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
   return report;
 }
 
-/** Writes one metrics sample, runs the velocity watchdog and recalculates earnings. Returns true if flagged. */
-async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v: VideoStats | undefined): Promise<boolean> {
+/**
+ * Writes one metrics sample, re-checks the caption's ad disclosure, runs the
+ * velocity watchdog, auto-approves overdue clean submissions and recalculates
+ * earnings for live ones.
+ */
+async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v: VideoStats | undefined): Promise<'ok' | 'flagged' | 'auto_approved'> {
   const now = new Date();
 
   if (!v) {
     // Deleted, made private, or no longer owned by the connected account.
     await admin.from('submissions').update({ status: 'flagged', flag_reason: 'Video unavailable on TikTok', last_synced_at: now.toISOString() }).eq('id', sub.id);
-    return true;
+    return 'flagged';
   }
 
   const { data: prev } = await admin
@@ -86,6 +93,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
     current_view_count: v.views,
     current_like_count: v.likes,
     current_comment_count: v.comments,
+    has_disclosure: hasDisclosure(v.caption),
     last_synced_at: now.toISOString(),
   };
 
@@ -105,8 +113,14 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
           flag_reason: `Bot farm activity: ${Math.round(check.viewsPerMinute).toLocaleString('en-US')} views/min, ${(check.commentRatio * 100).toFixed(3)}% comment ratio`,
         })
         .eq('id', sub.id);
-      return true;
+      return 'flagged';
     }
+  }
+
+  if (sub.status === 'pending_review') {
+    const approve = shouldAutoApprove({ ...sub, has_disclosure: metrics.has_disclosure }, sub.campaigns.auto_approve_hours, now.getTime());
+    await admin.from('submissions').update({ ...metrics, ...(approve ? { status: 'live_tracking' } : {}) }).eq('id', sub.id);
+    if (!approve) return 'ok';
   }
 
   const revenue = sub.campaigns.payout_model === 'cps_performance' ? await attributedRevenue(admin, sub) : 0;
@@ -114,7 +128,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
 
   const { error } = await admin.from('submissions').update({ ...metrics, payout_earned: earned }).eq('id', sub.id);
   if (error) throw error;
-  return false;
+  return sub.status === 'pending_review' ? 'auto_approved' : 'ok';
 }
 
 async function attributedRevenue(admin: SupabaseClient, sub: Submission): Promise<number> {

@@ -10,6 +10,7 @@ import { parseVideoUrlResolving } from '@/lib/video-url';
 import { getTikTokAccessToken } from '@/lib/tokens';
 import { queryTikTokVideos } from '@/lib/platforms/tiktok';
 import { checkDuplicate } from '@/lib/sync';
+import { hasDisclosure } from '@/lib/compliance';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
 import { stripe } from '@/lib/stripe';
 import * as demo from '@/lib/demo';
@@ -42,7 +43,7 @@ export async function joinCampaign(campaignId: string): Promise<ActionState> {
     if (!error.message.includes('discount_code')) return { error: 'You already joined this campaign.' };
   }
   revalidatePath('/creator');
-  return { success: 'Joined — your code and tracking link are ready.' };
+  return { success: 'Joined. Your code and tracking link are ready.' };
 }
 
 const SubmitSchema = z.object({
@@ -84,7 +85,7 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
     };
   }
   const { platform, videoId, canonicalUrl } = parsed.video;
-  if (platform !== 'tiktok') return { error: 'Instagram and YouTube tracking is not live yet — submit a TikTok video.' };
+  if (platform !== 'tiktok') return { error: 'Instagram and YouTube tracking is not live yet. Submit a TikTok video.' };
 
   let stats;
   try {
@@ -106,6 +107,7 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
       current_view_count: stats.views,
       current_like_count: stats.likes,
       current_comment_count: stats.comments,
+      has_disclosure: hasDisclosure(stats.caption),
       last_synced_at: new Date().toISOString(),
     })
     .select('id')
@@ -138,9 +140,9 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
   }
 
   revalidatePath('/creator');
-  return dup.duplicateOf
-    ? { error: 'Submitted, but flagged: it matches another creator’s video in this campaign.' }
-    : { success: 'Submitted — the brand will review it shortly.' };
+  if (dup.duplicateOf) return { error: 'Submitted, but flagged: it matches another creator’s video in this campaign.' };
+  if (!hasDisclosure(stats.caption)) return { success: 'Submitted. Add #ad to your caption so it can be approved.' };
+  return { success: 'Submitted. The brand will review it shortly.' };
 }
 
 /** Stripe Connect Express onboarding for payouts. */
@@ -189,6 +191,6 @@ export async function viewAsCreator(form: FormData): Promise<void> {
 }
 
 function refreshed(result: ActionState): ActionState {
-  revalidatePath('/creator');
+  revalidatePath('/creator', 'layout');
   return result;
 }

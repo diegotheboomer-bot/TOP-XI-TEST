@@ -75,6 +75,7 @@ export interface VideoStats {
   comments: number;
   shares: number;
   coverUrl: string | null;
+  caption: string | null;
 }
 
 /**
@@ -85,8 +86,8 @@ export async function queryTikTokVideos(accessToken: string, videoIds: string[])
   const out: VideoStats[] = [];
   for (let i = 0; i < videoIds.length; i += 20) {
     const data = await apiCall<{
-      videos: { id: string; view_count?: number; like_count?: number; comment_count?: number; share_count?: number; cover_image_url?: string }[];
-    }>('/video/query/?fields=id,view_count,like_count,comment_count,share_count,cover_image_url', accessToken, {
+      videos: { id: string; view_count?: number; like_count?: number; comment_count?: number; share_count?: number; cover_image_url?: string; video_description?: string }[];
+    }>('/video/query/?fields=id,view_count,like_count,comment_count,share_count,cover_image_url,video_description', accessToken, {
       method: 'POST',
       body: JSON.stringify({ filters: { video_ids: videoIds.slice(i, i + 20) } }),
     });
@@ -98,6 +99,7 @@ export async function queryTikTokVideos(accessToken: string, videoIds: string[])
         comments: v.comment_count ?? 0,
         shares: v.share_count ?? 0,
         coverUrl: v.cover_image_url ?? null,
+        caption: v.video_description ?? null,
       });
     }
   }

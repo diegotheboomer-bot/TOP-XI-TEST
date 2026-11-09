@@ -41,6 +41,7 @@ export const demoCreators = () => core.demoCreators(db());
 export const brandDashboard = () => core.brandDashboard(db());
 export const campaignDetail = (id: string) => core.campaignDetail(db(), id);
 export const creatorDashboard = () => core.creatorDashboard(db(), currentCreatorId());
+export const creatorCampaign = (id: string) => core.creatorCampaign(db(), currentCreatorId(), id);
 
 export const createCampaign = (input: Parameters<typeof core.createCampaign>[1]) => core.createCampaign(db(), input);
 export const setCampaignStatus = (id: string, status: Campaign['status']): ActionState => core.setCampaignStatus(db(), id, status);

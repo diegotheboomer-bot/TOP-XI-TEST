@@ -1,16 +1,22 @@
-import { Card } from './card';
+import { cn } from './cn';
 
-export function Stat({ label, value, hint, icon }: { label: string; value: string; hint?: string; icon?: React.ReactNode }) {
+export interface StatItem {
+  label: string;
+  value: string;
+  hint?: string;
+}
+
+/** A row of figures in one panel, divided by hairlines (2 columns on phones, 4 on wide screens). */
+export function StatGrid({ items, className }: { items: StatItem[]; className?: string }) {
   return (
-    <Card className="flex min-w-0 flex-col gap-3 p-5 sm:p-5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[13px] font-medium text-zinc-500">{label}</span>
-        {icon && <span className="hidden size-8 shrink-0 sm:grid place-items-center rounded-xl bg-zinc-100 text-zinc-600 [&>svg]:size-4">{icon}</span>}
-      </div>
-      <div className="min-w-0">
-        <div className="truncate text-2xl font-semibold tracking-tight tabular-nums">{value}</div>
-        {hint && <div className="mt-1 truncate text-xs text-zinc-500">{hint}</div>}
-      </div>
-    </Card>
+    <dl className={cn('grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-200/80 shadow-card lg:grid-cols-4', className)}>
+      {items.map((s) => (
+        <div key={s.label} className="min-w-0 bg-white px-4 py-4 sm:px-5">
+          <dt className="truncate text-[13px] text-zinc-500">{s.label}</dt>
+          <dd className="mt-1 truncate text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">{s.value}</dd>
+          {s.hint && <dd className="mt-0.5 truncate text-xs text-zinc-500">{s.hint}</dd>}
+        </div>
+      ))}
+    </dl>
   );
 }

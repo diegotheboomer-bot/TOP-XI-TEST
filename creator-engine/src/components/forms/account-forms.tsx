@@ -38,7 +38,7 @@ export function OnboardingForm() {
           <label
             key={r.value}
             className={cn(
-              'flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition',
+              'flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition',
               role === r.value ? 'border-zinc-900 bg-white ring-4 ring-zinc-900/5' : 'border-zinc-200 bg-white hover:border-zinc-300',
             )}
           >

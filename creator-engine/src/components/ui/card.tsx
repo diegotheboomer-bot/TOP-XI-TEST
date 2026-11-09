@@ -1,7 +1,8 @@
 import { cn } from './cn';
 
-export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6', className)} {...props} />;
+/** `flush` drops the inner padding, for lists and tables that run edge to edge. */
+export function Card({ className, flush, ...props }: React.HTMLAttributes<HTMLDivElement> & { flush?: boolean }) {
+  return <div className={cn('rounded-xl border border-zinc-200/80 bg-white shadow-card', !flush && 'p-5 sm:p-6', className)} {...props} />;
 }
 
 export function CardHeader({ title, description, action }: { title: string; description?: string; action?: React.ReactNode }) {

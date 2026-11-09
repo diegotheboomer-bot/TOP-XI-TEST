@@ -9,7 +9,7 @@ export function CopyField({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <div className="mb-1.5 text-xs font-medium text-zinc-500">{label}</div>
-      <div className="flex items-center gap-2 rounded-xl bg-zinc-50 py-1.5 pl-3.5 pr-1.5 ring-1 ring-inset ring-zinc-200/80">
+      <div className="flex items-center gap-2 rounded-lg bg-zinc-50 py-1.5 pl-3 pr-1.5 ring-1 ring-inset ring-zinc-200/80">
         <code ref={codeRef} className="min-w-0 flex-1 select-all truncate font-mono text-[13px] text-zinc-800">{value}</code>
         <button
           type="button"

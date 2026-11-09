@@ -18,6 +18,13 @@ export interface Campaign {
   asset_folder_url: string | null;
   status: CampaignStatus;
   created_at: string;
+  /** Uploaded cover image; a designed cover in cover_color is shown when null. */
+  thumbnail_url: string | null;
+  cover_color: string;
+  brief: string | null;
+  requirements: string[];
+  /** Clean submissions still pending after this many hours are approved automatically. */
+  auto_approve_hours: number;
 }
 
 export interface Submission {
@@ -37,6 +44,8 @@ export interface Submission {
   fraud_score: number;
   flag_reason: string | null;
   phash: string | null;
+  /** Caption carries an ad disclosure (#ad, #sponsored, …). */
+  has_disclosure: boolean;
   last_synced_at: string | null;
   created_at: string;
 }

@@ -2,16 +2,15 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Users } from 'lucide-react';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
-import { compact, payoutModelLabel, termsLabel, usd } from '@/lib/format';
+import { compact, payoutModelLabel, rateParts, usd } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
-import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader } from '@/components/ui/card';
-import { Stat } from '@/components/ui/stat';
+import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
 import { ActionButton } from '@/components/action-button';
 import { CampaignBadge } from '@/components/status';
-import { DemoBar, StorefrontStatus, SubmissionCard, submissionActionKinds } from '@/components/views';
+import { BudgetMeter, CampaignCover, DemoBar, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
 import { ConnectStoreForm, FundEscrowForm } from '@/components/forms/campaign-forms';
 import type { Campaign } from '@/lib/types';
 
@@ -20,19 +19,28 @@ export const dynamic = 'force-dynamic';
 export default async function CampaignPage({ params, searchParams }: { params: { id: string }; searchParams: { funded?: string } }) {
   const detail = await getCampaignDetail(params.id);
   if (!detail) notFound();
-  const { campaign: c, submissions, shopDomain, deposited, paidOut, fees } = detail;
+  const { campaign: c, submissions, shopDomain, deposited, paidOut, fees, budget } = detail;
+  const r = rateParts(c);
 
   return (
-    <>
-      <Link href="/brand" className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
+    <div className="space-y-6">
+      <Link href="/brand" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
         <ArrowLeft className="size-4" /> Campaigns
       </Link>
-      <PageHeader
-        eyebrow={<CampaignBadge status={c.status} />}
-        title={c.title}
-        description={`${payoutModelLabel[c.payout_model]} · ${termsLabel(c)}`}
-        actions={<StatusActions campaign={c} />}
-      />
+
+      <div className="grid grid-cols-1 items-center gap-5 sm:grid-cols-[13rem_minmax(0,1fr)]">
+        <CampaignCover campaign={c} brandName="" variant="card" showTitle={false} className="rounded-xl" />
+        <div className="min-w-0">
+          <CampaignBadge status={c.status} />
+          <h1 className="balance mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            {payoutModelLabel[c.payout_model]} · {r.rate} {r.unit} · {r.terms}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <StatusActions campaign={c} />
+          </div>
+        </div>
+      </div>
 
       {isDemo && (
         <DemoBar>
@@ -41,46 +49,51 @@ export default async function CampaignPage({ params, searchParams }: { params: {
         </DemoBar>
       )}
 
-      {searchParams.funded && (
-        <p className="mb-6 rounded-xl bg-accent-50 px-4 py-3 text-sm text-accent-700">Payment received — escrow updates as soon as Stripe confirms it.</p>
-      )}
+      {searchParams.funded && <p className="rounded-lg bg-accent-50 px-4 py-3 text-sm text-accent-700">Payment received. Escrow updates as soon as Stripe confirms it.</p>}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Escrow balance" value={usd(c.escrow_balance)} hint={`${usd(deposited)} deposited`} />
-        <Stat label="Paid out" value={usd(paidOut)} hint={`${usd(fees)} platform fees`} />
-        <Stat label="Verified views" value={compact(submissions.reduce((a, s) => a + s.current_view_count, 0))} />
-        <Stat label="Orders" value={compact(submissions.reduce((a, s) => a + s.current_conversions, 0))} />
-      </div>
+      <StatGrid
+        items={[
+          { label: 'Escrow balance', value: usd(c.escrow_balance), hint: `${usd(deposited)} deposited` },
+          { label: 'Paid to creators', value: usd(paidOut), hint: `${usd(fees)} platform fees` },
+          { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
+          { label: 'Attributed orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
+        ]}
+      />
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <Card>
-          <CardHeader title="Submissions" description="Views sync from TikTok every 4 hours. Flagged videos stop earning." />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <Card className="min-w-0 self-start">
+          <CardHeader
+            title="Submissions"
+            description={`Views sync every 4 hours. Clean videos with #ad auto-approve after ${c.auto_approve_hours}h.`}
+          />
           {submissions.length === 0 ? (
             <Empty icon={<Users />} title="No submissions yet" body="Creators who join appear here once they submit a live video." />
           ) : (
-            <ul className="space-y-3">
-              {submissions.map((s) => (
-                <SubmissionCard key={s.id} s={s} cap={c.cpm_cap} actions={<SubmissionActions s={s} />} />
-              ))}
-            </ul>
+            <SubmissionTable rows={submissions} cap={c.cpm_cap} autoApproveHours={c.auto_approve_hours} actions={(s) => <SubmissionActions s={s} />} />
           )}
         </Card>
 
         <div className="space-y-6">
           <Card>
-            <CardHeader
-              title="Fund escrow"
-              description={isDemo ? 'Mock money — adds to escrow instantly.' : 'Card or ACH via Stripe. Creators are paid from this balance.'}
-            />
-            <FundEscrowForm campaignId={c.id} />
+            <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
+            <BudgetMeter budget={budget} />
+            <div className="mt-5 border-t border-zinc-100 pt-5">
+              <FundEscrowForm campaignId={c.id} />
+              <p className="mt-2 text-xs text-zinc-500">{isDemo ? 'Mock money. Adds to escrow instantly.' : 'Card or ACH via Stripe.'}</p>
+            </div>
           </Card>
           <Card>
-            <CardHeader title="Storefront" description="Orders from this store are matched to creator codes and links." />
+            <CardHeader title="Storefront" description="Orders are matched to creator codes and links." />
             {shopDomain ? <StorefrontStatus shopDomain={shopDomain} /> : <ConnectStoreForm campaignId={c.id} />}
+          </Card>
+          <Card>
+            <CardHeader title="Brief" />
+            {c.brief && <p className="mb-5 text-sm leading-relaxed text-zinc-600">{c.brief}</p>}
+            <RequirementList items={c.requirements} />
           </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

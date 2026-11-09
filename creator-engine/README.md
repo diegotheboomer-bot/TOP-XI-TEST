@@ -26,7 +26,7 @@ Well-known streamer names appear only in ordinary example rows. Fraud examples u
 
 ## Set up for real
 
-1. Create a Supabase project and run `supabase/migrations/0001_init.sql` (SQL editor or `supabase db push`).
+1. Create a Supabase project and run the migrations in `supabase/migrations/` in order (SQL editor or `supabase db push`). `0002` also creates the public `campaign-thumbnails` storage bucket.
 2. Copy `.env.example` to `.env.local` and fill it in. `TOKEN_ENCRYPTION_KEY`: `openssl rand -base64 32`.
 3. Supabase Auth → URL configuration: add `<APP_URL>/auth/callback` as a redirect URL.
 4. TikTok developer app: Login Kit with scopes `user.info.basic`, `user.info.stats`, `video.list`; redirect URI `<APP_URL>/api/oauth/tiktok/callback`.
@@ -45,6 +45,9 @@ Well-known streamer names appear only in ordinary example rows. Fraud examples u
 | Perceptual hash (DCT pHash of the video cover frame) | `src/lib/phash.ts` |
 | Escrow deposit (Checkout), payouts (Transfer, 15% fee inline) | `src/actions/brand.ts`, `src/app/api/webhooks/stripe` |
 | Conversion attribution (discount code or `?ref=`) | `src/app/api/webhooks/shopify` |
+| Campaign thumbnails (upload to Supabase Storage, designed cover fallback) | `src/actions/brand.ts` → `createCampaign`, `src/components/views.tsx` → `CampaignCover` |
+| Budget forecast (committed, available, days left at current pace) | `src/lib/budget.ts` |
+| Ad disclosure check (#ad in the TikTok caption) and review deadlines with auto-approval | `src/lib/compliance.ts`, applied in `src/lib/sync.ts` |
 
 All writes go through server code using the service-role key after an ownership check; RLS only grants reads, so browsers can never write balances or metrics.
 

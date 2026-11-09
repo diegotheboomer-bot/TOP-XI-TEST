@@ -7,7 +7,7 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
 import { splitFee } from '@/lib/payout';
-import { CampaignSchema, DepositSchema, ShopDomainSchema } from '@/lib/schemas';
+import { CampaignSchema, DepositSchema, ShopDomainSchema, thumbnailError } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import type { ActionState } from './result';
 
@@ -26,18 +26,36 @@ async function requireOwnCampaign(campaignId: string) {
 }
 
 export async function createCampaign(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const parsed = CampaignSchema.safeParse(Object.fromEntries(form));
+  const parsed = CampaignSchema.safeParse(Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string')));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const file = form.get('thumbnail');
+  const thumb = file instanceof File && file.size > 0 ? file : null;
+  const thumbError = thumbnailError(thumb);
+  if (thumbError) return { error: thumbError };
+
+  const { asset_folder_url, ...rest } = parsed.data;
+  const base = { ...rest, asset_folder_url: asset_folder_url || null };
+
   if (isDemo) {
-    const { asset_folder_url, ...rest } = parsed.data;
-    redirect(`/brand/campaigns/${demo.createCampaign({ ...rest, asset_folder_url: asset_folder_url || null })}`);
+    // Demo keeps the image in memory as a data URL.
+    const thumbnail_url = thumb ? `data:${thumb.type};base64,${Buffer.from(await thumb.arrayBuffer()).toString('base64')}` : null;
+    redirect(`/brand/campaigns/${demo.createCampaign({ ...base, thumbnail_url })}`);
   }
 
   const brandId = await requireBrand();
-  const { asset_folder_url, ...rest } = parsed.data;
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient();
+  let thumbnail_url: string | null = null;
+  if (thumb) {
+    const ext = thumb.type.split('/')[1].replace('jpeg', 'jpg');
+    const path = `${brandId}/${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await admin.storage.from('campaign-thumbnails').upload(path, thumb, { contentType: thumb.type });
+    if (upErr) return { error: `Thumbnail upload failed: ${upErr.message}` };
+    thumbnail_url = admin.storage.from('campaign-thumbnails').getPublicUrl(path).data.publicUrl;
+  }
+
+  const { data, error } = await admin
     .from('campaigns')
-    .insert({ ...rest, asset_folder_url: asset_folder_url || null, brand_id: brandId })
+    .insert({ ...base, thumbnail_url, brand_id: brandId })
     .select('id')
     .single();
   if (error) return { error: error.message };
@@ -66,7 +84,7 @@ export async function fundEscrow(_prev: ActionState, form: FormData): Promise<Ac
     line_items: [
       {
         quantity: 1,
-        price_data: { currency: 'usd', unit_amount: Math.round(amount.data * 100), product_data: { name: `Escrow — ${campaign.title}` } },
+        price_data: { currency: 'usd', unit_amount: Math.round(amount.data * 100), product_data: { name: `Escrow: ${campaign.title}` } },
       },
     ],
     metadata: { campaign_id: campaignId },
@@ -106,7 +124,7 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
       : { status: 'flagged', flag_reason: 'Flagged by brand review' };
   await admin.from('submissions').update(update).eq('id', submissionId);
   revalidatePath(`/brand/campaigns/${sub.campaign_id}`);
-  return { success: decision === 'approve' ? 'Approved — tracking started.' : 'Flagged.' };
+  return { success: decision === 'approve' ? 'Approved. Tracking started.' : 'Flagged.' };
 }
 
 /**
@@ -149,7 +167,7 @@ export async function releasePayout(submissionId: string): Promise<ActionState> 
   const { data: debited } = await admin.rpc('escrow_debit', { p_campaign: sub.campaign_id, p_amount: gross });
   if (!debited) {
     await unclaim();
-    return { error: 'Not enough escrow — top up the campaign first.' };
+    return { error: 'Not enough escrow. Top up the campaign first.' };
   }
 
   // 3. Transfer the creator's share; the platform fee stays in the platform balance.
