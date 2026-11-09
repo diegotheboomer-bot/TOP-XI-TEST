@@ -32,7 +32,6 @@ import { CopyField } from '@/components/copy-button';
 import { trackingLink } from '@/lib/attribution';
 import { RolePicker } from '@/components/role-picker';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { ColorwayPicker } from '@/components/colorway-picker';
 import { EarningsEstimator } from '@/components/estimator';
 import { CampaignFormBody } from '@/components/forms/campaign-form-body';
 import {
@@ -235,7 +234,6 @@ function App() {
           <RolePicker streamerHref="#brand" clipperHref="#creator" assetBase={ASSETS} />
         )}
         <Toast state={store.toast} />
-        <ColorwayPicker />
       </>
     );
   }
@@ -272,7 +270,6 @@ function App() {
         {route.name === 'payouts' && <Payouts store={store} />}
       </AppShell>
       <Toast state={store.toast} />
-      <ColorwayPicker />
     </>
   );
 }
@@ -287,7 +284,7 @@ function LandingHeader() {
               <path d="M4 17 9.5 11l4 4L20 8" />
             </svg>
           </span>
-          <span className="hidden min-[400px]:inline">Creator Engine</span>
+          <span>Creator Engine</span>
         </a>
         <nav className="flex items-center gap-1 text-sm">
           <ThemeToggle labelled={false} />

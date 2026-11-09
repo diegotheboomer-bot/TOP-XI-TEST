@@ -3,8 +3,6 @@ import { Instrument_Sans } from 'next/font/google';
 import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { THEME_BOOT_SCRIPT } from '../../tailwind.theme';
-import { isDemo } from '@/lib/env';
-import { ColorwayPicker } from '@/components/colorway-picker';
 
 const sans = Instrument_Sans({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 
@@ -21,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen font-sans">
         {children}
-        {isDemo && <ColorwayPicker />}
       </body>
     </html>
   );

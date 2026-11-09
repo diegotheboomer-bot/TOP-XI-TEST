@@ -1,4 +1,5 @@
 @import '../styles/tokens.css';
+@import '../styles/hero.css';
 
 @tailwind base;
 @tailwind components;
@@ -8,7 +9,7 @@
   html { -webkit-font-smoothing: antialiased; }
   body { @apply bg-zinc-50 text-zinc-900; }
   :focus-visible { outline: 2px solid rgb(var(--brand-a)); outline-offset: 2px; }
-  /* Faint colorway wash at the top of every page. */
+  /* Faint brand-colour wash at the top of every page. */
   body {
     background-image:
       radial-gradient(ellipse 60rem 26rem at 12% -6rem, rgb(var(--brand-a) / var(--glow)), transparent 70%),
@@ -32,8 +33,7 @@
   }
   .site-header { top: env(safe-area-inset-top, 0px); }
   .balance { text-wrap: balance; }
-  .colorway { padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) 0; }
-  /* Gradient text in the colorway. */
+  /* Gradient text in the brand colour. */
   .text-brand {
     background-image: linear-gradient(100deg, rgb(var(--brand-ta)), rgb(var(--brand-tb)));
     -webkit-background-clip: text;

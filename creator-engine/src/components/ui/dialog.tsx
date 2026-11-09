@@ -53,7 +53,7 @@ export function Dialog({
         if (e.target === e.currentTarget) onClose(); // backdrop
       }}
       className={cn(
-        'w-full overflow-y-auto overscroll-contain border border-zinc-200/80 bg-white p-0 text-zinc-900 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-[2px]',
+        'w-full overflow-y-auto overscroll-contain border border-zinc-200/80 bg-white p-0 text-zinc-900 shadow-2xl backdrop:bg-[rgb(0_0_0/0.6)] backdrop:backdrop-blur-[2px]',
         'mb-0 mt-auto max-h-[92dvh] max-w-none rounded-t-2xl sm:m-auto sm:max-h-[calc(100dvh-3rem)] sm:max-w-lg sm:rounded-2xl',
         className,
       )}

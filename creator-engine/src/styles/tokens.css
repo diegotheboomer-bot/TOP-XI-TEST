@@ -67,15 +67,13 @@
 }
 
 /*
- * Colorway: the brand colour used on buttons, the logo, active states and
- * meters, as a slight two-stop gradient (--brand-a → --brand-b). --brand-ink
- * is text on top of it; --brand-ta/--brand-tb are the stops for gradient
- * text, darker in light mode where lime would be hard to read on white.
- * --glow is the strength of the faint wash at the top of each page.
- * Volt is the default; the variants are picked with <html data-colorway="…">.
+ * Brand colour (Volt): used on buttons, the logo, active states and meters,
+ * as a slight two-stop gradient (--brand-a → --brand-b). --brand-ink is text
+ * on top of it; --brand-ta/--brand-tb are the stops for gradient text, darker
+ * in light mode where lime would be hard to read on white. --glow is the
+ * strength of the faint wash at the top of each page.
  */
-:root,
-:root[data-colorway="volt"] {
+:root {
   --brand-a: 190 242 100;  /* lime 300 */
   --brand-b: 74 222 128;   /* green 400 */
   --brand-ink: 26 46 5;
@@ -83,51 +81,4 @@
   --brand-tb: var(--brand-b);
   --glow: 0.13;
 }
-/* Neon: punchier, highlighter lime. */
-:root[data-colorway="volt-neon"] {
-  --brand-a: 212 255 46;
-  --brand-b: 163 230 53;   /* lime 400 */
-  --brand-ink: 22 36 0;
-  --brand-ta: var(--brand-a);
-  --brand-tb: var(--brand-b);
-  --glow: 0.17;
-}
-/* Citrus: lime into yellow. */
-:root[data-colorway="volt-citrus"] {
-  --brand-a: 253 224 71;   /* yellow 300 */
-  --brand-b: 163 230 53;   /* lime 400 */
-  --brand-ink: 38 36 4;
-  --brand-ta: var(--brand-a);
-  --brand-tb: var(--brand-b);
-}
-/* Aqua: lime into teal, cooler. */
-:root[data-colorway="volt-aqua"] {
-  --brand-a: 190 242 100;  /* lime 300 */
-  --brand-b: 45 212 191;   /* teal 400 */
-  --brand-ink: 4 40 30;
-  --brand-ta: var(--brand-a);
-  --brand-tb: var(--brand-b);
-}
-/* Deep: darker, more grown-up green. */
-:root[data-colorway="volt-deep"] {
-  --brand-a: 132 204 22;   /* lime 500 */
-  --brand-b: 22 163 74;    /* green 600 */
-  --brand-ink: 3 26 11;
-  --brand-ta: 163 230 53;
-  --brand-tb: 74 222 128;
-  --glow: 0.11;
-}
-/* Flat: one solid lime, no gradient. */
-:root[data-colorway="volt-flat"] {
-  --brand-a: 190 242 100;
-  --brand-b: 190 242 100;
-  --brand-ink: 26 46 5;
-  --brand-ta: var(--brand-a);
-  --brand-tb: 132 204 22;
-}
-
-/* Light mode: a softer wash, and darker stops for gradient text. */
 :root[data-app-theme="light"] { --glow: 0.1; --brand-ta: 77 124 15; --brand-tb: 21 128 61; }
-:root[data-app-theme="light"][data-colorway="volt-citrus"] { --brand-ta: 101 163 13; --brand-tb: 161 98 7; }
-:root[data-app-theme="light"][data-colorway="volt-aqua"] { --brand-ta: 77 124 15; --brand-tb: 15 118 110; }
-:root[data-app-theme="light"][data-colorway="volt-flat"] { --brand-ta: 77 124 15; --brand-tb: 77 124 15; }

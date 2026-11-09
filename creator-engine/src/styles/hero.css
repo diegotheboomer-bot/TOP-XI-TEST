@@ -1,0 +1,34 @@
+/* Landing hero motion. Plain CSS, shared by the app and the standalone demo. */
+.hero-grid {
+  background-image:
+    linear-gradient(rgb(var(--zinc-200) / 0.55) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--zinc-200) / 0.55) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 30%, transparent 75%);
+}
+
+.hero-pulse { animation: hero-pulse 1.6s ease-in-out infinite; }
+@keyframes hero-pulse { 50% { opacity: 0.25; } }
+
+/* Playhead sweeps the stream; the clip frame locks onto the action. */
+.hero-playhead { left: 0; animation: hero-playhead 7s linear infinite; }
+@keyframes hero-playhead { to { left: 100%; } }
+
+.hero-frame { animation: hero-frame 7s ease-in-out infinite; box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.35); }
+@keyframes hero-frame {
+  0%, 100% { transform: translateX(-40%) scale(1.15); opacity: 0.6; }
+  45%, 80% { transform: none; opacity: 1; }
+}
+
+/* Dashes flowing from the moment down into each clip. */
+.hero-flow { stroke-dasharray: 3 5; animation: hero-flow 1.2s linear infinite; }
+@keyframes hero-flow { to { stroke-dashoffset: -16; } }
+
+.hero-float { animation: hero-float 5s ease-in-out infinite; }
+@keyframes hero-float { 50% { transform: translateY(-6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-pulse, .hero-playhead, .hero-frame, .hero-float, .hero-flow { animation: none; }
+  .hero-playhead { left: 55%; }
+}

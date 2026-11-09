@@ -1,6 +1,6 @@
 // Landing page content, shared by the Next app and the standalone demo.
-import type { MarketCampaign } from '@/lib/data';
-import { MarketCard, type LinkLike } from './views';
+import { type LinkLike } from './views';
+import { HeroClip } from './hero-clip';
 import { buttonClass } from './ui/button';
 import credits from '../../public/demo/thumbs/credits.json';
 
@@ -13,7 +13,7 @@ const STEPS = {
   clipper: [
     ['Pick a campaign', 'See the rate, the budget left and what you would take home before you join.'],
     ['Claim and cut', 'Claim a moment, cut it your way, add your clip code and #ad to the caption.'],
-    ['Get paid as it grows', 'Earnings update every few hours. You keep 100%, paid straight to your bank.'],
+    ['Get paid as it grows', 'Earnings update every few hours. You keep 100%, paid to your bank, PayPal or Venmo.'],
   ],
 } as const;
 
@@ -25,14 +25,6 @@ const FEATURES = [
   ['No fees for clippers', 'Clippers keep 100% of what they earn. Streamers pay a flat {fee}% on top of their budget, shown before they pay.'],
   ['Fake views don’t get paid', 'Re-uploads are matched by image fingerprint and bot-like spikes freeze earnings until checked.'],
 ];
-
-const base = (over: Partial<MarketCampaign>): MarketCampaign => ({
-  id: 's', brand_id: '', title: '', payout_model: 'pure_cpm', escrow_balance: 0, base_payout: 0, cpm_rate: 0, cpm_cap: 0, cps_commission_pct: 0,
-  code_prefix: '', pixel_id: null, asset_folder_url: null, status: 'active', created_at: '', thumbnail_url: null, cover_color: '#18181b',
-  brief: null, requirements: [], auto_approve_hours: 48, platforms: ['tiktok', 'youtube', 'instagram'], brandName: '', creators: 0,
-  budget: { deposited: 0, committed: 0, available: 0, usedShare: 0, daysLeft: null },
-  ...over,
-});
 
 export function Landing({
   link = 'a',
@@ -52,54 +44,53 @@ export function Landing({
 }) {
   const withFee = (t: string) => t.replace('{fee}', String(feePercent));
   const Link = link;
-  const preview = [
-    base({
-      title: 'Ranked Grind Highlights', brandName: 'Marlow Kade', cpm_rate: 2, cpm_cap: 1500, thumbnail_url: `${assetBase}controller-blue.jpg`, creators: 6,
-      budget: { deposited: 11_000, committed: 2_960, available: 8_040, usedShare: 0.27, daysLeft: 56 },
-    }),
-    base({
-      title: 'World Record Attempts', brandName: 'Pixel Pilot', cpm_rate: 2.5, cpm_cap: 2000, thumbnail_url: `${assetBase}keyboard-dark.jpg`, creators: 1,
-      budget: { deposited: 12_000, committed: 582, available: 11_418, usedShare: 0.05, daysLeft: null },
-    }),
-  ];
-
   return (
     <main className="gutter mx-auto max-w-6xl">
-      <section className="grid grid-cols-1 items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_0.95fr]">
+      <section className="relative isolate grid grid-cols-1 items-center gap-12 pb-16 pt-12 sm:pt-20 lg:grid-cols-[1fr_1fr] lg:gap-14 lg:pb-24">
+        <div className="hero-grid pointer-events-none absolute inset-x-0 -top-16 bottom-0 -z-10" aria-hidden />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-accent-700">For streamers and the clippers who grow them</p>
-          <h1 className="balance mt-3 text-4xl font-semibold leading-[1.06] tracking-tight sm:text-5xl">
+          <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-zinc-600 backdrop-blur">
+            <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> Clipping campaigns for streamers
+          </p>
+          <h1 className="balance mt-5 text-[2.75rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl">
             Your stream, <span className="text-brand">clipped everywhere.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
-            Post a campaign, pin the moments worth clipping, and pay clippers only for the views their clips get on TikTok, YouTube Shorts and Instagram Reels.
+            Pin the moments worth clipping. Clippers post them to TikTok, YouTube Shorts and Instagram Reels, and you pay only for the views they get.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href={startHref} className={buttonClass('primary')}>
+            <Link href={startHref} className={buttonClass('primary', 'md', 'h-11 px-5')}>
               Get started
             </Link>
-            <Link href={clipperHref} className={buttonClass('secondary')}>
+            <Link href={clipperHref} className={buttonClass('secondary', 'md', 'h-11 px-5')}>
               Browse campaigns
             </Link>
           </div>
+          <dl className="mt-10 grid max-w-md grid-cols-[auto_auto_1fr] gap-x-6 border-t border-zinc-200/80 pt-5 font-mono sm:gap-x-10">
+            {[
+              ['Paid on', 'real views'],
+              ['Clippers keep', '100%'],
+              ['Platforms', 'TikTok · YT · IG'],
+            ].map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <dt className="text-[10px] uppercase tracking-wider text-zinc-500">{label}</dt>
+                <dd className="mt-1 text-sm font-medium text-zinc-900">{value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2" aria-hidden>
-          {preview.map((c, i) => (
-            <div key={c.title} className={i === 1 ? 'hidden sm:block sm:translate-y-8' : undefined}>
-              <MarketCard c={c} href={clipperHref} link={Link} />
-            </div>
-          ))}
-        </div>
+        <HeroClip image={`${assetBase}controller-blue.jpg`} />
       </section>
 
       <section className="grid grid-cols-1 gap-6 border-t border-zinc-200/80 py-14 md:grid-cols-2">
         {(['streamer', 'clipper'] as const).map((who) => (
-          <div key={who}>
-            <h2 className="text-lg font-semibold tracking-tight">{who === 'streamer' ? 'If you stream' : 'If you clip'}</h2>
-            <ol className="mt-5 space-y-5">
+          <div key={who} className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-7">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">{who === 'streamer' ? 'For streamers' : 'For clippers'}</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight">{who === 'streamer' ? 'If you stream' : 'If you clip'}</h2>
+            <ol className="mt-6 space-y-5">
               {STEPS[who].map(([title, body], i) => (
                 <li key={title} className="flex gap-4">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-md bg-brand text-xs font-semibold text-brand-ink">{i + 1}</span>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand font-mono text-xs font-semibold text-brand-ink">0{i + 1}</span>
                   <div className="min-w-0">
                     <p className="font-medium">{title}</p>
                     <p className="mt-0.5 text-sm leading-relaxed text-zinc-600">{withFee(body)}</p>
@@ -112,11 +103,13 @@ export function Landing({
       </section>
 
       <section className="border-t border-zinc-200/80 py-14">
-        <h2 className="balance max-w-xl text-2xl font-semibold tracking-tight">Made for clipping, not adapted from ad tools</h2>
-        <dl className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map(([title, body]) => (
-            <div key={title} className="border-t border-zinc-200/80 pt-4">
-              <dt className="font-semibold tracking-tight">{title}</dt>
+        <p className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">Under the hood</p>
+        <h2 className="balance mt-1 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">Made for clipping, not adapted from ad tools</h2>
+        <dl className="mt-8 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-200/80 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map(([title, body], i) => (
+            <div key={title} className="bg-white p-6 transition-colors hover:bg-zinc-50">
+              <span className="font-mono text-[11px] text-zinc-400">{String(i + 1).padStart(2, '0')}</span>
+              <dt className="mt-3 font-semibold tracking-tight">{title}</dt>
               <dd className="mt-1.5 text-sm leading-relaxed text-zinc-600">{withFee(body)}</dd>
             </div>
           ))}
