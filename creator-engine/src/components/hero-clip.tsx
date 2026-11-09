@@ -5,7 +5,7 @@
 // (facecam on top, gameplay below) whose views and earnings tick up.
 // Decorative only (aria-hidden); every name and number is illustrative.
 import { useEffect, useState } from 'react';
-import { Eye, Heart, MessageCircle, Music2, Send } from 'lucide-react';
+import { Eye, Forward, Heart, MessageCircle, MessageCircleMore, MessageSquareText, Music2, Plus, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 // Chat activity per slice of the stream; the spike is the moment that gets clipped.
 const BARS = [3, 4, 3, 5, 4, 6, 5, 4, 3, 4, 5, 4, 6, 7, 5, 4, 5, 6, 8, 11, 14, 16, 15, 13, 10, 7, 6, 5, 4, 5, 4, 3, 4, 5, 6, 5, 4, 3, 4, 3];
@@ -15,9 +15,9 @@ const RATE = 2; // $ per 1K views
 // Each clip is styled like its platform. Handles are the demo's fictional clippers.
 const CLIPS = [
   // `game` and `face` frame each clip differently: where it's cropped and how far it's zoomed (or mirrored).
-  { platform: 'tiktok', label: 'For You', handle: '@clipsbyrae', game: { at: '18% 72%', zoom: 'scale(1.6)' }, face: { at: '45% 45%', zoom: 'scale(1.35)' }, caption: '1v3 clutch', views: 48_200, likes: '4.1K', tilt: '-rotate-[5deg] translate-y-3' },
-  { platform: 'shorts', label: 'Shorts', handle: '@vodvault', game: { at: '55% 62%', zoom: 'none' }, face: { at: '50% 30%', zoom: 'none' }, caption: 'never saw it', views: 21_900, likes: '1.8K', tilt: 'z-10 -translate-y-1 sm:scale-[1.04]' },
-  { platform: 'reels', label: 'Reels', handle: '@framejump', game: { at: '88% 80%', zoom: 'scale(1.8)' }, face: { at: '40% 40%', zoom: 'scaleX(-1) scale(1.15)' }, caption: 'chat went crazy', views: 33_400, likes: '2.6K', tilt: 'rotate-[5deg] translate-y-3' },
+  { platform: 'tiktok', handle: '@clipsbyrae', game: { at: '18% 72%', zoom: 'scale(1.6)' }, face: { at: '45% 45%', zoom: 'scale(1.35)' }, caption: '1v3 clutch', views: 48_200, likes: '4.1K', tilt: '-rotate-[5deg] translate-y-3' },
+  { platform: 'shorts', handle: '@vodvault', game: { at: '55% 62%', zoom: 'none' }, face: { at: '50% 30%', zoom: 'none' }, caption: 'never saw it', views: 21_900, likes: '1.8K', tilt: 'z-10 -translate-y-1 sm:scale-[1.04]' },
+  { platform: 'reels', handle: '@framejump', game: { at: '88% 80%', zoom: 'scale(1.8)' }, face: { at: '40% 40%', zoom: 'scaleX(-1) scale(1.15)' }, caption: 'chat went crazy', views: 33_400, likes: '2.6K', tilt: 'rotate-[5deg] translate-y-3' },
 ] as const;
 type Clip = (typeof CLIPS)[number];
 
@@ -148,11 +148,8 @@ function Phone({ clip: c, cam, stream, delay }: { clip: Clip; cam: string; strea
         </div>
         <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[rgb(0_0_0/0.75)] to-transparent" />
 
-        {/* Camera notch and the feed's tab name */}
-        <span className="absolute left-1/2 top-1.5 h-2 w-7 -translate-x-1/2 rounded-full bg-[#000]" />
-        <span className="absolute inset-x-0 top-4 text-center text-[8px] font-semibold opacity-90 sm:text-[9px]" style={{ textShadow: '0 1px 2px rgb(0 0 0 / 0.6)' }}>
-          {c.label}
-        </span>
+        {/* Camera notch */}
+        <span className="absolute left-1/2 top-1.5 z-10 h-2 w-7 -translate-x-1/2 rounded-full bg-[#000]" />
 
         {/* Caption on the seam */}
         <span className="absolute inset-x-1 top-[36%] -translate-y-1/2 text-center leading-snug">
@@ -161,22 +158,9 @@ function Phone({ clip: c, cam, stream, delay }: { clip: Clip; cam: string; strea
           </span>
         </span>
 
-        {/* Action rail */}
-        <div className="absolute bottom-7 right-1 flex flex-col items-center gap-1.5 text-[7px] font-semibold sm:bottom-8 sm:gap-2 sm:text-[8px]">
-          <span className="flex flex-col items-center">
-            <Heart className="size-3 fill-[#fe2c55] text-[#fe2c55] sm:size-3.5" /> {c.likes}
-          </span>
-          <MessageCircle className="size-3 sm:size-3.5" />
-          <Send className="size-3 sm:size-3.5" />
-        </div>
-
-        {/* Handle and sound */}
-        <div className="absolute bottom-2.5 left-1.5 right-6 min-w-0 sm:bottom-3 sm:left-2">
-          <p className="truncate text-[8px] font-bold sm:text-[9px]">{c.handle}</p>
-          <p className="flex items-center gap-0.5 truncate text-[7px] opacity-80 sm:text-[8px]">
-            <Music2 className="size-2 shrink-0" /> original sound
-          </p>
-        </div>
+        {c.platform === 'tiktok' && <TikTokUi clip={c} cam={cam} />}
+        {c.platform === 'shorts' && <ShortsUi clip={c} cam={cam} />}
+        {c.platform === 'reels' && <ReelsUi clip={c} cam={cam} />}
 
         {/* Playback progress */}
         <div className="absolute inset-x-0 bottom-0 h-[3px] bg-[rgb(255_255_255/0.25)]">
@@ -184,6 +168,123 @@ function Phone({ clip: c, cam, stream, delay }: { clip: Clip; cam: string; strea
         </div>
       </div>
     </div>
+  );
+}
+
+const TEXT_SHADOW = { textShadow: '0 1px 2px rgb(0 0 0 / 0.7)' };
+const ICON = 'size-[11px] sm:size-3.5';
+
+/**
+ * Bottom of a clip like the real apps: text on the left, the action column on
+ * the right, side by side so they never overlap. Starts below the caption seam.
+ */
+function Overlay({ rail, children }: { rail: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="absolute inset-x-0 bottom-0 top-[44%] flex items-end gap-1 px-1.5 pb-2 sm:px-2 sm:pb-2.5" style={TEXT_SHADOW}>
+      <div className="min-w-0 flex-1 space-y-px">{children}</div>
+      <div className="flex shrink-0 flex-col items-center gap-1 text-[6px] font-semibold sm:gap-1.5 sm:text-[7px]">{rail}</div>
+    </div>
+  );
+}
+
+function Avatar({ cam, className = '' }: { cam: string; className?: string }) {
+  return <img src={cam} alt="" className={`size-3.5 shrink-0 rounded-full object-cover sm:size-4 ${className}`} style={{ objectPosition: '45% 40%' }} />;
+}
+
+function Stat({ icon, label }: { icon: React.ReactNode; label?: string }) {
+  return (
+    <span className="flex flex-col items-center gap-px leading-none">
+      {icon}
+      {label}
+    </span>
+  );
+}
+
+/** TikTok: Following | For You tabs, avatar with +, heart, comments and the spinning sound disc. */
+function TikTokUi({ clip: c, cam }: { clip: Clip; cam: string }) {
+  return (
+    <>
+      <div className="absolute inset-x-0 top-4 flex justify-center gap-2 text-[7px] font-semibold sm:text-[8px]" style={TEXT_SHADOW}>
+        <span className="opacity-70">Following</span>
+        <span className="border-b border-[#fff] pb-px">For You</span>
+      </div>
+      <Overlay
+        rail={
+          <>
+            <span className="relative mb-0.5">
+              <Avatar cam={cam} className="ring-1 ring-[#fff]" />
+              <span className="absolute -bottom-1 left-1/2 grid size-2 -translate-x-1/2 place-items-center rounded-full bg-[#fe2c55]">
+                <Plus className="size-1.5" strokeWidth={4} />
+              </span>
+            </span>
+            <Stat icon={<Heart className={`${ICON} fill-[#fff]`} />} label={c.likes} />
+            <Stat icon={<MessageCircleMore className={`${ICON} fill-[#fff] text-[#111]`} />} label="212" />
+            <span className="hero-spin grid size-3.5 place-items-center rounded-full bg-[#222] ring-2 ring-[#333] sm:size-4">
+              <Avatar cam={cam} className="!size-1.5 sm:!size-2" />
+            </span>
+          </>
+        }
+      >
+        <p className="truncate text-[8px] font-bold sm:text-[9px]">{c.handle}</p>
+        <p className="truncate text-[7px] sm:text-[8px]">no way he hit that #fyp</p>
+        <p className="flex items-center gap-0.5 truncate text-[7px] sm:text-[8px]">
+          <Music2 className="size-2 shrink-0" /> original sound
+        </p>
+      </Overlay>
+    </>
+  );
+}
+
+/** YouTube Shorts: like and dislike, comments, share; channel row with Subscribe under the title. */
+function ShortsUi({ clip: c, cam }: { clip: Clip; cam: string }) {
+  return (
+    <Overlay
+      rail={
+        <>
+          <Stat icon={<ThumbsUp className={`${ICON} fill-[#fff]`} />} label={c.likes} />
+          <Stat icon={<ThumbsDown className={ICON} />} />
+          <Stat icon={<MessageSquareText className={ICON} />} label="96" />
+          <Stat icon={<Forward className={`${ICON} fill-[#fff]`} />} />
+        </>
+      }
+    >
+      <p className="truncate text-[7px] font-medium sm:text-[8px]">He did NOT see that coming</p>
+      <div className="flex min-w-0 items-center gap-1 pt-0.5">
+        <Avatar cam={cam} />
+        <span className="min-w-0 truncate text-[7px] font-semibold sm:text-[8px]">{c.handle}</span>
+      </div>
+      <span className="mt-0.5 inline-block rounded-full bg-[#fff] px-1.5 py-px text-[6px] font-bold text-[#0f0f0f] sm:text-[7px]">Subscribe</span>
+    </Overlay>
+  );
+}
+
+/** Instagram Reels: "Reels" title, heart, comment, send, the audio square; avatar row with Follow. */
+function ReelsUi({ clip: c, cam }: { clip: Clip; cam: string }) {
+  return (
+    <>
+      <span className="absolute left-2 top-4 text-[9px] font-bold sm:text-[11px]" style={TEXT_SHADOW}>
+        Reels
+      </span>
+      <Overlay
+        rail={
+          <>
+            <Stat icon={<Heart className={ICON} />} label={c.likes} />
+            <Stat icon={<MessageCircle className={`${ICON} -scale-x-100`} />} label="118" />
+            <Stat icon={<Send className={ICON} />} label="64" />
+            <img src={cam} alt="" className="size-3.5 rounded-[3px] object-cover ring-1 ring-[#fff] sm:size-4" />
+          </>
+        }
+      >
+        <div className="flex min-w-0 items-center gap-1">
+          <Avatar cam={cam} />
+          <span className="min-w-0 truncate text-[7px] font-semibold sm:text-[8px]">{c.handle.slice(1)}</span>
+        </div>
+        <span className="mt-0.5 inline-block rounded border border-[#fff] px-1 text-[6px] font-semibold leading-3 sm:text-[7px]">Follow</span>
+        <p className="flex items-center gap-0.5 truncate text-[7px] sm:text-[8px]">
+          <Music2 className="size-2 shrink-0" /> Original audio
+        </p>
+      </Overlay>
+    </>
   );
 }
 

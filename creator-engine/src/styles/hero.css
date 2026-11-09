@@ -30,6 +30,10 @@
   100% { opacity: 0; }
 }
 
+/* TikTok's spinning sound disc. */
+.hero-spin { animation: hero-spin 4s linear infinite; }
+@keyframes hero-spin { to { transform: rotate(360deg); } }
+
 /* Clip playback bar. */
 .hero-progress { animation: hero-progress 7s linear infinite; }
 @keyframes hero-progress { from { width: 0; } to { width: 100%; } }
@@ -42,7 +46,7 @@
 @keyframes hero-float { 50% { transform: translateY(-6px); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-pulse, .hero-playhead, .hero-frame, .hero-float, .hero-flow, .hero-pop, .hero-progress { animation: none; }
+  .hero-pulse, .hero-playhead, .hero-frame, .hero-float, .hero-flow, .hero-pop, .hero-progress, .hero-spin { animation: none; }
   .hero-progress { width: 60%; }
   .hero-playhead { left: 55%; }
 }
