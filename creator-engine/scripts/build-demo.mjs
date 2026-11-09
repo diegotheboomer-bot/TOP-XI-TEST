@@ -56,22 +56,46 @@ execFileSync(
 );
 const css = readFileSync(cssFile, 'utf8');
 
-const html = `<title>Creator Engine Demo</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+// Head and body parts, shared by both outputs.
+const head = `<title>Creator Engine Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
 <style>${css}</style>
-<script>${THEME_BOOT_SCRIPT}</script>
-<div id="root"></div>
+<script>${THEME_BOOT_SCRIPT}</script>`;
+const body = `<div id="root"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-<script>${js}</script>
-`;
+<script>${js}</script>`;
+
+// 1. demo-dist/: a page fragment for a claude.ai artifact (the host adds <html>/<head>).
+const html = `${head.replace('</title>', '</title>\n<meta name="claude:viewport-fit-sides" content="cover">')}\n${body}\n`;
 writeFileSync(path.join(out, 'index.html'), html);
 
-// Campaign photos are published next to the page as thumbs/*.jpg.
+// 2. demo-site/: a complete static site for any static host (GitHub Pages).
+const site = path.join(root, 'demo-site');
+mkdirSync(site, { recursive: true });
+writeFileSync(
+  path.join(site, 'index.html'),
+  `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Creator Engine demo: streamers run clipping campaigns, clippers get paid per view. Fictional data, mock money.">
+${head}
+</head>
+<body>
+${body}
+</body>
+</html>
+`,
+);
+
+// Campaign photos are published next to the page as thumbs/*.jpg (both outputs).
 const thumbs = path.join(root, 'public/demo/thumbs');
-mkdirSync(path.join(out, 'thumbs'), { recursive: true });
-for (const f of readdirSync(thumbs).filter((f) => f.endsWith('.jpg'))) copyFileSync(path.join(thumbs, f), path.join(out, 'thumbs', f));
-console.log(`demo-dist/index.html  ${(html.length / 1024).toFixed(0)} KB`);
+for (const dir of [out, site]) {
+  mkdirSync(path.join(dir, 'thumbs'), { recursive: true });
+  for (const f of readdirSync(thumbs).filter((f) => f.endsWith('.jpg'))) copyFileSync(path.join(thumbs, f), path.join(dir, 'thumbs', f));
+}
+console.log(`demo-dist/index.html  ${(html.length / 1024).toFixed(0)} KB · demo-site/ ready for static hosting`);
