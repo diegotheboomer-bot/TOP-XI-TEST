@@ -7,12 +7,19 @@ import { requireEnv } from '@/lib/env';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  let event: Stripe.Event;
-  try {
-    event = stripe().webhooks.constructEvent(await req.text(), req.headers.get('stripe-signature') ?? '', requireEnv('STRIPE_WEBHOOK_SECRET'));
-  } catch {
-    return NextResponse.json({ error: 'invalid signature' }, { status: 400 });
+  // One secret per Stripe destination (your account, connected accounts), comma-separated.
+  const body = await req.text();
+  const signature = req.headers.get('stripe-signature') ?? '';
+  let event: Stripe.Event | undefined;
+  for (const secret of requireEnv('STRIPE_WEBHOOK_SECRET').split(',').map((s) => s.trim()).filter(Boolean)) {
+    try {
+      event = stripe().webhooks.constructEvent(body, signature, secret);
+      break;
+    } catch {
+      // try the next secret
+    }
   }
+  if (!event) return NextResponse.json({ error: 'invalid signature' }, { status: 400 });
   const admin = createAdminClient();
 
   // In-app checkout (src/actions/brand.ts → createDepositIntent).
