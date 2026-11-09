@@ -3,3 +3,4 @@ node_modules
 demo-dist
 .env*.local
 *.tsbuildinfo
+demo-site
