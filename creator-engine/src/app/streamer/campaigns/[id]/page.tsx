@@ -13,7 +13,8 @@ import { ActionButton } from '@/components/action-button';
 import { CampaignBadge } from '@/components/status';
 import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
 import { MomentForm } from '@/components/forms/moment-form';
-import { ConnectStoreForm, FundEscrowForm } from '@/components/forms/campaign-forms';
+import { ConnectStoreForm } from '@/components/forms/campaign-forms';
+import { ButtonLink } from '@/components/ui/button-link';
 import type { Campaign } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -87,8 +88,10 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <FundEscrowForm campaignId={c.id} feePercent={platformFeePercent()} />
-              <p className="mt-2 text-xs text-zinc-500">{isDemo ? 'Mock money. Added instantly.' : 'Card or bank transfer through Stripe.'}</p>
+              <ButtonLink href={`/streamer/campaigns/${c.id}/fund`} className="w-full">
+                Add budget
+              </ButtonLink>
+              <p className="mt-2 text-xs text-zinc-500">{platformFeePercent()}% platform fee on top. Clippers keep 100% of the budget.</p>
             </div>
           </Card>
           <Card>

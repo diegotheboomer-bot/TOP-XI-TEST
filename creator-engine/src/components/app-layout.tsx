@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw } from 'lucide-react';
+import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet } from 'lucide-react';
 import { isDemo } from '@/lib/env';
 import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
@@ -21,6 +21,7 @@ const SECTIONS: Record<Role, NavSection> = {
     items: [
       { href: '/clipper', label: 'Home', icon: <House /> },
       { href: '/clipper/discover', label: 'Discover', icon: <Compass />, also: ['/clipper/campaigns'] },
+      { href: '/clipper/payouts', label: 'Payouts', icon: <Wallet /> },
     ],
   },
 };

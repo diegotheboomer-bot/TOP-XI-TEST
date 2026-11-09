@@ -1,11 +1,14 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { viewAsCreator } from '@/actions/creator';
 import { Select } from './ui/field';
 
 export function CreatorSwitcher({ creators, current }: { creators: { id: string; name: string }[]; current: string }) {
+  const path = usePathname();
   return (
     <form action={viewAsCreator} className="flex items-center gap-2">
+      <input type="hidden" name="back" value={path} />
       <label htmlFor="as" className="shrink-0 text-sm text-zinc-500">
         Viewing as
       </label>

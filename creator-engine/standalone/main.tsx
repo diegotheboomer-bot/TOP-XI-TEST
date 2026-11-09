@@ -7,9 +7,12 @@ import { createRoot } from 'react-dom/client';
 import { ArrowLeft, ArrowLeftRight, Compass, House, LayoutList, Megaphone, Music2, Plus, RotateCcw, Users, Wallet } from 'lucide-react';
 import * as core from '@/lib/demo-core';
 import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
-import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
+import { CampaignSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import { MomentFields } from '@/components/forms/moment-fields';
-import { DepositFields } from '@/components/forms/deposit-fields';
+import { FundCheckout } from '@/components/checkout/fund-checkout';
+import { MockPayment } from '@/components/checkout/mock-payment';
+import { PayoutsView } from '@/components/payouts/payouts-view';
+import { MockOnboarding } from '@/components/payouts/mock-onboarding';
 import type { ActionState } from '@/actions/result';
 import type { Campaign } from '@/lib/types';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -91,13 +94,16 @@ type Route =
   | { name: 'brand' }
   | { name: 'new-campaign' }
   | { name: 'campaign'; id: string }
+  | { name: 'fund'; id: string }
   | { name: 'creator' }
   | { name: 'discover' }
+  | { name: 'payouts' }
   | { name: 'offer'; id: string };
 
 function parseHash(hash: string): Route {
   const h = hash.replace(/^#/, '');
-  if (h === 'start' || h === 'brand' || h === 'creator' || h === 'discover' || h === 'new-campaign') return { name: h };
+  if (h === 'start' || h === 'brand' || h === 'creator' || h === 'discover' || h === 'new-campaign' || h === 'payouts') return { name: h };
+  if (h.startsWith('fund-')) return { name: 'fund', id: h.slice('fund-'.length) };
   if (h.startsWith('campaign-')) return { name: 'campaign', id: h.slice('campaign-'.length) };
   if (h.startsWith('offer-')) return { name: 'offer', id: h.slice('offer-'.length) };
   return { name: 'home' };
@@ -137,11 +143,11 @@ function useStore() {
   };
 
   /** Runs a demo action, saves, re-renders and shows its result. */
-  const run = (fn: (s: core.DemoState, viewer: string) => ActionState | void): ActionState => {
+  const run = (fn: (s: core.DemoState, viewer: string) => ActionState | void, { quiet = false } = {}): ActionState => {
     const result = fn(ref.current.state, ref.current.viewer) ?? undefined;
     save(ref.current);
     rerender();
-    notify(result);
+    if (!quiet) notify(result);
     return result;
   };
 
@@ -186,6 +192,7 @@ const SECTIONS: Record<Role, NavSection> = {
     items: [
       { href: '#creator', label: 'Home', icon: <House /> },
       { href: '#discover', label: 'Discover', icon: <Compass /> },
+      { href: '#payouts', label: 'Payouts', icon: <Wallet /> },
     ],
   },
 };
@@ -194,19 +201,23 @@ const SECTIONS: Record<Role, NavSection> = {
 const ROUTE_ROLE: Record<Exclude<Route['name'], 'home' | 'start'>, Role> = {
   brand: 'streamer',
   campaign: 'streamer',
+  fund: 'streamer',
   'new-campaign': 'streamer',
   creator: 'clipper',
   discover: 'clipper',
   offer: 'clipper',
+  payouts: 'clipper',
 };
 
 const CURRENT: Record<Exclude<Route['name'], 'home' | 'start'>, string> = {
   brand: '#brand',
   campaign: '#brand',
+  fund: '#brand',
   'new-campaign': '#new-campaign',
   creator: '#creator',
   discover: '#discover',
   offer: '#discover',
+  payouts: '#payouts',
 };
 
 const footerItem = 'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 [&>svg]:size-4';
@@ -258,6 +269,8 @@ function App() {
         {route.name === 'creator' && <CreatorHome store={store} />}
         {route.name === 'discover' && <Discover store={store} />}
         {route.name === 'offer' && <Offer store={store} id={route.id} />}
+        {route.name === 'fund' && <Fund store={store} id={route.id} />}
+        {route.name === 'payouts' && <Payouts store={store} />}
       </AppShell>
       <Toast state={store.toast} />
     </>
@@ -507,19 +520,10 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
             <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
             <div className="mt-5 border-t border-zinc-100 pt-5">
-              <form
-                noValidate
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget;
-                  const amount = DepositSchema.safeParse(new FormData(form).get('amount'));
-                  if (!amount.success) return fail(store, amount.error.issues[0].message);
-                  act((s) => core.fundEscrow(s, c.id, amount.data));
-                }}
-              >
-                <DepositFields id={`deposit-${c.id}`} feePercent={FEE_PERCENT} submit={<Button type="submit">Add budget</Button>} />
-              </form>
-              <p className="mt-2 text-xs text-zinc-500">Mock money. Added instantly.</p>
+              <a href={`#fund-${c.id}`} className={buttonClass('primary', 'md', 'w-full')}>
+                Add budget
+              </a>
+              <p className="mt-2 text-xs text-zinc-500">{FEE_PERCENT}% platform fee on top. Clippers keep 100% of the budget.</p>
             </div>
           </Card>
           <Card>
@@ -660,11 +664,45 @@ function connectTikTok(store: Store) {
     return { success: 'TikTok connected (mock).' };
   });
 }
-function enablePayouts(store: Store) {
-  store.run((s, v) => {
-    core.enablePayouts(s, v);
-    return { success: 'Payout account ready (mock).' };
-  });
+function Fund({ store, id }: { store: Store; id: string }) {
+  const detail = core.campaignDetail(store.state, id);
+  if (!detail) {
+    return <Empty icon={<Megaphone />} title="Campaign not found" body="It may have been removed by a reset." action={<a href="#brand" className={buttonClass('secondary')}>Back to campaigns</a>} />;
+  }
+  return (
+    <FundCheckout
+      key={id}
+      campaign={detail.campaign}
+      feePercent={FEE_PERCENT}
+      backHref={`#campaign-${id}`}
+      note="Demo mode: mock money only."
+      payment={(quote, onPaid) => <MockPayment quote={quote} onPay={(amount) => store.run((s) => core.fundEscrow(s, id, amount), { quiet: true })} onPaid={onPaid} />}
+    />
+  );
+}
+
+function Payouts({ store }: { store: Store }) {
+  const d = core.creatorDashboard(store.state, store.viewer);
+  return (
+    <div className="space-y-8">
+      <PageHeader title="Payouts" description="Where your earnings go. Set up once, then get paid for every approved clip." actions={<ViewAs store={store} />} />
+      <PayoutsView
+        enabled={d.payoutsEnabled}
+        form={
+          <MockOnboarding
+            key={store.viewer}
+            onDone={() =>
+              store.run((s, v) => {
+                core.enablePayouts(s, v);
+                return { success: 'Payouts are on (mock).' };
+              }, { quiet: true })
+            }
+          />
+        }
+        manage={<p className="text-sm text-zinc-500">In the real app, this opens your Stripe Express dashboard: payout history, bank details and tax forms.</p>}
+      />
+    </div>
+  );
 }
 
 function ViewAs({ store }: { store: Store }) {
@@ -735,9 +773,9 @@ function CreatorHome({ store }: { store: Store }) {
             detail: 'Connect a bank through Stripe so you can be paid.',
             done: d.payoutsEnabled,
             action: (
-              <Button size="sm" onClick={() => enablePayouts(store)}>
+              <a href="#payouts" className={buttonClass('primary', 'sm')}>
                 Set up payouts
-              </Button>
+              </a>
             ),
           },
         ]}
@@ -819,9 +857,9 @@ function CreatorHome({ store }: { store: Store }) {
             connected={d.payoutsEnabled}
             detail={d.payoutsEnabled ? 'Stripe Express' : 'Not set up'}
             action={
-              <Button size="sm" variant={d.payoutsEnabled ? 'ghost' : 'secondary'} onClick={() => enablePayouts(store)}>
+              <a href="#payouts" className={buttonClass(d.payoutsEnabled ? 'ghost' : 'secondary', 'sm')}>
                 {d.payoutsEnabled ? 'Manage' : 'Set up'}
-              </Button>
+              </a>
             }
           />
         </div>

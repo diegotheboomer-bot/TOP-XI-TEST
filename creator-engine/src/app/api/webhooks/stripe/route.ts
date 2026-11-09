@@ -15,22 +15,23 @@ export async function POST(req: Request) {
   }
   const admin = createAdminClient();
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const campaignId = session.metadata?.campaign_id;
-    if (campaignId && session.payment_status === 'paid' && session.amount_total) {
-      // Only the budget goes into escrow; the platform fee line stays with the platform.
-      const budgetCents = Number(session.metadata?.budget_cents ?? session.amount_total);
-      const feeCents = Number(session.metadata?.fee_cents ?? 0);
-      // Idempotent: a retried webhook for the same session is a no-op.
+  // In-app checkout (src/actions/brand.ts → createDepositIntent).
+  if (event.type === 'payment_intent.succeeded') {
+    const intent = event.data.object;
+    const { kind, campaign_id: campaignId, budget_cents, fee_cents } = intent.metadata ?? {};
+    if (kind === 'campaign_deposit' && campaignId && budget_cents) {
+      // Only the budget goes into escrow; the platform fee stays with the platform.
+      const budgetCents = Number(budget_cents);
+      const feeCents = Number(fee_cents ?? 0);
+      // Idempotent: a retried webhook for the same intent is a no-op.
       const { data: recorded, error } = await admin.rpc('record_deposit', {
         p_campaign: campaignId,
         p_amount: budgetCents / 100,
-        p_stripe_id: session.id,
+        p_stripe_id: intent.id,
       });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       if (recorded && feeCents > 0) {
-        await admin.from('escrow_ledger').insert({ campaign_id: campaignId, entry_type: 'platform_fee', amount: feeCents / 100, stripe_object_id: session.id });
+        await admin.from('escrow_ledger').insert({ campaign_id: campaignId, entry_type: 'platform_fee', amount: feeCents / 100, stripe_object_id: intent.id });
       }
     }
   }

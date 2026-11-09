@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { isDemo, appUrl } from '@/lib/env';
+import { isDemo } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { parseVideoUrlResolving } from '@/lib/video-url';
@@ -161,34 +161,71 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
   return { success: 'Submitted. The streamer will review it shortly.' };
 }
 
-/** Stripe Connect Express onboarding for payouts. */
-export async function startPayoutOnboarding(): Promise<void> {
-  if (isDemo) {
-    demo.enablePayouts();
-    redirect('/clipper?payouts=connected');
+/**
+ * The clipper's Stripe connected account, created on first use. Stripe hosts
+ * the Express dashboard and collects identity details; the platform pays
+ * Stripe's fees and covers negative balances (it only ever sends transfers).
+ */
+async function payoutAccount(creatorId: string): Promise<string> {
+  const admin = createAdminClient();
+  const { data: creator } = await admin.from('creators').select('stripe_account_id').eq('id', creatorId).single();
+  if (creator?.stripe_account_id) return creator.stripe_account_id as string;
+  const account = await stripe().accounts.create({
+    controller: {
+      fees: { payer: 'application' },
+      losses: { payments: 'application' },
+      stripe_dashboard: { type: 'express' },
+    },
+    capabilities: { transfers: { requested: true } },
+    metadata: { creator_id: creatorId },
+  });
+  await admin.from('creators').update({ stripe_account_id: account.id }).eq('id', creatorId);
+  return account.id;
+}
+
+export type PayoutSessionResult = { clientSecret: string } | { error: string };
+
+/** Client secret for the embedded onboarding form on /clipper/payouts. */
+export async function createPayoutSession(): Promise<PayoutSessionResult> {
+  if (isDemo) return { error: 'Stripe is off in demo mode.' };
+  try {
+    const account = await payoutAccount(await requireCreator());
+    const session = await stripe().accountSessions.create({
+      account,
+      components: { account_onboarding: { enabled: true, features: { external_account_collection: true } } },
+    });
+    return { clientSecret: session.client_secret };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not start payout setup.' };
   }
+}
+
+/** After the onboarding form closes: read the account now instead of waiting for the account.updated webhook. */
+export async function refreshPayoutStatus(): Promise<ActionState> {
+  if (isDemo) return undefined;
   const creatorId = await requireCreator();
   const admin = createAdminClient();
   const { data: creator } = await admin.from('creators').select('stripe_account_id').eq('id', creatorId).single();
+  if (!creator?.stripe_account_id) return undefined;
+  const account = await stripe().accounts.retrieve(creator.stripe_account_id as string);
+  await admin.from('creators').update({ payouts_enabled: account.payouts_enabled ?? false }).eq('id', creatorId);
+  revalidatePath('/clipper', 'layout');
+  return account.payouts_enabled ? { success: 'Payouts are on.' } : undefined;
+}
 
-  let accountId = creator?.stripe_account_id as string | null;
-  if (!accountId) {
-    const account = await stripe().accounts.create({
-      type: 'express',
-      capabilities: { transfers: { requested: true } },
-      metadata: { creator_id: creatorId },
-    });
-    accountId = account.id;
-    await admin.from('creators').update({ stripe_account_id: accountId }).eq('id', creatorId);
-  }
-
-  const link = await stripe().accountLinks.create({
-    account: accountId,
-    type: 'account_onboarding',
-    refresh_url: `${appUrl()}/clipper`,
-    return_url: `${appUrl()}/clipper?payouts=connected`,
-  });
+/** Stripe Express dashboard: payout history, bank details, tax forms. */
+export async function openPayoutDashboard(): Promise<void> {
+  if (isDemo) redirect('/clipper/payouts');
+  const account = await payoutAccount(await requireCreator());
+  const link = await stripe().accounts.createLoginLink(account);
   redirect(link.url);
+}
+
+/** Demo: the mock onboarding form finished. */
+export async function completeDemoPayouts(): Promise<ActionState> {
+  if (!isDemo) return { error: 'Use the Stripe form.' };
+  demo.enablePayouts();
+  return refreshed({ success: 'Payouts are on (mock).' });
 }
 
 /** Clipper claims a pinned moment before cutting it (limited claims per moment). */
@@ -222,7 +259,8 @@ export async function connectTikTok(): Promise<void> {
 /** Demo only: switch which creator you are viewing as. */
 export async function viewAsCreator(form: FormData): Promise<void> {
   if (isDemo) demo.setCurrentCreator(String(form.get('creatorId')));
-  redirect('/clipper');
+  const back = String(form.get('back') ?? '');
+  redirect(back === '/clipper/payouts' ? back : '/clipper');
 }
 
 function refreshed(result: ActionState): ActionState {

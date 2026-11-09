@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { isDemo, appUrl } from '@/lib/env';
+import { isDemo } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
@@ -72,32 +72,43 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
   return { success: `Campaign ${status}.` };
 }
 
-/**
- * Streamer funds a campaign through Stripe Checkout. The budget (all of which
- * goes to clippers) and the platform fee are separate lines, so the streamer
- * sees the fee before paying. The webhook credits only the budget to escrow.
- */
-export async function fundEscrow(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const campaignId = String(form.get('campaignId'));
-  const amount = DepositSchema.safeParse(form.get('amount'));
-  if (!amount.success) return { error: 'Deposit between $50 and $1,000,000.' };
-  if (isDemo) return done(demo.fundEscrow(campaignId, amount.data), campaignId);
-  const { campaign } = await requireOwnCampaign(campaignId);
-  const charge = streamerCharge(amount.data, platformFeePercent());
-  const cents = (n: number) => Math.round(n * 100);
+export type DepositIntentResult = { clientSecret: string } | { error: string };
 
-  const session = await stripe().checkout.sessions.create({
-    mode: 'payment',
-    line_items: [
-      { quantity: 1, price_data: { currency: 'usd', unit_amount: cents(charge.budget), product_data: { name: `Clipper budget: ${campaign.title}` } } },
-      { quantity: 1, price_data: { currency: 'usd', unit_amount: cents(charge.fee), product_data: { name: `Platform fee (${platformFeePercent()}%)` } } },
-    ],
-    metadata: { campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
-    payment_intent_data: { metadata: { campaign_id: campaignId }, transfer_group: `campaign_${campaignId}` },
-    success_url: `${appUrl()}/streamer/campaigns/${campaignId}?funded=1`,
-    cancel_url: `${appUrl()}/streamer/campaigns/${campaignId}`,
-  });
-  redirect(session.url!);
+/**
+ * Step 2 of the in-app checkout: the Payment Element has validated the card,
+ * so create the PaymentIntent for budget + fee. The amount is recomputed here,
+ * never taken from the browser. The webhook (payment_intent.succeeded) credits
+ * only the budget to escrow.
+ */
+export async function createDepositIntent(campaignId: string, amount: number): Promise<DepositIntentResult> {
+  const parsed = DepositSchema.safeParse(amount);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (isDemo) return { error: 'Stripe is off in demo mode.' };
+  const { campaign } = await requireOwnCampaign(campaignId);
+  const fee = platformFeePercent();
+  const charge = streamerCharge(parsed.data, fee);
+  const cents = (n: number) => Math.round(n * 100);
+  try {
+    const intent = await stripe().paymentIntents.create({
+      amount: cents(charge.total),
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      description: `Clipper budget ${usdCents(charge.budget)} + ${fee}% platform fee: ${campaign.title}`,
+      metadata: { kind: 'campaign_deposit', campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
+      transfer_group: `campaign_${campaignId}`,
+    });
+    return { clientSecret: intent.client_secret! };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not start the payment.' };
+  }
+}
+
+/** Demo checkout: adds mock money straight away. */
+export async function payDemoDeposit(campaignId: string, amount: number): Promise<ActionState> {
+  const parsed = DepositSchema.safeParse(amount);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!isDemo) return { error: 'Use the Stripe checkout.' };
+  return done(demo.fundEscrow(campaignId, parsed.data), campaignId);
 }
 
 export async function connectStore(_prev: ActionState, form: FormData): Promise<ActionState> {

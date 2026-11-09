@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Compass, Music2, Wallet } from 'lucide-react';
 import { getCreatorDashboard } from '@/lib/data';
 import { compact, usd } from '@/lib/format';
-import { connectTikTok, startPayoutOnboarding } from '@/actions/creator';
+import { connectTikTok } from '@/actions/creator';
 import { isDemo } from '@/lib/env';
 import { currentCreatorId, demoCreators } from '@/lib/demo';
 import { PageHeader } from '@/components/ui/page-header';
@@ -23,20 +23,16 @@ const tiktokMessages: Record<string, [string, boolean]> = {
   error: ['TikTok connection failed. Try again.', false],
 };
 
-export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; payouts?: string } }) {
+export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string } }) {
   const d = await getCreatorDashboard();
   const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
   const firstOpen = d.enrollments.find((e) => !e.submission);
-  const notice: [string, boolean] | undefined = searchParams.tiktok
-    ? tiktokMessages[searchParams.tiktok]
-    : searchParams.payouts === 'connected'
-      ? ['Payout account ready.', true]
-      : undefined;
+  const notice: [string, boolean] | undefined = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : undefined;
 
   const payoutsButton = (
-    <form action={startPayoutOnboarding}>
-      <Button size="sm">Set up payouts</Button>
-    </form>
+    <ButtonLink href="/clipper/payouts" size="sm">
+      Set up payouts
+    </ButtonLink>
   );
 
   return (
@@ -138,11 +134,9 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             connected={d.payoutsEnabled}
             detail={d.payoutsEnabled ? 'Stripe Express' : 'Not set up'}
             action={
-              <form action={startPayoutOnboarding}>
-                <Button size="sm" variant={d.payoutsEnabled ? 'ghost' : 'secondary'}>
-                  {d.payoutsEnabled ? 'Manage' : 'Set up'}
-                </Button>
-              </form>
+              <ButtonLink href="/clipper/payouts" size="sm" variant={d.payoutsEnabled ? 'ghost' : 'secondary'}>
+                {d.payoutsEnabled ? 'Manage' : 'Set up'}
+              </ButtonLink>
             }
           />
         </div>
