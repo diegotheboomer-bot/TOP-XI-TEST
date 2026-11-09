@@ -32,6 +32,9 @@ const SLICES = {
   playLeft: '0,0 13.4,0 10.6,28 0,28',
   playMid: '14.6,0 20.6,0 17.8,28 11.8,28',
   playRight: '21.8,0 28,0 28,28 19,28',
+  // A slice near the top of the A, taking off its tip.
+  tipHigh: band(-10, 11.4),
+  tipLow: band(13.2, 40),
   // Two parallel slices: three shards.
   shardTop: band(-10, 12.5),
   shardMid: band(14.3, 18.5),
@@ -41,6 +44,8 @@ const SLICES = {
 const slide = (d: number) => `translate(${(d * 0.978).toFixed(2)} ${(-d * 0.21).toFixed(2)})`;
 
 const PLAY = 'M8 6 22 14 8 22z';
+// A sharp A with no crossbar: two legs meeting in a point.
+const A_SHAPE = 'M3.5 24 14 3.5 24.5 24 19.6 24 14 12.6 8.4 24z';
 const C_SHAPE = 'M21.5 5 9.6 5 4.6 14 9.6 23 21.5 23 19 18.4 12.5 18.4 9.8 14 12.5 9.6 19 9.6z';
 const sliced = (d: string, t: Tone = 'g', by = 1.8): Piece[] => [
   { d, t, clip: 'cutLow' },
@@ -48,6 +53,25 @@ const sliced = (d: string, t: Tone = 'g', by = 1.8): Piece[] => [
 ];
 
 export const LOGO_MARKS = [
+  { id: 'acut', name: 'A Cut', meaning: 'A sharp A, sliced', pieces: sliced(A_SHAPE, 'g', 2) },
+  { id: 'atip', name: 'A Tip', meaning: 'The tip of the A cut off and lifted', pieces: [
+    { d: A_SHAPE, t: 'g', clip: 'tipLow' },
+    { d: A_SHAPE, t: 'a', clip: 'tipHigh', move: slide(2.2) },
+  ] },
+  { id: 'afacet', name: 'A Facet', meaning: 'The A in two facets', pieces: [
+    { d: 'M3.5 24 14 3.5 14 12.6 8.4 24z', t: 'a' },
+    { d: 'M14 3.5 24.5 24 19.6 24 14 12.6z', t: 'g' },
+  ] },
+  { id: 'ashard', name: 'A Shards', meaning: 'The A cut twice, middle slid out', pieces: [
+    { d: A_SHAPE, t: 'g', clip: 'shardTop' },
+    { d: A_SHAPE, t: 'a', clip: 'shardMid', move: slide(2) },
+    { d: A_SHAPE, t: 'g', clip: 'shardLow' },
+  ] },
+  { id: 'aslice', name: 'A Slice', meaning: 'The A with a vertical slice lifted', pieces: [
+    { d: A_SHAPE, t: 'a', clip: 'playLeft' },
+    { d: A_SHAPE, t: 'g', clip: 'playMid', move: 'translate(0.6 -2.6)' },
+    { d: A_SHAPE, t: 'b', clip: 'playRight' },
+  ] },
   { id: 'ccut', name: 'C Cut', meaning: 'The C for creator and clip, sliced', pieces: sliced(C_SHAPE) },
   { id: 'cut', name: 'Cut', meaning: 'A clip being cut', pieces: sliced(PLAY, 'g', 1.7) },
   { id: 'facet', name: 'Facet', meaning: 'A faceted play button', pieces: [
@@ -95,7 +119,7 @@ export const LOGO_MARKS = [
 ] as const satisfies readonly { id: string; name: string; meaning: string; pieces: readonly Piece[] }[];
 
 export type LogoMarkId = (typeof LOGO_MARKS)[number]['id'];
-const DEFAULT: LogoMarkId = 'ccut';
+const DEFAULT: LogoMarkId = 'acut';
 
 /** The chosen mark: <html data-logo="…"> (set by the demo's picker), else the default. */
 function useMark(): LogoMarkId {
