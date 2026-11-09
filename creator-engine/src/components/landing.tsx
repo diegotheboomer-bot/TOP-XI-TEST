@@ -79,7 +79,7 @@ export function Landing({
             ))}
           </dl>
         </div>
-        <HeroClip image={`${assetBase}controller-blue.jpg`} />
+        <HeroClip stream={`${assetBase}stream-city.jpg`} cam={`${assetBase}facecam.jpg`} />
       </section>
 
       <section className="grid grid-cols-1 gap-6 border-t border-zinc-200/80 py-14 md:grid-cols-2">

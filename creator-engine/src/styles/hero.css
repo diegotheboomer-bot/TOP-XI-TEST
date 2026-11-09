@@ -21,6 +21,15 @@
   45%, 80% { transform: none; opacity: 1; }
 }
 
+/* "+$" earnings pop each time a clip's views jump. */
+.hero-pop { animation: hero-pop 1.4s ease-out both; }
+@keyframes hero-pop {
+  0% { opacity: 0; transform: translateY(4px) scale(0.9); }
+  15% { opacity: 1; transform: none; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* Dashes flowing from the moment down into each clip. */
 .hero-flow { stroke-dasharray: 3 5; animation: hero-flow 1.2s linear infinite; }
 @keyframes hero-flow { to { stroke-dashoffset: -16; } }
@@ -29,6 +38,6 @@
 @keyframes hero-float { 50% { transform: translateY(-6px); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-pulse, .hero-playhead, .hero-frame, .hero-float, .hero-flow { animation: none; }
+  .hero-pulse, .hero-playhead, .hero-frame, .hero-float, .hero-flow, .hero-pop { animation: none; }
   .hero-playhead { left: 55%; }
 }
