@@ -5,18 +5,33 @@
 // (facecam on top, gameplay below) whose views and earnings tick up.
 // Decorative only (aria-hidden); every name and number is illustrative.
 import { useEffect, useState } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Heart, MessageCircle, Music2, Send } from 'lucide-react';
 
 // Chat activity per slice of the stream; the spike is the moment that gets clipped.
 const BARS = [3, 4, 3, 5, 4, 6, 5, 4, 3, 4, 5, 4, 6, 7, 5, 4, 5, 6, 8, 11, 14, 16, 15, 13, 10, 7, 6, 5, 4, 5, 4, 3, 4, 5, 6, 5, 4, 3, 4, 3];
 const MOMENT = { from: 18, to: 26 };
 const RATE = 2; // $ per 1K views
 
+// Each clip is styled like its platform. Handles are the demo's fictional clippers.
 const CLIPS = [
-  { platform: 'TikTok', crop: '38% 60%', caption: '1v3 clutch', views: 48_200 },
-  { platform: 'Shorts', crop: '62% 60%', caption: 'he never saw it', views: 21_900 },
-  { platform: 'Reels', crop: '50% 70%', caption: 'chat went crazy', views: 33_400 },
-];
+  // `game` and `face` frame each clip differently: where it's cropped and how far it's zoomed (or mirrored).
+  { platform: 'tiktok', label: 'For You', handle: '@clipsbyrae', game: { at: '18% 72%', zoom: 'scale(1.6)' }, face: { at: '45% 45%', zoom: 'scale(1.35)' }, caption: '1v3 clutch', views: 48_200, likes: '4.1K', tilt: '-rotate-[5deg] translate-y-3' },
+  { platform: 'shorts', label: 'Shorts', handle: '@vodvault', game: { at: '55% 62%', zoom: 'none' }, face: { at: '50% 30%', zoom: 'none' }, caption: 'never saw it', views: 21_900, likes: '1.8K', tilt: 'z-10 -translate-y-1 sm:scale-[1.04]' },
+  { platform: 'reels', label: 'Reels', handle: '@framejump', game: { at: '88% 80%', zoom: 'scale(1.8)' }, face: { at: '40% 40%', zoom: 'scaleX(-1) scale(1.15)' }, caption: 'chat went crazy', views: 33_400, likes: '2.6K', tilt: 'rotate-[5deg] translate-y-3' },
+] as const;
+type Clip = (typeof CLIPS)[number];
+
+// Platform touches: caption style and progress bar colour.
+const CAPTION: Record<Clip['platform'], { className: string; style?: React.CSSProperties }> = {
+  tiktok: { className: 'text-[#fff]', style: { textShadow: '1.5px 0 0 #fe2c55, -1.5px 0 0 #25f4ee, 0 2px 6px rgb(0 0 0 / 0.8)' } },
+  shorts: { className: 'rounded-sm bg-[#facc15] px-1 text-[#111]', style: { boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' } },
+  reels: { className: 'rounded-full bg-[#fff] px-2 py-0.5 normal-case text-[#111]' },
+};
+const PROGRESS: Record<Clip['platform'], string> = {
+  tiktok: 'linear-gradient(90deg, #25f4ee, #fe2c55)',
+  shorts: '#ff0033',
+  reels: 'linear-gradient(90deg, #f58529, #dd2a7b, #8134af)',
+};
 
 const compact = (n: number) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 const money = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -79,45 +94,33 @@ export function HeroClip({ stream, cam }: { stream: string; cam: string }) {
       </div>
 
       {/* The same moment, posted three ways */}
-      <div className="mx-auto px-3 sm:w-[72%] sm:px-0">
+      <div className="mx-auto px-4 sm:w-[72%] sm:px-0">
         <svg viewBox="0 0 300 40" preserveAspectRatio="none" className="block h-10 w-full overflow-visible">
           {['M150 0 C150 22 50 18 50 40', 'M150 0 L150 40', 'M150 0 C150 22 250 18 250 40'].map((d) => (
             <path key={d} d={d} fill="none" className="hero-flow stroke-brand-a" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
           ))}
         </svg>
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 pb-3 pt-2 sm:gap-4">
           {CLIPS.map((c, i) => (
-            <div
-              key={c.platform}
-              className="hero-float overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-xl shadow-[rgb(0_0_0/0.3)]"
-              style={{ animationDelay: `${i * -1.6}s` }}
-            >
-              {/* Vertical clip: facecam on top, gameplay below, caption on the seam */}
-              <div className="relative aspect-[9/14] overflow-hidden bg-[#0b0b10]">
-                <img src={cam} alt="" className="absolute inset-x-0 top-0 h-[38%] w-full object-cover" />
-                <img src={stream} alt="" className="absolute inset-x-0 bottom-0 h-[62%] w-full object-cover" style={{ objectPosition: c.crop }} />
-                <span className={`absolute left-1.5 top-1.5 rounded px-1.5 py-0.5 font-mono text-[9px] ${SHADE} ${WHITE}`}>{c.platform}</span>
-                <span
-                  className={`absolute inset-x-1 top-[38%] -translate-y-1/2 text-center text-[10px] font-extrabold uppercase leading-tight sm:text-[11px] ${WHITE}`}
-                  style={{ textShadow: '0 1px 0 #000, 0 0 6px rgb(0 0 0 / 0.9)' }}
-                >
-                  {c.caption}
-                </span>
+            <div key={c.platform} className={`relative ${c.tilt}`}>
+              <div className="hero-float relative" style={{ animationDelay: `${i * -1.6}s` }}>
+                <Phone clip={c} cam={cam} stream={stream} delay={i} />
+                {/* "+$" bubble on the phone's corner each time its views jump */}
                 {deltas[i] > 0 && (
                   <span
                     key={views[i]}
-                    className="hero-pop absolute bottom-1.5 right-1.5 rounded-full bg-brand px-1.5 font-mono text-[9px] font-semibold leading-4 tabular-nums text-brand-ink shadow-md"
+                    className="hero-pop absolute -right-0.5 -top-2 z-20 sm:-right-1.5 rounded-full bg-brand px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-brand-ink shadow-lg shadow-[rgb(0_0_0/0.35)]"
                   >
                     +{money(earned(deltas[i]))}
                   </span>
                 )}
-              </div>
-              {/* Earnings */}
-              <div className="px-2.5 py-2">
-                <p className="flex items-center gap-1 font-mono text-[10px] tabular-nums text-zinc-500">
-                  <Eye className="size-3 shrink-0" /> {compact(views[i])}
-                </p>
-                <p className="mt-0.5 text-[13px] font-semibold tabular-nums tracking-tight text-zinc-900 sm:text-sm">{money(earned(views[i]))}</p>
+                {/* Views and earnings */}
+                <div className="mx-auto mt-2.5 flex w-fit max-w-full items-center gap-1.5 rounded-full border border-zinc-200/80 bg-white px-2.5 py-1 shadow-md shadow-[rgb(0_0_0/0.15)]">
+                  <span className="hidden items-center gap-0.5 font-mono text-[10px] tabular-nums text-zinc-500 sm:flex">
+                    <Eye className="size-3" /> {compact(views[i])}
+                  </span>
+                  <span className="text-[12px] font-semibold tabular-nums tracking-tight text-zinc-900 sm:text-[13px]">{money(earned(views[i]))}</span>
+                </div>
               </div>
             </div>
           ))}
@@ -125,6 +128,60 @@ export function HeroClip({ stream, cam }: { stream: string; cam: string }) {
         <p className="mt-3 text-center font-mono text-[11px] text-zinc-500">
           one moment → <span className="font-semibold tabular-nums text-zinc-900">{money(total)}</span> earned by clippers
         </p>
+      </div>
+    </div>
+  );
+}
+
+/** A phone playing the clip, with its platform's look. */
+function Phone({ clip: c, cam, stream, delay }: { clip: Clip; cam: string; stream: string; delay: number }) {
+  const caption = CAPTION[c.platform];
+  return (
+    <div className="rounded-[1.35rem] bg-[#0b0b10] p-[3px] shadow-2xl shadow-[rgb(0_0_0/0.45)] ring-1 ring-[rgb(255_255_255/0.12)]">
+      <div className={`relative aspect-[9/16] overflow-hidden rounded-[1.15rem] bg-[#0b0b10] font-sans ${WHITE}`}>
+        {/* Facecam on top, gameplay below */}
+        <div className="absolute inset-x-0 top-0 h-[36%] overflow-hidden">
+          <img src={cam} alt="" className="size-full object-cover" style={{ objectPosition: c.face.at, transform: c.face.zoom, transformOrigin: c.face.at }} />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-[64%] overflow-hidden">
+          <img src={stream} alt="" className="size-full object-cover" style={{ objectPosition: c.game.at, transform: c.game.zoom, transformOrigin: c.game.at }} />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[rgb(0_0_0/0.75)] to-transparent" />
+
+        {/* Camera notch and the feed's tab name */}
+        <span className="absolute left-1/2 top-1.5 h-2 w-7 -translate-x-1/2 rounded-full bg-[#000]" />
+        <span className="absolute inset-x-0 top-4 text-center text-[8px] font-semibold opacity-90 sm:text-[9px]" style={{ textShadow: '0 1px 2px rgb(0 0 0 / 0.6)' }}>
+          {c.label}
+        </span>
+
+        {/* Caption on the seam */}
+        <span className="absolute inset-x-1 top-[36%] -translate-y-1/2 text-center leading-snug">
+          <span className={`whitespace-nowrap text-[9px] font-black uppercase sm:text-[11px] ${caption.className}`} style={caption.style}>
+            {c.caption}
+          </span>
+        </span>
+
+        {/* Action rail */}
+        <div className="absolute bottom-7 right-1 flex flex-col items-center gap-1.5 text-[7px] font-semibold sm:bottom-8 sm:gap-2 sm:text-[8px]">
+          <span className="flex flex-col items-center">
+            <Heart className="size-3 fill-[#fe2c55] text-[#fe2c55] sm:size-3.5" /> {c.likes}
+          </span>
+          <MessageCircle className="size-3 sm:size-3.5" />
+          <Send className="size-3 sm:size-3.5" />
+        </div>
+
+        {/* Handle and sound */}
+        <div className="absolute bottom-2.5 left-1.5 right-6 min-w-0 sm:bottom-3 sm:left-2">
+          <p className="truncate text-[8px] font-bold sm:text-[9px]">{c.handle}</p>
+          <p className="flex items-center gap-0.5 truncate text-[7px] opacity-80 sm:text-[8px]">
+            <Music2 className="size-2 shrink-0" /> original sound
+          </p>
+        </div>
+
+        {/* Playback progress */}
+        <div className="absolute inset-x-0 bottom-0 h-[3px] bg-[rgb(255_255_255/0.25)]">
+          <div className="hero-progress h-full" style={{ background: PROGRESS[c.platform], animationDelay: `${delay * -2.3}s` }} />
+        </div>
       </div>
     </div>
   );

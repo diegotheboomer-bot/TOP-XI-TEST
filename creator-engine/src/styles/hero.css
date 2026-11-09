@@ -30,6 +30,10 @@
   100% { opacity: 0; }
 }
 
+/* Clip playback bar. */
+.hero-progress { animation: hero-progress 7s linear infinite; }
+@keyframes hero-progress { from { width: 0; } to { width: 100%; } }
+
 /* Dashes flowing from the moment down into each clip. */
 .hero-flow { stroke-dasharray: 3 5; animation: hero-flow 1.2s linear infinite; }
 @keyframes hero-flow { to { stroke-dashoffset: -16; } }
@@ -38,6 +42,7 @@
 @keyframes hero-float { 50% { transform: translateY(-6px); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-pulse, .hero-playhead, .hero-frame, .hero-float, .hero-flow, .hero-pop { animation: none; }
+  .hero-pulse, .hero-playhead, .hero-frame, .hero-float, .hero-flow, .hero-pop, .hero-progress { animation: none; }
+  .hero-progress { width: 60%; }
   .hero-playhead { left: 55%; }
 }
