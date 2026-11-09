@@ -35,12 +35,12 @@ export async function createProfile(_prev: ActionState, form: FormData): Promise
       ? await admin.from('brands').insert({ owner_id: data.user.id, name: input.data.name })
       : await admin.from('creators').insert({ user_id: data.user.id, display_name: input.data.name });
   if (error && error.code !== '23505') return { error: error.message };
-  redirect(input.data.role === 'brand' ? '/brand' : '/creator');
+  redirect(input.data.role === 'brand' ? '/streamer' : '/clipper');
 }
 
 export async function resetDemoData() {
   if (isDemo) resetDemo();
-  redirect('/brand');
+  redirect('/streamer');
 }
 
 export async function signOut() {

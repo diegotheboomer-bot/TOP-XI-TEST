@@ -1,9 +1,9 @@
 // Presentational building blocks shared by the Next.js pages and the standalone demo.
 // No Next.js imports: callers pass their link component, links and action buttons in.
 import { ArrowUpRight, Check, Clock, Store } from 'lucide-react';
-import type { CampaignSummary, MarketCampaign, SubmissionRow } from '@/lib/data';
+import type { CampaignSummary, MarketCampaign, MomentRow, SubmissionRow } from '@/lib/data';
 import type { BudgetStats } from '@/lib/budget';
-import type { Campaign, Enrollment, Submission } from '@/lib/types';
+import type { Campaign, Enrollment, Platform, Submission } from '@/lib/types';
 import { compact, hoursLabel, percent, rateParts, timeAgo, usd, usdCompact } from '@/lib/format';
 import { trackingLink } from '@/lib/attribution';
 import { reviewDueIn } from '@/lib/compliance';
@@ -24,7 +24,38 @@ function hash(text: string) {
   return h >>> 0;
 }
 
-/** Quiet line-work so generated covers read as brand art rather than flat colour. */
+export const PLATFORM_LABEL: Record<Platform, string> = { tiktok: 'TikTok', youtube: 'Shorts', instagram: 'Reels' };
+const PLATFORM_ORDER: Platform[] = ['tiktok', 'youtube', 'instagram'];
+
+export function PlatformChips({ platforms, className }: { platforms: Platform[]; className?: string }) {
+  return (
+    <span className={cn('flex flex-wrap gap-1', className)}>
+      {PLATFORM_ORDER.filter((p) => platforms.includes(p)).map((p) => (
+        <span key={p} className="rounded border border-zinc-200 px-1.5 py-px text-[11px] font-medium text-zinc-600">
+          {PLATFORM_LABEL[p]}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const AVATAR_COLORS = ['#0e2a47', '#16403a', '#4c1d4a', '#7f1d1d', '#3d3320', '#1e3a8a'];
+
+/** Initials avatar for a streamer (no photos of real people). */
+export function StreamerAvatar({ name, size = 'sm' }: { name: string; size?: 'sm' | 'md' }) {
+  const initials = name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  return (
+    <span
+      className={cn('grid shrink-0 place-items-center rounded-full font-semibold', size === 'sm' ? 'size-6 text-[10px]' : 'size-9 text-xs')}
+      style={{ backgroundColor: AVATAR_COLORS[hash(name) % AVATAR_COLORS.length], color: '#fff' }}
+      aria-hidden
+    >
+      {initials}
+    </span>
+  );
+}
+
+/** Quiet line-work so generated covers read as artwork rather than flat colour. */
 function CoverPattern({ seed }: { seed: string }) {
   const kind = hash(seed) % 3;
   const stroke = 'rgba(255,255,255,0.14)';
@@ -44,7 +75,7 @@ function CoverPattern({ seed }: { seed: string }) {
 
 const ASPECT = { card: 'aspect-[16/9]', banner: 'aspect-[16/9] sm:aspect-[3/1]', thumb: 'aspect-square' } as const;
 
-/** The brand's uploaded thumbnail, or a designed cover in the campaign colour. */
+/** The streamer's uploaded thumbnail, or a designed cover in the campaign colour. */
 export function CampaignCover({
   campaign,
   brandName,
@@ -67,7 +98,7 @@ export function CampaignCover({
       </div>
     );
   }
-  // Covers are fixed brand colours with white type, the same in light and dark themes.
+  // Covers are fixed colours with white type, the same in light and dark themes.
   return (
     <div className={base} style={{ backgroundColor: campaign.cover_color, color: '#fff' }}>
       <CoverPattern seed={campaign.title} />
@@ -123,12 +154,15 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
       className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
     >
       <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-card transition group-hover:border-zinc-300">
-        {/* Brand and title are printed below, so the cover is artwork only. */}
+        {/* Streamer and title are printed below, so the cover is artwork only. */}
         <CampaignCover campaign={c} brandName="" showTitle={false} />
         <div className="flex flex-1 flex-col gap-4 p-4">
           <div className="min-w-0">
-            <p className="truncate text-xs text-zinc-500">{c.brandName}</p>
-            <h3 className="mt-0.5 truncate font-semibold tracking-tight">{c.title}</h3>
+            <h3 className="truncate font-semibold tracking-tight">{c.title}</h3>
+            <p className="mt-1.5 flex items-center gap-2 text-sm text-zinc-600">
+              <StreamerAvatar name={c.brandName} />
+              <span className="truncate">{c.brandName}</span>
+            </p>
           </div>
           <div className="flex items-baseline gap-1.5">
             <span className="text-xl font-semibold tracking-tight tabular-nums">{r.rate}</span>
@@ -136,10 +170,10 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
           </div>
           <p className="-mt-2 text-xs text-zinc-500">{r.terms}</p>
           <BudgetMeter budget={c.budget} className="mt-auto" />
-          <div className="flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-            <span>TikTok</span>
-            <span>
-              {c.creators} {c.creators === 1 ? 'creator' : 'creators'}
+          <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
+            <PlatformChips platforms={c.platforms} />
+            <span className="shrink-0">
+              {c.creators} {c.creators === 1 ? 'clipper' : 'clippers'}
             </span>
           </div>
         </div>
@@ -162,7 +196,7 @@ export function RequirementList({ items }: { items: string[] }) {
   );
 }
 
-// ─── Brand: campaign list ──────────────────────────────────────────────────
+// ─── Streamer: campaign list ──────────────────────────────────────────────────
 export function CampaignRow({ c, href, link: Link = 'a' }: { c: CampaignSummary; href: string; link?: LinkLike }) {
   const r = rateParts(c);
   return (
@@ -179,7 +213,7 @@ export function CampaignRow({ c, href, link: Link = 'a' }: { c: CampaignSummary;
           </p>
           {c.pendingReview > 0 && <p className="mt-1 text-xs font-medium text-amber-700">{c.pendingReview} waiting for review</p>}
         </div>
-        <Metric label="Creators" value={String(c.submissions)} className="hidden lg:block" />
+        <Metric label="Clips" value={String(c.submissions)} className="hidden lg:block" />
         <Metric label="Views" value={compact(c.views)} className="hidden lg:block" />
         <BudgetMeter budget={c.budget} className="col-span-2 lg:col-span-1" />
         <ArrowUpRight className="hidden size-4 text-zinc-400 transition group-hover:text-zinc-900 lg:block" />
@@ -197,7 +231,7 @@ function Metric({ label, value, className }: { label: string; value: string; cla
   );
 }
 
-// ─── Brand: submissions ────────────────────────────────────────────────────
+// ─── Streamer: submissions ────────────────────────────────────────────────────
 /** One-line state for a submission: review deadline, disclosure, flag or sync time. */
 export function submissionNote(s: Submission, autoApproveHours: number, now = Date.now()): { text: string; tone: 'muted' | 'warn' | 'bad' } {
   if (s.status === 'flagged') return { text: s.flag_reason ?? 'Flagged', tone: 'bad' };
@@ -212,7 +246,7 @@ export function submissionNote(s: Submission, autoApproveHours: number, now = Da
 }
 
 const NOTE_TONE = { muted: 'text-zinc-500', warn: 'text-amber-700', bad: 'text-rose-600' } as const;
-const SUB_COLS = 'lg:grid lg:grid-cols-[minmax(0,1.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.7fr)_minmax(0,1.1fr)_auto] lg:items-center lg:gap-4';
+const SUB_COLS = 'lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(4.5rem,0.8fr)_minmax(4.5rem,0.8fr)_minmax(3.5rem,0.6fr)_minmax(6rem,1fr)_auto] lg:items-center lg:gap-4';
 
 export function SubmissionTable({
   rows,
@@ -228,12 +262,12 @@ export function SubmissionTable({
   return (
     <div className="-mx-5 sm:-mx-6">
       <div className={cn('hidden border-y border-zinc-100 bg-zinc-50 px-5 py-2 text-xs font-medium text-zinc-500 sm:px-6', SUB_COLS)}>
-        <span>Creator</span>
+        <span>Clipper</span>
         <span>Views</span>
         <span>Comments</span>
         <span>Orders</span>
         <span>Earned</span>
-        <span className="w-[9.5rem] text-right">Actions</span>
+        <span className="w-[11.5rem] text-right">Actions</span>
       </div>
       <ul className="divide-y divide-zinc-100 border-b border-zinc-100 lg:border-t-0">
         {rows.map((s) => {
@@ -251,7 +285,9 @@ export function SubmissionTable({
                     <SubmissionBadge status={s.status} />
                     {s.fraud_score > 0 && <FraudBadge score={s.fraud_score} />}
                   </div>
-                  <p className={cn('mt-1 text-xs', NOTE_TONE[note.tone])}>{note.text}</p>
+                  <p className={cn('mt-1 text-xs', NOTE_TONE[note.tone])}>
+                    <span className="font-medium text-zinc-600">{PLATFORM_LABEL[s.platform]}</span> · {note.text}
+                  </p>
                 </div>
               </div>
               <dl className="mt-3 grid grid-cols-4 gap-3 lg:contents">
@@ -264,7 +300,7 @@ export function SubmissionTable({
                   <Progress value={s.payout_earned} max={cap} className="mt-1.5 hidden lg:block" />
                 </div>
               </dl>
-              <div className={cn('flex flex-wrap justify-end gap-2 lg:w-[9.5rem]', act ? 'mt-3 lg:mt-0' : 'hidden lg:flex')}>{act}</div>
+              <div className={cn('flex flex-wrap justify-end gap-2 lg:w-[11.5rem]', act ? 'mt-3 lg:mt-0' : 'hidden lg:flex')}>{act}</div>
             </li>
           );
         })}
@@ -401,8 +437,14 @@ export function EnrollmentCard({
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <CopyField label="Discount code" value={enrollment.discount_code} />
-        {linkUrl ? <CopyField label="Tracking link" value={linkUrl} /> : <CopyField label="Ref parameter" value={`?ref=${enrollment.ref_param}`} />}
+        <CopyField label="Clip code (put it in every caption)" value={enrollment.discount_code} />
+        {linkUrl ? (
+          <CopyField label="Merch link" value={linkUrl} />
+        ) : (
+          <div className="rounded-lg border border-dashed border-zinc-200 px-3 py-2 text-xs leading-relaxed text-zinc-500">
+            Your code proves the clip is yours on TikTok, Shorts and Reels.
+          </div>
+        )}
       </div>
 
       {submission ? (
@@ -428,6 +470,45 @@ export function EnrollmentCard({
         submitForm
       )}
     </Card>
+  );
+}
+
+// ─── Moments ───────────────────────────────────────────────────────────────
+/**
+ * Moments the streamer pinned from a stream. Each has a limited number of
+ * claims so clippers spread out instead of all cutting the same thing.
+ */
+export function MomentBoard({
+  moments,
+  showClaimers,
+  action,
+  empty,
+}: {
+  moments: MomentRow[];
+  showClaimers?: boolean;
+  action?: (m: MomentRow) => React.ReactNode;
+  empty: string;
+}) {
+  if (!moments.length) return <p className="text-sm text-zinc-500">{empty}</p>;
+  return (
+    <ul className="divide-y divide-zinc-100">
+      {moments.map((m) => {
+        const left = m.max_claims - m.claimed_by.length;
+        return (
+          <li key={m.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0">
+            <span className="w-[4.5rem] shrink-0 font-mono text-xs tabular-nums text-zinc-500">{m.timestamp_label}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{m.title}</p>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                {left > 0 ? `${left} of ${m.max_claims} ${m.max_claims === 1 ? 'slot' : 'slots'} open` : 'All slots taken'}
+                {showClaimers && m.claimers.length > 0 && ` · ${m.claimers.join(', ')}`}
+              </p>
+            </div>
+            {action && <div className="shrink-0">{action(m)}</div>}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

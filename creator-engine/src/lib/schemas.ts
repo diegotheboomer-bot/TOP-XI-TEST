@@ -22,6 +22,7 @@ export const CampaignSchema = z
       .transform((t) => t.split('\n').map((l) => l.trim()).filter(Boolean))
       .pipe(z.array(z.string().max(120, 'Keep each requirement under 120 characters')).max(12, 'Up to 12 requirements')),
     auto_approve_hours: z.coerce.number().int().min(1).max(336).default(48),
+    platforms: z.array(z.enum(['tiktok', 'youtube', 'instagram'])).min(1, 'Pick at least one platform for clippers').max(3),
   })
   .refine((c) => c.cpm_cap >= c.base_payout, { message: 'The cap must be at least the base payout.' });
 
@@ -42,4 +43,17 @@ export function thumbnailError(file: { size: number; type: string } | null | und
   if (!THUMBNAIL_TYPES.includes(file.type)) return 'Thumbnail must be a JPG, PNG or WebP image.';
   if (file.size > THUMBNAIL_MAX_BYTES) return 'Thumbnail must be 2 MB or smaller.';
   return null;
+}
+
+export const MomentSchema = z.object({
+  title: z.string().trim().min(3, 'Describe the moment in a few words').max(120),
+  timestamp_label: z.string().trim().regex(/^\d{1,2}:\d{2}(:\d{2})?$/, 'Use a timestamp like 1:42:07'),
+  max_claims: z.coerce.number().int().min(1).max(50).default(3),
+});
+
+export type MomentInput = z.infer<typeof MomentSchema>;
+
+/** Form values for a campaign, with the multi-select platforms kept as a list. */
+export function campaignInput(form: FormData) {
+  return { ...Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string')), platforms: form.getAll('platforms') };
 }

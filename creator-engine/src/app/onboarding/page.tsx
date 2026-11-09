@@ -8,11 +8,11 @@ import { getViewer } from '@/lib/session';
 export const dynamic = 'force-dynamic';
 
 export default async function OnboardingPage() {
-  if (isDemo) redirect('/brand');
+  if (isDemo) redirect('/streamer');
   const viewer = await getViewer();
   if (!viewer) redirect('/login');
-  if (viewer.brandId) redirect('/brand');
-  if (viewer.creatorId) redirect('/creator');
+  if (viewer.brandId) redirect('/streamer');
+  if (viewer.creatorId) redirect('/clipper');
   return (
     <main className="grid min-h-screen place-items-center px-4 py-12">
       <div className="w-full max-w-lg">

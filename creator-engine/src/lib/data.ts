@@ -5,7 +5,7 @@ import { createClient } from './supabase/server';
 import { createAdminClient } from './supabase/admin';
 import { budgetStats, type BudgetStats } from './budget';
 import * as demo from './demo';
-import type { Campaign, Enrollment, Submission } from './types';
+import type { Campaign, Enrollment, Moment, Submission } from './types';
 
 export type CampaignSummary = Campaign & {
   submissions: number;
@@ -16,6 +16,9 @@ export type CampaignSummary = Campaign & {
   budget: BudgetStats;
 };
 export type SubmissionRow = Submission & { creator_name: string };
+/** A moment with who claimed it (display names) and whether the viewer did. */
+export type MomentRow = Moment & { claimers: string[]; mine: boolean };
+
 /** A campaign as creators see it in Discover. */
 export type MarketCampaign = Campaign & { brandName: string; budget: BudgetStats; creators: number };
 
@@ -32,6 +35,7 @@ export interface CampaignDetail {
   paidOut: number;
   fees: number;
   budget: BudgetStats;
+  moments: MomentRow[];
 }
 
 export interface CreatorEnrollment {
@@ -57,6 +61,7 @@ export interface CreatorCampaignDetail {
   submission: Submission | null;
   tiktokConnected: boolean;
   payoutsEnabled: boolean;
+  moments: MomentRow[];
 }
 
 async function requireRole(role: 'brand' | 'creator') {
@@ -98,6 +103,25 @@ async function loadBudgets(campaigns: Campaign[]): Promise<Map<string, BudgetSta
     out.set(c.id, { ...budgetStats({ deposited, escrow: c.escrow_balance, owed, createdAt: c.created_at }), creators: own.length });
   }
   return out;
+}
+
+/** Pinned moments with who claimed them. Service role: claim counts are public to clippers. */
+async function loadMoments(campaignId: string, viewerCreatorId?: string): Promise<MomentRow[]> {
+  const { data } = await createAdminClient()
+    .from('campaign_moments')
+    .select('id, campaign_id, title, timestamp_label, vod_url, max_claims, moment_claims(creator_id, creators(display_name))')
+    .eq('campaign_id', campaignId)
+    .order('created_at', { ascending: false });
+  return (data ?? []).map(({ moment_claims, ...m }) => {
+    const claims = (moment_claims ?? []) as unknown as { creator_id: string; creators: { display_name: string } | null }[];
+    const claimed_by = claims.map((c) => c.creator_id);
+    return {
+      ...(m as Omit<Moment, 'claimed_by'>),
+      claimed_by,
+      claimers: claims.map((c) => c.creators?.display_name ?? 'Clipper'),
+      mine: !!viewerCreatorId && claimed_by.includes(viewerCreatorId),
+    };
+  });
 }
 
 export async function getBrandDashboard(): Promise<BrandDashboard> {
@@ -154,6 +178,7 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
     paidOut: sum('creator_payout'),
     fees: sum('platform_fee'),
     budget: budgetStats({ deposited: sum('deposit'), escrow: c.escrow_balance, owed, createdAt: c.created_at }),
+    moments: await loadMoments(c.id),
   };
 }
 
@@ -217,5 +242,6 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     submission: sub ? num(sub as Submission, SUB_NUMS) : null,
     tiktokConnected: !!account,
     payoutsEnabled: creator?.payouts_enabled ?? false,
+    moments: await loadMoments(c.id, creatorId),
   };
 }

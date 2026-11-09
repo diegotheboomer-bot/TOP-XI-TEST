@@ -10,7 +10,8 @@ import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
 import { ActionButton } from '@/components/action-button';
 import { CampaignBadge } from '@/components/status';
-import { BudgetMeter, CampaignCover, DemoBar, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
+import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
+import { MomentForm } from '@/components/forms/moment-form';
 import { ConnectStoreForm, FundEscrowForm } from '@/components/forms/campaign-forms';
 import type { Campaign } from '@/lib/types';
 
@@ -24,7 +25,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
 
   return (
     <div className="space-y-6">
-      <Link href="/brand" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
+      <Link href="/streamer" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
         <ArrowLeft className="size-4" /> Campaigns
       </Link>
 
@@ -36,6 +37,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           <p className="mt-1 text-sm text-zinc-500">
             {payoutModelLabel[c.payout_model]} · {r.rate} {r.unit} · {r.terms}
           </p>
+          <PlatformChips platforms={c.platforms} className="mt-2" />
           <div className="mt-4 flex flex-wrap gap-2">
             <StatusActions campaign={c} />
           </div>
@@ -45,7 +47,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
       {isDemo && (
         <DemoBar>
           <ActionButton action={simulateSync.bind(null, c.id)}>Run 4h sync</ActionButton>
-          <ActionButton action={simulateSale.bind(null, c.id)}>Simulate sale</ActionButton>
+          {shopDomain && <ActionButton action={simulateSale.bind(null, c.id)}>Simulate merch order</ActionButton>}
         </DemoBar>
       )}
 
@@ -54,26 +56,32 @@ export default async function CampaignPage({ params, searchParams }: { params: {
       <StatGrid
         items={[
           { label: 'Escrow balance', value: usd(c.escrow_balance), hint: `${usd(deposited)} deposited` },
-          { label: 'Paid to creators', value: usd(paidOut), hint: `${usd(fees)} platform fees` },
+          { label: 'Paid to clippers', value: usd(paidOut), hint: `${usd(fees)} platform fees` },
           { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
-          { label: 'Attributed orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
+          { label: 'Merch orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-        <Card className="min-w-0 self-start">
-          <CardHeader
-            title="Submissions"
-            description={`Views sync every 4 hours. Clean videos with #ad auto-approve after ${c.auto_approve_hours}h.`}
-          />
-          {submissions.length === 0 ? (
-            <Empty icon={<Users />} title="No submissions yet" body="Creators who join appear here once they submit a live video." />
-          ) : (
-            <SubmissionTable rows={submissions} cap={c.cpm_cap} autoApproveHours={c.auto_approve_hours} actions={(s) => <SubmissionActions s={s} />} />
-          )}
-        </Card>
+      <div className="grid grid-cols-1 gap-6">
+        <div className="order-2 min-w-0 space-y-6">
+          <Card>
+            <CardHeader title="Clips" description={`Views sync every 4 hours. Clean clips with #ad auto-approve after ${c.auto_approve_hours}h.`} />
+            {submissions.length === 0 ? (
+              <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
+            ) : (
+              <SubmissionTable rows={submissions} cap={c.cpm_cap} autoApproveHours={c.auto_approve_hours} actions={(s) => <SubmissionActions s={s} />} />
+            )}
+          </Card>
+          <Card>
+            <CardHeader title="Moments to clip" description="Pin timestamps from your stream. Slots stop everyone cutting the same moment." />
+            <MomentBoard moments={detail.moments} showClaimers empty="No moments pinned yet." />
+            <div className="mt-5 border-t border-zinc-100 pt-5">
+              <MomentForm campaignId={c.id} />
+            </div>
+          </Card>
+        </div>
 
-        <div className="space-y-6">
+        <div className="order-1 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
           <Card>
             <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
@@ -83,7 +91,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             </div>
           </Card>
           <Card>
-            <CardHeader title="Storefront" description="Orders are matched to creator codes and links." />
+            <CardHeader title="Merch store" description="Optional. Orders using a clipper’s code are credited to them." />
             {shopDomain ? <StorefrontStatus shopDomain={shopDomain} /> : <ConnectStoreForm campaignId={c.id} />}
           </Card>
           <Card>

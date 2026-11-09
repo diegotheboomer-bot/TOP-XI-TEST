@@ -1,35 +1,53 @@
 import { describe, expect, it } from 'vitest';
 import * as core from '@/lib/demo-core';
 
-const roster = Array.from({ length: 7 }, (_, i) => ({ handle: `creator${i}`, displayName: `Creator ${i}`, followers: 100_000 * (i + 1) }));
 
 describe('demo store', () => {
   it('auto-approves a clean pending video once its review window passes, but not one missing #ad', () => {
-    const s = core.seedDemo(roster, 15);
-    const pending = () => core.campaignDetail(s, 'cmp-zero')!.submissions.filter((x) => x.status === 'pending_review').map((x) => x.creator_name);
-    expect(pending()).toEqual(['@creator3', '@dailyclips.hq']);
-    // creator3 was submitted 30h ago with a 48h window: 4 syncs = 16h is not enough, 5 = 20h is.
-    for (let i = 0; i < 4; i++) core.simulateSync(s, 'cmp-zero');
-    expect(pending()).toContain('@creator3');
-    const result = core.simulateSync(s, 'cmp-zero');
+    const s = core.seedDemo(15, '/t/');
+    const pending = () => core.campaignDetail(s, 'cmp-ranked')!.submissions.filter((x) => x.status === 'pending_review').map((x) => x.creator_name);
+    expect(pending()).toEqual(['@cutroom', '@dailyclips.hq']);
+    // @cutroom was submitted 30h ago with a 48h window: 4 syncs = 16h is not enough, 5 = 20h is.
+    for (let i = 0; i < 4; i++) core.simulateSync(s, 'cmp-ranked');
+    expect(pending()).toContain('@cutroom');
+    const result = core.simulateSync(s, 'cmp-ranked');
     expect(result?.success).toContain('1 auto-approved');
     expect(pending()).toEqual(['@dailyclips.hq']);
   });
 
   it('keeps escrow, payouts and fees consistent through a payout', () => {
-    const s = core.seedDemo(roster, 15);
-    const before = core.campaignDetail(s, 'cmp-zero')!;
-    const row = before.submissions.find((x) => x.creator_name === '@creator2')!;
+    const s = core.seedDemo(15, '/t/');
+    const before = core.campaignDetail(s, 'cmp-ranked')!;
+    const row = before.submissions.find((x) => x.creator_name === '@framejump')!;
     const owed = row.payout_earned - row.payout_transferred;
     expect(core.releasePayout(s, row.id)?.success).toContain('Paid');
-    const after = core.campaignDetail(s, 'cmp-zero')!;
+    const after = core.campaignDetail(s, 'cmp-ranked')!;
     expect(after.campaign.escrow_balance).toBeCloseTo(before.campaign.escrow_balance - owed, 2);
     expect(after.paidOut + after.fees).toBeCloseTo(before.paidOut + before.fees + owed, 2);
   });
 
   it('blocks payouts to creators without payout setup', () => {
-    const s = core.seedDemo(roster, 15);
-    const row = core.campaignDetail(s, 'cmp-snack')!.submissions.find((x) => x.creator_name === '@creator5')!;
+    const s = core.seedDemo(15, '/t/');
+    const row = core.campaignDetail(s, 'cmp-merch')!.submissions.find((x) => x.creator_name === '@kayclips')!;
     expect(core.releasePayout(s, row.id)?.error).toContain('payout setup');
+  });
+
+  it('limits moment claims and requires joining first', () => {
+    const s = core.seedDemo(15, '/t/');
+    const moment = s.moments.find((m) => m.title.startsWith('Chat roasts'))!;
+    expect(core.claimMoment(s, 'cr-shortsmith', moment.id)?.error).toContain('Join');
+    expect(core.claimMoment(s, 'cr-clipsbyrae', moment.id)?.success).toContain('Claimed');
+    expect(core.claimMoment(s, 'cr-clipsbyrae', moment.id)?.error).toContain('already');
+    const full = s.moments.find((m) => m.claimed_by.length >= m.max_claims)!;
+    expect(core.claimMoment(s, 'cr-vodvault', full.id)?.error).toBeTruthy();
+  });
+
+  it('accepts Shorts and Reels by clip code, and rejects platforms a campaign does not allow', () => {
+    const s = core.seedDemo(15, '/t/');
+    // shortsmith has no TikTok connected: Shorts still works, TikTok doesn't.
+    core.joinCampaign(s, 'cr-shortsmith', 'cmp-charity');
+    expect(core.submitVideo(s, 'cr-shortsmith', 'cmp-charity', 'https://www.instagram.com/reel/Cabc12345/')?.error).toContain('doesn’t accept');
+    expect(core.submitVideo(s, 'cr-shortsmith', 'cmp-charity', 'https://www.tiktok.com/@s/video/7399999999999999999')?.error).toContain('Connect your TikTok');
+    expect(core.submitVideo(s, 'cr-shortsmith', 'cmp-charity', 'https://youtube.com/shorts/dQw4w9WgXcQ')?.success).toContain('Clip code');
   });
 });

@@ -7,16 +7,21 @@ import { Card } from '../ui/card';
 import { MarketCard } from '../views';
 import { cn } from '../ui/cn';
 import { THUMBNAIL_TYPES } from '@/lib/schemas';
-import type { PayoutModel } from '@/lib/types';
+import type { PayoutModel, Platform } from '@/lib/types';
 import type { MarketCampaign } from '@/lib/data';
 
 const HELP: Record<PayoutModel, string> = {
-  hybrid: 'A guaranteed base fee plus a rate on verified views.',
-  pure_cpm: 'Creators earn only on verified views.',
-  cps_performance: 'Creators earn a commission on sales from their code or link.',
+  hybrid: 'A flat fee per approved clip plus a rate on verified views.',
+  pure_cpm: 'Clippers earn only on verified views.',
+  cps_performance: 'Clippers earn a cut of merch sales made with their code or link.',
 };
+const PLATFORMS: [Platform, string][] = [
+  ['tiktok', 'TikTok'],
+  ['youtube', 'YouTube Shorts'],
+  ['instagram', 'Instagram Reels'],
+];
 export const COVER_COLORS = ['#0e2a47', '#16403a', '#2a1f4a', '#9a3412', '#4a2a1c', '#3d3320', '#7f1d1d', '#18181b'];
-const DEFAULT_REQUIREMENTS = 'Post natively on TikTok (no reuploads)\nInclude #ad in the caption';
+const DEFAULT_REQUIREMENTS = 'Your clip code in the caption\nInclude #ad in the caption\nCredit my channel on screen';
 
 const textarea =
   'w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-900/5';
@@ -26,7 +31,7 @@ const textarea =
  * The caller supplies the <form> and the submit row (`footer`).
  */
 export function CampaignFormBody({ brandName, footer }: { brandName: string; footer: React.ReactNode }) {
-  const [model, setModel] = useState<PayoutModel>('hybrid');
+  const [model, setModel] = useState<PayoutModel>('pure_cpm');
   const [title, setTitle] = useState('');
   const [base, setBase] = useState('200');
   const [cpm, setCpm] = useState('3');
@@ -35,6 +40,7 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
   const [color, setColor] = useState(COVER_COLORS[0]);
   const [thumb, setThumb] = useState<string | null>(null);
   const [fileKey, setFileKey] = useState(0);
+  const [platforms, setPlatforms] = useState<Platform[]>(['tiktok', 'youtube', 'instagram']);
 
   useEffect(() => () => void (thumb && URL.revokeObjectURL(thumb)), [thumb]);
 
@@ -58,6 +64,7 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
     brief: null,
     requirements: [],
     auto_approve_hours: 48,
+    platforms,
     brandName,
     creators: 0,
     budget: { deposited: 0, committed: 0, available: 0, usedShare: 0, daysLeft: null },
@@ -70,19 +77,19 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
           <h2 className="mb-5 font-semibold tracking-tight">Basics</h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Campaign title" className="sm:col-span-2">
-              <Input id="title" name="title" required minLength={3} maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Speedrun Sunday" />
+              <Input id="title" name="title" required minLength={3} maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ranked Grind Highlights" />
             </Field>
             <Field label="Brief" hint="What should creators make? Keep it short and specific." className="sm:col-span-2">
-              <textarea id="brief" name="brief" rows={3} maxLength={4000} className={textarea} placeholder="Show your real reaction to the first sip, mid-stream. Keep it unscripted." />
+              <textarea id="brief" name="brief" rows={3} maxLength={4000} className={textarea} placeholder="Cut the clutches, the rage and the comebacks from my ranked streams. Vertical, captions on." />
             </Field>
             <Field label="Requirements" hint="One per line. Creators see these as a checklist." className="sm:col-span-2">
               <textarea id="requirements" name="requirements" rows={4} className={textarea} defaultValue={DEFAULT_REQUIREMENTS} />
             </Field>
-            <Field label="Raw footage or brand assets" hint="Optional link to a Drive or S3 folder.">
+            <Field label="VODs and source footage" hint="Link to your VODs or a Drive folder.">
               <Input id="asset_folder_url" name="asset_folder_url" type="url" placeholder="https://…" />
             </Field>
-            <Field label="Discount code prefix" hint="Each creator gets the prefix plus 4 characters.">
-              <Input id="code_prefix" name="code_prefix" required pattern="[A-Za-z0-9]{2,12}" placeholder="RUN" className="uppercase" />
+            <Field label="Clip code prefix" hint="Each clipper gets the prefix plus 4 characters. Also works as a merch discount code.">
+              <Input id="code_prefix" name="code_prefix" required pattern="[A-Za-z0-9]{2,12}" placeholder="RANK" className="uppercase" />
             </Field>
           </div>
         </Card>
@@ -92,13 +99,13 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Payout model" hint={HELP[model]} className="sm:col-span-2">
               <Select id="payout_model" name="payout_model" value={model} onChange={(e) => setModel(e.target.value as PayoutModel)}>
-                <option value="hybrid">Hybrid: base fee plus views</option>
-                <option value="pure_cpm">Views only</option>
-                <option value="cps_performance">Sales commission</option>
+                <option value="pure_cpm">Pay per view</option>
+                <option value="hybrid">Flat fee per clip plus views</option>
+                <option value="cps_performance">Merch sales commission</option>
               </Select>
             </Field>
             {model === 'hybrid' && (
-              <Field label="Base fee ($)" hint="Paid once the video is approved.">
+              <Field label="Flat fee per clip ($)" hint="Paid once the clip is approved.">
                 <Input id="base_payout" name="base_payout" type="number" inputMode="decimal" min="0" step="0.01" value={base} onChange={(e) => setBase(e.target.value)} />
               </Field>
             )}
@@ -112,10 +119,10 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
                 <Input id="cps_commission_pct" name="cps_commission_pct" type="number" inputMode="decimal" min="0" max="100" step="0.1" value={pct} onChange={(e) => setPct(e.target.value)} />
               </Field>
             )}
-            <Field label="Cap per creator ($)" hint="The most one creator can earn.">
+            <Field label="Cap per clipper ($)" hint="The most one clipper can earn.">
               <Input id="cpm_cap" name="cpm_cap" type="number" inputMode="decimal" min="1" step="0.01" required value={cap} onChange={(e) => setCap(e.target.value)} />
             </Field>
-            <Field label="Auto-approve after" hint="Clean videos with #ad are approved if you haven’t reviewed them by then.">
+            <Field label="Auto-approve after" hint="Clean clips with #ad are approved if you haven’t reviewed them by then.">
               <Select id="auto_approve_hours" name="auto_approve_hours" defaultValue="48">
                 <option value="24">24 hours</option>
                 <option value="48">48 hours</option>
@@ -124,6 +131,33 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
               </Select>
             </Field>
           </div>
+          <fieldset className="mt-5">
+            <legend className="mb-2 text-[13px] font-medium text-zinc-700">Where clippers can post</legend>
+            <div className="flex flex-wrap gap-2">
+              {PLATFORMS.map(([value, label]) => {
+                const on = platforms.includes(value);
+                return (
+                  <label
+                    key={value}
+                    className={cn(
+                      'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-accent-500',
+                      on ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300',
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      name="platforms"
+                      value={value}
+                      checked={on}
+                      onChange={() => setPlatforms((p) => (on ? p.filter((x) => x !== value) : [...p, value]))}
+                      className="sr-only"
+                    />
+                    {label}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
           {/* Unused terms are sent as zero. */}
           {model !== 'hybrid' && <input type="hidden" name="base_payout" value="0" />}
           {model === 'cps_performance' && <input type="hidden" name="cpm_rate" value="0" />}
@@ -132,7 +166,7 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
 
         <Card>
           <h2 className="mb-1 font-semibold tracking-tight">Thumbnail</h2>
-          <p className="mb-5 text-sm text-zinc-500">Shown on the campaign card. 16:9 works best. JPG, PNG or WebP up to 2 MB.</p>
+          <p className="mb-5 text-sm text-zinc-500">A frame from your stream works well. 16:9, JPG, PNG or WebP up to 2 MB.</p>
           <div className="flex flex-wrap items-center gap-3">
             <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium transition hover:bg-zinc-50 focus-within:ring-2 focus-within:ring-accent-500">
               <ImagePlus className="size-4" />
@@ -183,7 +217,7 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
       </div>
 
       <div className="lg:sticky lg:top-8 lg:self-start">
-        <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-zinc-400">Creators will see</p>
+        <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-zinc-400">Clippers will see</p>
         <div className="pointer-events-none">
           <MarketCard c={preview} href="#" />
         </div>

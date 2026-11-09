@@ -33,11 +33,6 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       ? ['Payout account ready.', true]
       : undefined;
 
-  const connectTikTokButton = (
-    <form action={connectTikTok}>
-      <Button size="sm">Connect TikTok</Button>
-    </form>
-  );
   const payoutsButton = (
     <form action={startPayoutOnboarding}>
       <Button size="sm">Set up payouts</Button>
@@ -48,7 +43,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
     <div className="space-y-8">
       <PageHeader
         title={`Hi, ${d.name}`}
-        description="Your campaigns, codes and verified earnings."
+        description="Your campaigns, clip codes and earnings."
         actions={isDemo ? <CreatorSwitcher creators={demoCreators()} current={currentCreatorId()} /> : undefined}
       />
 
@@ -56,10 +51,9 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
 
       <Checklist
         steps={[
-          { label: 'Connect TikTok', detail: 'We read your view counts straight from TikTok. No screenshots.', done: !!d.tiktok, action: connectTikTokButton },
+          { label: 'Join a campaign', detail: 'You get a clip code for every campaign you join.', done: d.enrollments.length > 0, action: <ButtonLink href="/clipper/discover" size="sm">Discover</ButtonLink> },
+          { label: 'Post your first clip', detail: 'Put your clip code and #ad in the caption, then paste the link below.', done: subs.length > 0 },
           { label: 'Set up payouts', detail: 'Stripe sends your earnings to your bank.', done: d.payoutsEnabled, action: payoutsButton },
-          { label: 'Join a campaign', detail: 'You get a personal code and tracking link.', done: d.enrollments.length > 0, action: <ButtonLink href="/creator/discover" size="sm">Discover</ButtonLink> },
-          { label: 'Submit your first video', detail: 'Paste the TikTok link under the campaign below.', done: subs.length > 0 },
         ]}
       />
 
@@ -68,21 +62,21 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
           { label: 'Earned', value: usd(subs.reduce((a, s) => a + s.payout_earned, 0)) },
           { label: 'Paid out', value: usd(subs.reduce((a, s) => a + s.payout_transferred, 0)) },
           { label: 'Verified views', value: compact(subs.reduce((a, s) => a + s.current_view_count, 0)) },
-          { label: 'Orders from you', value: compact(subs.reduce((a, s) => a + s.current_conversions, 0)) },
+          { label: 'Merch orders', value: compact(subs.reduce((a, s) => a + s.current_conversions, 0)) },
         ]}
       />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold tracking-tight">Your campaigns</h2>
         {d.enrollments.length === 0 ? (
-          <Empty icon={<Compass />} title="No campaigns yet" body="Find one that fits your content in Discover." action={<ButtonLink href="/creator/discover">Browse campaigns</ButtonLink>} />
+          <Empty icon={<Compass />} title="No campaigns yet" body="Find a streamer you like clipping in Discover." action={<ButtonLink href="/clipper/discover">Browse campaigns</ButtonLink>} />
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {d.enrollments.map((e) => (
               <EnrollmentCard
                 key={e.enrollment.id}
                 {...e}
-                href={`/creator/campaigns/${e.campaign.id}`}
+                href={`/clipper/campaigns/${e.campaign.id}`}
                 link={Link}
                 submitForm={<SubmitVideoForm campaignId={e.campaign.id} />}
               />
@@ -95,13 +89,13 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
         <section>
           <div className="mb-4 flex items-baseline justify-between gap-3">
             <h2 className="text-lg font-semibold tracking-tight">Open now</h2>
-            <Link href="/creator/discover" className="text-sm text-zinc-500 hover:text-zinc-900">
+            <Link href="/clipper/discover" className="text-sm text-zinc-500 hover:text-zinc-900">
               See all {d.openCampaigns.length}
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {d.openCampaigns.slice(0, 3).map((c) => (
-              <MarketCard key={c.id} c={c} href={`/creator/campaigns/${c.id}`} link={Link} />
+              <MarketCard key={c.id} c={c} href={`/clipper/campaigns/${c.id}`} link={Link} />
             ))}
           </div>
         </section>
@@ -114,7 +108,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             icon={<Music2 />}
             title="TikTok"
             connected={!!d.tiktok}
-            detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Not connected'}
+            detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips only'}
             action={
               <form action={connectTikTok}>
                 <Button size="sm" variant={d.tiktok ? 'ghost' : 'secondary'}>

@@ -1,7 +1,9 @@
 # Creator Engine
 
-Creator campaigns paid on API-verified views and attributed sales.
-Next.js 14 (App Router) · Supabase · Stripe Connect · TikTok Display API · Tailwind.
+Clipping campaigns for streamers. Streamers fund a campaign and pin moments from their streams; clippers claim moments, post clips to TikTok, YouTube Shorts and Instagram Reels, and get paid for the views the platforms report.
+Next.js 14 (App Router) · Supabase · Stripe Connect · TikTok Display API · YouTube Data API · Tailwind.
+
+In the code, `brands` are the campaign owners (streamers) and `creators` are the clippers.
 
 ## Run
 
@@ -12,13 +14,13 @@ npm test           # unit tests (parser, payouts, fraud rules, pHash, encryption
 npm run build
 ```
 
-With no Supabase keys the app runs in **demo mode** (`src/lib/demo.ts`). Everything is clickable and uses fake numbers and mock money, run through the same payout, fee and fraud code as production:
+With no Supabase keys the app runs in **demo mode** (`src/lib/demo-core.ts`). Everything is clickable and uses mock money, run through the same payout, fee and fraud code as production. Every streamer, clipper and number is invented.
 
-- **Brand** (`/brand`, as Voltline Energy): create campaigns, deposit mock escrow, go live, connect a store, approve or flag videos, pay creators (15% fee taken out). Each campaign page also has **Run 4h sync** (views grow, earnings recalculate, the velocity watchdog runs) and **Simulate sale**.
-- **Creator** (`/creator`): use **Viewing as** to switch creators, then connect TikTok, set up payouts, join campaigns and submit a TikTok link (the parser is real; view counts are made up).
-- **Reset** in the header restores the starting data. State lives in the server process, so restarting also resets it.
+- **Streamer** (`/streamer`, as Marlow Kade): create campaigns (thumbnail upload, platforms, review window), fund them, pin moments, approve or flag clips, pay clippers. **Run 4h sync** advances time: views grow, earnings recalculate, the bot watchdog runs and overdue clean clips auto-approve.
+- **Clipper** (`/clipper`): switch clippers with **Viewing as**, browse Discover, join, claim a moment, submit a TikTok, Shorts or Reels link.
+- **Reset** in the sidebar restores the starting data.
 
-Well-known streamer names appear only in ordinary example rows. Fraud examples use made-up handles, and every brand is fictional.
+Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thumbs/credits.json` (also linked from the landing page).
 
 ### Shareable single-page demo
 
@@ -26,13 +28,14 @@ Well-known streamer names appear only in ordinary example rows. Fraud examples u
 
 ## Set up for real
 
-1. Create a Supabase project and run the migrations in `supabase/migrations/` in order (SQL editor or `supabase db push`). `0002` also creates the public `campaign-thumbnails` storage bucket.
+1. Create a Supabase project and run the migrations in `supabase/migrations/` in order (SQL editor or `supabase db push`). `0002` creates the `campaign-thumbnails` storage bucket; `0003` adds platforms and the moment board.
 2. Copy `.env.example` to `.env.local` and fill it in. `TOKEN_ENCRYPTION_KEY`: `openssl rand -base64 32`.
 3. Supabase Auth → URL configuration: add `<APP_URL>/auth/callback` as a redirect URL.
-4. TikTok developer app: Login Kit with scopes `user.info.basic`, `user.info.stats`, `video.list`; redirect URI `<APP_URL>/api/oauth/tiktok/callback`.
-5. Stripe: enable Connect (Express). Webhook `<APP_URL>/api/webhooks/stripe` for `checkout.session.completed` and `account.updated` (Connect events).
-6. Shopify: `orders/create` webhook to `<APP_URL>/api/webhooks/shopify`, signed with `SHOPIFY_WEBHOOK_SECRET`.
-7. Cron: `vercel.json` calls `/api/cron/sync` every 4 hours with `Authorization: Bearer $CRON_SECRET`.
+4. YouTube: a Data API v3 key in `YOUTUBE_API_KEY` (public video statistics).
+5. TikTok developer app: Login Kit with scopes `user.info.basic`, `user.info.stats`, `video.list`; redirect URI `<APP_URL>/api/oauth/tiktok/callback`.
+6. Stripe: enable Connect (Express). Webhook `<APP_URL>/api/webhooks/stripe` for `checkout.session.completed` and `account.updated` (Connect events).
+7. Shopify (optional merch store): `orders/create` webhook to `<APP_URL>/api/webhooks/shopify`, signed with `SHOPIFY_WEBHOOK_SECRET`.
+8. Cron: `vercel.json` calls `/api/cron/sync` every 4 hours with `Authorization: Bearer $CRON_SECRET`.
 
 ## How it works
 
@@ -47,13 +50,15 @@ Well-known streamer names appear only in ordinary example rows. Fraud examples u
 | Conversion attribution (discount code or `?ref=`) | `src/app/api/webhooks/shopify` |
 | Campaign thumbnails (upload to Supabase Storage, designed cover fallback) | `src/actions/brand.ts` → `createCampaign`, `src/components/views.tsx` → `CampaignCover` |
 | Budget forecast (committed, available, days left at current pace) | `src/lib/budget.ts` |
-| Ad disclosure check (#ad in the TikTok caption) and review deadlines with auto-approval | `src/lib/compliance.ts`, applied in `src/lib/sync.ts` |
+| Ad disclosure (#ad) and clip-code ownership checks; review deadlines with auto-approval | `src/lib/compliance.ts`, applied in `src/lib/sync.ts` |
+| Moment board (pinned timestamps with limited claims) | `supabase/migrations/0003_streamer_clipping.sql` → `claim_moment`, `src/actions/creator.ts` → `claimMoment` |
+| YouTube Shorts stats | `src/lib/platforms/youtube.ts` |
 
 All writes go through server code using the service-role key after an ownership check; RLS only grants reads, so browsers can never write balances or metrics.
 
 ## Known limits
 
-- Only TikTok is tracked. Instagram/YouTube links parse, but submission rejects them until their adapters (and ownership checks) exist.
+- Tracking: TikTok (via the clipper's login) and YouTube Shorts (public stats, ownership by clip code) are implemented. Instagram Reels is accepted in the demo only: real tracking needs the clipper's Instagram professional account through Meta's API, which isn't built yet, so the real app rejects Reels links for now.
 - The velocity rule (+10k views in < 5 min, < 0.05% comments) is applied as a rate between samples. With 4-hour polling it cannot see a burst that happens and stops between two polls.
 - Duplicate detection hashes the platform's cover image, not every frame of the video.
-- One submission per creator per campaign, so the cap is per creator and conversions attach to that creator's submission.
+- One submission per clipper per campaign, so the cap is per clipper and merch orders attach to that clipper's submission.

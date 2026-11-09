@@ -4,13 +4,13 @@ import { ArrowLeft } from 'lucide-react';
 import { getCreatorCampaign } from '@/lib/data';
 import { rateParts, usd } from '@/lib/format';
 import { platformFeePercent } from '@/lib/stripe';
-import { joinCampaign } from '@/actions/creator';
+import { claimMoment, joinCampaign } from '@/actions/creator';
 import { Card } from '@/components/ui/card';
-import { ButtonLink } from '@/components/ui/button-link';
 import { ActionButton } from '@/components/action-button';
 import { EarningsEstimator } from '@/components/estimator';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
-import { BudgetMeter, CampaignCover, EnrollmentCard, RequirementList } from '@/components/views';
+import { BudgetMeter, CampaignCover, EnrollmentCard, MomentBoard, PlatformChips, RequirementList, StreamerAvatar } from '@/components/views';
+import { Badge } from '@/components/ui/badge';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,7 @@ export default async function CreatorCampaignPage({ params }: { params: { id: st
 
   return (
     <div className="space-y-6">
-      <Link href="/creator/discover" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
+      <Link href="/clipper/discover" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
         <ArrowLeft className="size-4" /> Discover
       </Link>
       <CampaignCover campaign={c} brandName={c.brandName} variant="banner" className="rounded-xl" />
@@ -31,8 +31,11 @@ export default async function CreatorCampaignPage({ params }: { params: { id: st
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-6">
           <div>
-            <p className="text-sm text-zinc-500">{c.brandName}</p>
-            <h1 className="balance mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
+            <h1 className="balance text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
+            <p className="mt-2 flex items-center gap-2 text-sm text-zinc-600">
+              <StreamerAvatar name={c.brandName} /> {c.brandName}
+            </p>
+            <PlatformChips platforms={c.platforms} className="mt-3" />
           </div>
           {c.brief && (
             <section>
@@ -41,17 +44,35 @@ export default async function CreatorCampaignPage({ params }: { params: { id: st
             </section>
           )}
           <section>
+            <h2 className="mb-1 font-semibold tracking-tight">Moments to clip</h2>
+            <p className="mb-4 text-sm text-zinc-500">Claim one before you cut it. Each moment has a few slots so clips stay varied.</p>
+            <MomentBoard
+              moments={d.moments}
+              empty="No moments pinned yet. Anything from the VODs is fair game."
+              action={(m) =>
+                m.mine ? (
+                  <Badge tone="green">Yours</Badge>
+                ) : m.claimed_by.length >= m.max_claims ? (
+                  <Badge>Full</Badge>
+                ) : d.enrollment ? (
+                  <ActionButton action={claimMoment.bind(null, m.id)}>Claim</ActionButton>
+                ) : null
+              }
+            />
+          </section>
+          <section>
             <h2 className="mb-3 font-semibold tracking-tight">Requirements</h2>
             <RequirementList items={c.requirements} />
           </section>
           <section>
             <h2 className="mb-2 font-semibold tracking-tight">How you get paid</h2>
             <ul className="max-w-prose list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-600">
-              <li>Views are read from TikTok every 4 hours. Self-reported numbers aren’t accepted.</li>
+              <li>Views are read from TikTok and YouTube every 4 hours. Screenshots and self-reported numbers aren’t accepted.</li>
+              <li>Put your clip code in the caption. It proves the clip is yours on any platform.</li>
               {c.payout_model === 'cps_performance' && <li>Every order placed with your code or link earns you {c.cps_commission_pct}%.</li>}
               {c.payout_model === 'hybrid' && <li>{usd(c.base_payout)} base fee once your video is approved, plus {r.rate} {r.unit}.</li>}
-              <li>Earnings stop at {usd(c.cpm_cap)} per creator. A {fee}% platform fee comes out of each payout.</li>
-              <li>If the brand hasn’t reviewed a clean video with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
+              <li>Earnings stop at {usd(c.cpm_cap)} per clipper. A {fee}% platform fee comes out of each payout.</li>
+              <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
             </ul>
           </section>
           {d.enrollment && (
@@ -61,7 +82,7 @@ export default async function CreatorCampaignPage({ params }: { params: { id: st
               brandName={c.brandName}
               shopDomain={d.shopDomain}
               submission={d.submission}
-              href={`/creator/campaigns/${c.id}`}
+              href={`/clipper/campaigns/${c.id}`}
               link={Link}
               submitForm={<SubmitVideoForm campaignId={c.id} />}
             />
@@ -81,11 +102,7 @@ export default async function CreatorCampaignPage({ params }: { params: { id: st
             </div>
             <div className="mt-5">
               {d.enrollment ? (
-                <p className="rounded-lg bg-accent-50 px-3.5 py-2.5 text-sm text-accent-700">You’ve joined. Your code is below.</p>
-              ) : !d.tiktokConnected ? (
-                <ButtonLink href="/creator" className="w-full">
-                  Connect TikTok to join
-                </ButtonLink>
+                <p className="rounded-lg bg-accent-50 px-3.5 py-2.5 text-sm text-accent-700">You’ve joined. Your clip code is below.</p>
               ) : (
                 <ActionButton variant="primary" block action={joinCampaign.bind(null, c.id)}>
                   Join campaign

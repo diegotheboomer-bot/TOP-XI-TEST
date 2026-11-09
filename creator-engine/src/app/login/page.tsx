@@ -7,7 +7,7 @@ import { isDemo } from '@/lib/env';
 export const dynamic = 'force-dynamic';
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
-  if (isDemo) redirect('/brand');
+  if (isDemo) redirect('/streamer');
   return (
     <main className="grid min-h-screen place-items-center px-4 py-12">
       <div className="w-full max-w-sm">

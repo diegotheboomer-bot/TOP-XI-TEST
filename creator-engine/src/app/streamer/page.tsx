@@ -21,9 +21,9 @@ export default async function BrandDashboardPage() {
       <PageHeader
         eyebrow={<span className="text-sm text-zinc-500">{brandName}</span>}
         title="Campaigns"
-        description={pending ? `${pending} ${pending === 1 ? 'video is' : 'videos are'} waiting for your review.` : 'Everything is reviewed. Nice.'}
+        description={pending ? `${pending} ${pending === 1 ? 'clip is' : 'clips are'} waiting for your review.` : 'Every clip is reviewed.'}
         actions={
-          <ButtonLink href="/brand/campaigns/new">
+          <ButtonLink href="/streamer/campaigns/new">
             <Plus className="size-4" /> New campaign
           </ButtonLink>
         }
@@ -31,9 +31,9 @@ export default async function BrandDashboardPage() {
       <StatGrid
         items={[
           { label: 'Escrow held', value: usd(sum((c) => c.escrow_balance)) },
-          { label: 'Committed to creators', value: usd(sum((c) => c.budget.committed)) },
+          { label: 'Earned by clippers', value: usd(sum((c) => c.budget.committed)) },
           { label: 'Verified views', value: compact(sum((c) => c.views)) },
-          { label: 'Attributed orders', value: compact(sum((c) => c.conversions)) },
+          { label: 'Merch orders', value: compact(sum((c) => c.conversions)) },
         ]}
       />
       <Card flush className="mt-8 overflow-hidden">
@@ -42,14 +42,14 @@ export default async function BrandDashboardPage() {
             <Empty
               icon={<Megaphone />}
               title="No campaigns yet"
-              body="Create a campaign, fund escrow and go live to start receiving creator videos."
-              action={<ButtonLink href="/brand/campaigns/new">Create campaign</ButtonLink>}
+              body="Create a campaign, fund it and go live to start getting clips."
+              action={<ButtonLink href="/streamer/campaigns/new">Create campaign</ButtonLink>}
             />
           </div>
         ) : (
           <div className="divide-y divide-zinc-100">
             {campaigns.map((c) => (
-              <CampaignRow key={c.id} c={c} href={`/brand/campaigns/${c.id}`} link={Link} />
+              <CampaignRow key={c.id} c={c} href={`/streamer/campaigns/${c.id}`} link={Link} />
             ))}
           </div>
         )}

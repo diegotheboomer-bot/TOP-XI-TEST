@@ -10,7 +10,8 @@ import { parseVideoUrlResolving } from '@/lib/video-url';
 import { getTikTokAccessToken } from '@/lib/tokens';
 import { queryTikTokVideos } from '@/lib/platforms/tiktok';
 import { checkDuplicate } from '@/lib/sync';
-import { hasDisclosure } from '@/lib/compliance';
+import { hasClipCode, hasDisclosure } from '@/lib/compliance';
+import { getYouTubeVideos } from '@/lib/platforms/youtube';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
 import { stripe } from '@/lib/stripe';
 import * as demo from '@/lib/demo';
@@ -42,8 +43,8 @@ export async function joinCampaign(campaignId: string): Promise<ActionState> {
     if (error.code !== '23505') return { error: error.message };
     if (!error.message.includes('discount_code')) return { error: 'You already joined this campaign.' };
   }
-  revalidatePath('/creator');
-  return { success: 'Joined. Your code and tracking link are ready.' };
+  revalidatePath('/clipper');
+  return { success: 'Joined. Your clip code is ready.' };
 }
 
 const SubmitSchema = z.object({
@@ -54,7 +55,7 @@ const SubmitSchema = z.object({
 /**
  * Matching engine: validates a live video link, proves ownership through the
  * creator's own TikTok token, stores a baseline metric sample and runs the
- * duplicate-asset check. Recurring sync starts once the brand approves.
+ * duplicate-asset check. Recurring sync starts once the streamer approves.
  */
 export async function submitVideo(_prev: ActionState, form: FormData): Promise<ActionState> {
   const parsedForm = SubmitSchema.safeParse({ campaignId: form.get('campaignId'), videoUrl: form.get('videoUrl') });
@@ -67,11 +68,11 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
 
   const { data: enrollment } = await admin
     .from('campaign_creators')
-    .select('id, campaigns(status)')
+    .select('id, discount_code, campaigns(status, platforms)')
     .eq('campaign_id', campaignId)
     .eq('creator_id', creatorId)
     .maybeSingle();
-  const campaign = enrollment?.campaigns as unknown as { status: string } | null;
+  const campaign = enrollment?.campaigns as unknown as { status: string; platforms: string[] } | null;
   if (!enrollment) return { error: 'Join the campaign before submitting.' };
   if (campaign?.status !== 'active') return { error: 'This campaign is not accepting submissions.' };
 
@@ -85,16 +86,31 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
     };
   }
   const { platform, videoId, canonicalUrl } = parsed.video;
-  if (platform !== 'tiktok') return { error: 'Instagram and YouTube tracking is not live yet. Submit a TikTok video.' };
+  if (!campaign?.platforms.includes(platform)) return { error: 'This campaign doesn’t accept that platform.' };
+  if (platform === 'instagram') return { error: 'Instagram Reels tracking isn’t connected yet. Submit a TikTok or YouTube Short.' };
 
   let stats;
-  try {
-    const token = await getTikTokAccessToken(admin, creatorId);
-    [stats] = await queryTikTokVideos(token, [videoId]);
-  } catch (e) {
-    return { error: e instanceof Error && e.message.includes('not connected') ? 'Connect your TikTok account first.' : 'TikTok could not be reached. Try again shortly.' };
+  if (platform === 'tiktok') {
+    // TikTok: the creator's own token can only see their own videos, which proves ownership.
+    try {
+      const token = await getTikTokAccessToken(admin, creatorId);
+      [stats] = await queryTikTokVideos(token, [videoId]);
+    } catch (e) {
+      return { error: e instanceof Error && e.message.includes('not connected') ? 'Connect your TikTok account first.' : 'TikTok could not be reached. Try again shortly.' };
+    }
+    if (!stats) return { error: 'That video is not on your connected TikTok account.' };
+  } else {
+    // YouTube: public stats; ownership is proven by the clip code in the title or description.
+    try {
+      [stats] = await getYouTubeVideos([videoId]);
+    } catch {
+      return { error: 'YouTube could not be reached. Try again shortly.' };
+    }
+    if (!stats) return { error: 'That YouTube video is private or doesn’t exist.' };
+    if (!hasClipCode(stats.caption, enrollment.discount_code)) {
+      return { error: `Add your clip code ${enrollment.discount_code} to the video’s title or description so we know it’s yours.` };
+    }
   }
-  if (!stats) return { error: 'That video is not on your connected TikTok account.' };
 
   const { data: submission, error } = await admin
     .from('submissions')
@@ -139,17 +155,17 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
       .eq('id', submission.id);
   }
 
-  revalidatePath('/creator');
+  revalidatePath('/clipper');
   if (dup.duplicateOf) return { error: 'Submitted, but flagged: it matches another creator’s video in this campaign.' };
   if (!hasDisclosure(stats.caption)) return { success: 'Submitted. Add #ad to your caption so it can be approved.' };
-  return { success: 'Submitted. The brand will review it shortly.' };
+  return { success: 'Submitted. The streamer will review it shortly.' };
 }
 
 /** Stripe Connect Express onboarding for payouts. */
 export async function startPayoutOnboarding(): Promise<void> {
   if (isDemo) {
     demo.enablePayouts();
-    redirect('/creator?payouts=connected');
+    redirect('/clipper?payouts=connected');
   }
   const creatorId = await requireCreator();
   const admin = createAdminClient();
@@ -169,17 +185,36 @@ export async function startPayoutOnboarding(): Promise<void> {
   const link = await stripe().accountLinks.create({
     account: accountId,
     type: 'account_onboarding',
-    refresh_url: `${appUrl()}/creator`,
-    return_url: `${appUrl()}/creator?payouts=connected`,
+    refresh_url: `${appUrl()}/clipper`,
+    return_url: `${appUrl()}/clipper?payouts=connected`,
   });
   redirect(link.url);
+}
+
+/** Clipper claims a pinned moment before cutting it (limited claims per moment). */
+export async function claimMoment(momentId: string): Promise<ActionState> {
+  if (isDemo) return refreshed(demo.claimMoment(momentId));
+  const creatorId = await requireCreator();
+  const admin = createAdminClient();
+  const { data: moment } = await admin.from('campaign_moments').select('campaign_id').eq('id', momentId).maybeSingle();
+  if (!moment) return { error: 'Moment not found.' };
+  const { data: enrolled } = await admin.from('campaign_creators').select('id').eq('campaign_id', moment.campaign_id).eq('creator_id', creatorId).maybeSingle();
+  if (!enrolled) return { error: 'Join the campaign to claim moments.' };
+  const { data: result } = await admin.rpc('claim_moment', { p_moment: momentId, p_creator: creatorId });
+  const messages: Record<string, ActionState> = {
+    ok: { success: 'Claimed. It’s yours to clip.' },
+    already: { error: 'You already claimed this moment.' },
+    full: { error: 'Every slot for this moment is taken.' },
+    not_found: { error: 'Moment not found.' },
+  };
+  return refreshed(messages[String(result)] ?? { error: 'Could not claim the moment.' });
 }
 
 /** TikTok Login Kit (mocked in demo mode). */
 export async function connectTikTok(): Promise<void> {
   if (isDemo) {
     demo.connectTikTok();
-    redirect('/creator?tiktok=connected');
+    redirect('/clipper?tiktok=connected');
   }
   redirect('/api/oauth/tiktok/start');
 }
@@ -187,10 +222,10 @@ export async function connectTikTok(): Promise<void> {
 /** Demo only: switch which creator you are viewing as. */
 export async function viewAsCreator(form: FormData): Promise<void> {
   if (isDemo) demo.setCurrentCreator(String(form.get('creatorId')));
-  redirect('/creator');
+  redirect('/clipper');
 }
 
 function refreshed(result: ActionState): ActionState {
-  revalidatePath('/creator', 'layout');
+  revalidatePath('/clipper', 'layout');
   return result;
 }

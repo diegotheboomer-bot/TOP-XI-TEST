@@ -17,7 +17,7 @@ export function timeAgo(iso: string | null): string {
   return h < 48 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 }
 
-export const payoutModelLabel = { hybrid: 'Hybrid', pure_cpm: 'Pure CPM', cps_performance: 'Cost per sale' } as const;
+export const payoutModelLabel = { hybrid: 'Fee + views', pure_cpm: 'Pay per view', cps_performance: 'Merch commission' } as const;
 
 export function termsLabel(c: { payout_model: keyof typeof payoutModelLabel; base_payout: number; cpm_rate: number; cpm_cap: number; cps_commission_pct: number }): string {
   const cap = `up to ${usd(c.cpm_cap)}`;

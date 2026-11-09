@@ -25,11 +25,11 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
           {isDemo && <Badge tone="amber" className="hidden sm:inline-flex">Demo · mock money</Badge>}
         </div>
         <nav className="flex items-center gap-1 text-sm">
-          <Link href="/brand" className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
-            Brands
+          <Link href="/streamer" className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
+            Streamers
           </Link>
-          <Link href="/creator" className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
-            Creators
+          <Link href="/clipper" className="rounded-md px-3 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900">
+            Clippers
           </Link>
           {isDemo && (
             <form action={resetDemoData}>

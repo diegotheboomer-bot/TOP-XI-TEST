@@ -6,23 +6,23 @@ import { NextShell } from './next-shell';
 import type { NavSection } from './app-shell';
 
 const BRAND: NavSection = {
-  title: 'Brand',
+  title: 'Streamer',
   items: [
-    { href: '/brand', label: 'Campaigns', icon: <LayoutList />, also: ['/brand/campaigns'] },
-    { href: '/brand/campaigns/new', label: 'New campaign', icon: <Plus /> },
+    { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
+    { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus /> },
   ],
 };
 const CREATOR: NavSection = {
-  title: 'Creator',
+  title: 'Clipper',
   items: [
-    { href: '/creator', label: 'Home', icon: <House /> },
-    { href: '/creator/discover', label: 'Discover', icon: <Compass />, also: ['/creator/campaigns'] },
+    { href: '/clipper', label: 'Home', icon: <House /> },
+    { href: '/clipper/discover', label: 'Discover', icon: <Compass />, also: ['/clipper/campaigns'] },
   ],
 };
 
 const footerButton = 'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 [&>svg]:size-4';
 
-/** Sidebar layout for /brand and /creator. The demo shows both sides; a real account sees its own. */
+/** Sidebar layout for /streamer and /clipper. The demo shows both sides; a real account sees its own. */
 export async function AppLayout({ children }: { children: React.ReactNode }) {
   let sections: NavSection[] = [BRAND, CREATOR];
   if (!isDemo) {

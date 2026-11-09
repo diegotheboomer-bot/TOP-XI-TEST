@@ -7,7 +7,7 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent } from '@/lib/stripe';
 import { splitFee } from '@/lib/payout';
-import { CampaignSchema, DepositSchema, ShopDomainSchema, thumbnailError } from '@/lib/schemas';
+import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import type { ActionState } from './result';
 
@@ -26,7 +26,7 @@ async function requireOwnCampaign(campaignId: string) {
 }
 
 export async function createCampaign(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const parsed = CampaignSchema.safeParse(Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string')));
+  const parsed = CampaignSchema.safeParse(campaignInput(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const file = form.get('thumbnail');
   const thumb = file instanceof File && file.size > 0 ? file : null;
@@ -39,7 +39,7 @@ export async function createCampaign(_prev: ActionState, form: FormData): Promis
   if (isDemo) {
     // Demo keeps the image in memory as a data URL.
     const thumbnail_url = thumb ? `data:${thumb.type};base64,${Buffer.from(await thumb.arrayBuffer()).toString('base64')}` : null;
-    redirect(`/brand/campaigns/${demo.createCampaign({ ...base, thumbnail_url })}`);
+    redirect(`/streamer/campaigns/${demo.createCampaign({ ...base, thumbnail_url })}`);
   }
 
   const brandId = await requireBrand();
@@ -59,7 +59,7 @@ export async function createCampaign(_prev: ActionState, form: FormData): Promis
     .select('id')
     .single();
   if (error) return { error: error.message };
-  redirect(`/brand/campaigns/${data.id}`);
+  redirect(`/streamer/campaigns/${data.id}`);
 }
 
 export async function setCampaignStatus(campaignId: string, status: 'active' | 'paused' | 'completed'): Promise<ActionState> {
@@ -67,7 +67,7 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
   const { admin, campaign } = await requireOwnCampaign(campaignId);
   if (status === 'active' && Number(campaign.escrow_balance) <= 0) return { error: 'Fund escrow before going live.' };
   await admin.from('campaigns').update({ status }).eq('id', campaignId);
-  revalidatePath(`/brand/campaigns/${campaignId}`);
+  revalidatePath(`/streamer/campaigns/${campaignId}`);
   return { success: `Campaign ${status}.` };
 }
 
@@ -89,8 +89,8 @@ export async function fundEscrow(_prev: ActionState, form: FormData): Promise<Ac
     ],
     metadata: { campaign_id: campaignId },
     payment_intent_data: { metadata: { campaign_id: campaignId }, transfer_group: `campaign_${campaignId}` },
-    success_url: `${appUrl()}/brand/campaigns/${campaignId}?funded=1`,
-    cancel_url: `${appUrl()}/brand/campaigns/${campaignId}`,
+    success_url: `${appUrl()}/streamer/campaigns/${campaignId}?funded=1`,
+    cancel_url: `${appUrl()}/streamer/campaigns/${campaignId}`,
   });
   redirect(session.url!);
 }
@@ -107,7 +107,7 @@ export async function connectStore(_prev: ActionState, form: FormData): Promise<
     existing?.id ??
     (await admin.from('conversion_pixels').insert({ brand_id: brandId, name: domain.data, shop_domain: domain.data }).select('id').single()).data?.id;
   await admin.from('campaigns').update({ pixel_id: pixelId }).eq('id', campaignId);
-  revalidatePath(`/brand/campaigns/${campaignId}`);
+  revalidatePath(`/streamer/campaigns/${campaignId}`);
   return { success: 'Store connected. Point your Shopify orders/create webhook at /api/webhooks/shopify.' };
 }
 
@@ -121,9 +121,9 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
   const update =
     decision === 'approve'
       ? { status: 'live_tracking', flag_reason: null, fraud_score: 0 }
-      : { status: 'flagged', flag_reason: 'Flagged by brand review' };
+      : { status: 'flagged', flag_reason: 'Flagged by the streamer' };
   await admin.from('submissions').update(update).eq('id', submissionId);
-  revalidatePath(`/brand/campaigns/${sub.campaign_id}`);
+  revalidatePath(`/streamer/campaigns/${sub.campaign_id}`);
   return { success: decision === 'approve' ? 'Approved. Tracking started.' : 'Flagged.' };
 }
 
@@ -200,8 +200,21 @@ export async function releasePayout(submissionId: string): Promise<ActionState> 
     await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
   }
 
-  revalidatePath(`/brand/campaigns/${sub.campaign_id}`);
+  revalidatePath(`/streamer/campaigns/${sub.campaign_id}`);
   return { success: `Paid ${net.toFixed(2)} to creator (${fee.toFixed(2)} platform fee).` };
+}
+
+/** Streamer pins a moment from a stream for clippers to cut. */
+export async function addMoment(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const campaignId = String(form.get('campaignId'));
+  const parsed = MomentSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (isDemo) return done(demo.addMoment(campaignId, parsed.data), campaignId);
+  const { admin } = await requireOwnCampaign(campaignId);
+  const { error } = await admin.from('campaign_moments').insert({ ...parsed.data, campaign_id: campaignId });
+  if (error) return { error: error.message };
+  revalidatePath(`/streamer/campaigns/${campaignId}`);
+  return { success: 'Moment pinned for clippers.' };
 }
 
 // ─── Demo-only simulations ───────────────────────────────────────────────
@@ -216,6 +229,6 @@ export async function simulateSale(campaignId: string): Promise<ActionState> {
 }
 
 function done(result: ActionState, campaignId?: string): ActionState {
-  revalidatePath(campaignId ? `/brand/campaigns/${campaignId}` : '/brand', campaignId ? 'page' : 'layout');
+  revalidatePath(campaignId ? `/streamer/campaigns/${campaignId}` : '/streamer', campaignId ? 'page' : 'layout');
   return result;
 }

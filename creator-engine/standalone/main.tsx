@@ -7,10 +7,12 @@ import { createRoot } from 'react-dom/client';
 import { ArrowLeft, Compass, House, LayoutList, Megaphone, Music2, Plus, RotateCcw, Users, Wallet } from 'lucide-react';
 import * as core from '@/lib/demo-core';
 import { compact, payoutModelLabel, rateParts, usd } from '@/lib/format';
-import { CampaignSchema, DepositSchema, ShopDomainSchema, thumbnailError } from '@/lib/schemas';
+import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
+import { MomentFields } from '@/components/forms/moment-fields';
 import type { ActionState } from '@/actions/result';
 import type { Campaign } from '@/lib/types';
 import { Card, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/field';
 import { StatGrid } from '@/components/ui/stat';
@@ -31,24 +33,18 @@ import {
   DemoBar,
   EnrollmentCard,
   MarketCard,
+  MomentBoard,
+  PlatformChips,
   RequirementList,
+  StreamerAvatar,
   StorefrontStatus,
   SubmissionTable,
   submissionActionKinds,
 } from '@/components/views';
 
-// Fictional creators for the shareable demo.
-const ROSTER: core.CreatorSeed[] = [
-  { handle: 'novaplays', displayName: 'Nova Reyes', followers: 1_800_000 },
-  { handle: 'kiraonair', displayName: 'Kira Vance', followers: 4_600_000 },
-  { handle: 'mattbuilds', displayName: 'Matt Ortega', followers: 920_000 },
-  { handle: 'junolive', displayName: 'Juno Park', followers: 1_100_000 },
-  { handle: 'pixelpriya', displayName: 'Priya Shah', followers: 2_100_000 },
-  { handle: 'rexruns', displayName: 'Rex Moreno', followers: 1_300_000 },
-  { handle: 'sablestreams', displayName: 'Sable Quinn', followers: 640_000 },
-];
 const FEE_PERCENT = 15;
-const STORAGE_KEY = 'creator-engine-demo-v2';
+const STORAGE_KEY = 'creator-engine-demo-v3';
+const ASSETS = 'thumbs/';
 
 interface Saved {
   state: core.DemoState;
@@ -56,7 +52,7 @@ interface Saved {
 }
 
 function fresh(): Saved {
-  const state = core.seedDemo(ROSTER, FEE_PERCENT);
+  const state = core.seedDemo(FEE_PERCENT, ASSETS);
   return { state, viewer: core.defaultCreatorId(state) };
 }
 
@@ -170,14 +166,14 @@ function useStore() {
 // ─── App frame ─────────────────────────────────────────────────────────────
 const SECTIONS: NavSection[] = [
   {
-    title: 'Brand',
+    title: 'Streamer',
     items: [
       { href: '#brand', label: 'Campaigns', icon: <LayoutList /> },
       { href: '#new-campaign', label: 'New campaign', icon: <Plus /> },
     ],
   },
   {
-    title: 'Creator',
+    title: 'Clipper',
     items: [
       { href: '#creator', label: 'Home', icon: <House /> },
       { href: '#discover', label: 'Discover', icon: <Compass /> },
@@ -203,7 +199,7 @@ function App() {
     return (
       <>
         <LandingHeader />
-        <Landing brandHref="#brand" creatorHref="#discover" />
+        <Landing streamerHref="#brand" clipperHref="#discover" assetBase={ASSETS} />
         <Toast state={store.toast} />
       </>
     );
@@ -253,10 +249,10 @@ function LandingHeader() {
         </a>
         <nav className="flex items-center gap-0.5 text-sm">
           <a href="#brand" className={link}>
-            Brands
+            Streamers
           </a>
           <a href="#discover" className={link}>
-            Creators
+            Clippers
           </a>
         </nav>
       </div>
@@ -299,7 +295,7 @@ function BrandDashboard({ store }: { store: Store }) {
       <PageHeader
         eyebrow={<span className="text-sm text-zinc-500">{brandName}</span>}
         title="Campaigns"
-        description={pending ? `${pending} ${pending === 1 ? 'video is' : 'videos are'} waiting for your review.` : 'Everything is reviewed. Nice.'}
+        description={pending ? `${pending} ${pending === 1 ? 'clip is' : 'clips are'} waiting for your review.` : 'Every clip is reviewed.'}
         actions={
           <a href="#new-campaign" className={buttonClass('primary')}>
             <Plus className="size-4" /> New campaign
@@ -309,15 +305,15 @@ function BrandDashboard({ store }: { store: Store }) {
       <StatGrid
         items={[
           { label: 'Escrow held', value: usd(sum((c) => c.escrow_balance)) },
-          { label: 'Committed to creators', value: usd(sum((c) => c.budget.committed)) },
+          { label: 'Earned by clippers', value: usd(sum((c) => c.budget.committed)) },
           { label: 'Verified views', value: compact(sum((c) => c.views)) },
-          { label: 'Attributed orders', value: compact(sum((c) => c.conversions)) },
+          { label: 'Merch orders', value: compact(sum((c) => c.conversions)) },
         ]}
       />
       <Card flush className="mt-8 overflow-hidden">
         {campaigns.length === 0 ? (
           <div className="p-5">
-            <Empty icon={<Megaphone />} title="No campaigns yet" body="Create a campaign, fund escrow and go live to start receiving creator videos." />
+            <Empty icon={<Megaphone />} title="No campaigns yet" body="Create a campaign, fund it and go live to start getting clips." />
           </div>
         ) : (
           <div className="divide-y divide-zinc-100">
@@ -362,6 +358,7 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
           <p className="mt-1 text-sm text-zinc-500">
             {payoutModelLabel[c.payout_model]} · {r.rate} {r.unit} · {r.terms}
           </p>
+          <PlatformChips platforms={c.platforms} className="mt-2" />
           <div className="mt-4 flex flex-wrap gap-2">
             <StatusActions campaign={c} act={act} />
           </div>
@@ -372,25 +369,28 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
         <Button size="sm" variant="secondary" onClick={() => act((s) => core.simulateSync(s, c.id))}>
           Run 4h sync
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => act((s) => core.simulateSale(s, c.id))}>
-          Simulate sale
-        </Button>
+        {shopDomain && (
+          <Button size="sm" variant="secondary" onClick={() => act((s) => core.simulateSale(s, c.id))}>
+            Simulate merch order
+          </Button>
+        )}
       </DemoBar>
 
       <StatGrid
         items={[
           { label: 'Escrow balance', value: usd(c.escrow_balance), hint: `${usd(deposited)} deposited` },
-          { label: 'Paid to creators', value: usd(paidOut), hint: `${usd(fees)} platform fees` },
+          { label: 'Paid to clippers', value: usd(paidOut), hint: `${usd(fees)} platform fees` },
           { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
-          { label: 'Attributed orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
+          { label: 'Merch orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-        <Card className="min-w-0 self-start">
-          <CardHeader title="Submissions" description={`Views sync every 4 hours. Clean videos with #ad auto-approve after ${c.auto_approve_hours}h.`} />
+      <div className="grid grid-cols-1 gap-6">
+        <div className="order-2 min-w-0 space-y-6">
+        <Card>
+          <CardHeader title="Clips" description={`Views sync every 4 hours. Clean clips with #ad auto-approve after ${c.auto_approve_hours}h.`} />
           {submissions.length === 0 ? (
-            <Empty icon={<Users />} title="No submissions yet" body="Creators who join appear here once they submit a live video." />
+            <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
           ) : (
             <SubmissionTable
               rows={submissions}
@@ -427,8 +427,27 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
             />
           )}
         </Card>
+        <Card>
+          <CardHeader title="Moments to clip" description="Pin timestamps from your stream. Slots stop everyone cutting the same moment." />
+          <MomentBoard moments={detail.moments} showClaimers empty="No moments pinned yet." />
+          <form
+            className="mt-5 border-t border-zinc-100 pt-5"
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const m = MomentSchema.safeParse(Object.fromEntries(new FormData(form)));
+              if (!m.success) return fail(store, m.error.issues[0].message);
+              const r = act((st) => core.addMoment(st, c.id, m.data));
+              if (!r?.error) form.reset();
+            }}
+          >
+            <MomentFields idPrefix={c.id} submit={<Button type="submit" variant="secondary">Pin moment</Button>} />
+          </form>
+        </Card>
+        </div>
 
-        <div className="space-y-6">
+        <div className="order-1 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
           <Card>
             <CardHeader title="Budget" description={`${usd(budget.available)} free to earn`} />
             <BudgetMeter budget={budget} />
@@ -449,7 +468,7 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
             </div>
           </Card>
           <Card>
-            <CardHeader title="Storefront" description="Orders are matched to creator codes and links." />
+            <CardHeader title="Merch store" description="Optional. Orders using a clipper’s code are credited to them." />
             {shopDomain ? (
               <StorefrontStatus shopDomain={shopDomain} />
             ) : (
@@ -529,7 +548,7 @@ function NewCampaign({ store }: { store: Store }) {
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const parsed = CampaignSchema.safeParse(Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string')));
+    const parsed = CampaignSchema.safeParse(campaignInput(form));
     if (!parsed.success) return setState({ error: parsed.error.issues[0].message });
     const file = form.get('thumbnail');
     const thumb = file instanceof File && file.size > 0 ? file : null;
@@ -615,12 +634,12 @@ function SubmitForm({ store, campaignId, handle }: { store: Store; campaignId: s
     <InlineForm
       id={`submit-${campaignId}`}
       type="url"
-      placeholder="https://www.tiktok.com/@you/video/…"
-      label="Live video link"
-      submit="Submit video"
+      placeholder="Link to your clip"
+      label="Clip link"
+      submit="Submit clip"
       stackOnPhone
       onSubmit={(v) => store.run((s, viewer) => core.submitVideo(s, viewer, campaignId, v))}
-      hint={`Paste the link to your live TikTok. Try https://www.tiktok.com/@${handle ?? 'you'}/video/7399999999999999999`}
+      hint={`TikTok, Shorts or Reels link. Try https://youtube.com/shorts/dQw4w9WgXcQ${handle ? ` or https://www.tiktok.com/@${handle}/video/7399999999999999999` : ''}`}
     />
   );
 }
@@ -630,20 +649,21 @@ function CreatorHome({ store }: { store: Store }) {
   const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
   return (
     <div className="space-y-8">
-      <PageHeader title={`Hi, ${d.name}`} description="Your campaigns, codes and verified earnings." actions={<ViewAs store={store} />} />
+      <PageHeader title={`Hi, ${d.name}`} description="Your campaigns, clip codes and earnings." actions={<ViewAs store={store} />} />
 
       <Checklist
         steps={[
           {
-            label: 'Connect TikTok',
-            detail: 'We read your view counts straight from TikTok. No screenshots.',
-            done: !!d.tiktok,
+            label: 'Join a campaign',
+            detail: 'You get a clip code for every campaign you join.',
+            done: d.enrollments.length > 0,
             action: (
-              <Button size="sm" onClick={() => connectTikTok(store)}>
-                Connect TikTok
-              </Button>
+              <a href="#discover" className={buttonClass('primary', 'sm')}>
+                Discover
+              </a>
             ),
           },
+          { label: 'Post your first clip', detail: 'Put your clip code and #ad in the caption, then paste the link below.', done: subs.length > 0 },
           {
             label: 'Set up payouts',
             detail: 'Stripe sends your earnings to your bank.',
@@ -654,17 +674,6 @@ function CreatorHome({ store }: { store: Store }) {
               </Button>
             ),
           },
-          {
-            label: 'Join a campaign',
-            detail: 'You get a personal code and tracking link.',
-            done: d.enrollments.length > 0,
-            action: (
-              <a href="#discover" className={buttonClass('primary', 'sm')}>
-                Discover
-              </a>
-            ),
-          },
-          { label: 'Submit your first video', detail: 'Paste the TikTok link under the campaign below.', done: subs.length > 0 },
         ]}
       />
 
@@ -673,7 +682,7 @@ function CreatorHome({ store }: { store: Store }) {
           { label: 'Earned', value: usd(subs.reduce((a, s) => a + s.payout_earned, 0)) },
           { label: 'Paid out', value: usd(subs.reduce((a, s) => a + s.payout_transferred, 0)) },
           { label: 'Verified views', value: compact(subs.reduce((a, s) => a + s.current_view_count, 0)) },
-          { label: 'Orders from you', value: compact(subs.reduce((a, s) => a + s.current_conversions, 0)) },
+          { label: 'Merch orders', value: compact(subs.reduce((a, s) => a + s.current_conversions, 0)) },
         ]}
       />
 
@@ -683,7 +692,7 @@ function CreatorHome({ store }: { store: Store }) {
           <Empty
             icon={<Compass />}
             title="No campaigns yet"
-            body="Find one that fits your content in Discover."
+            body="Find a streamer you like clipping in Discover."
             action={
               <a href="#discover" className={buttonClass('primary')}>
                 Browse campaigns
@@ -727,7 +736,7 @@ function CreatorHome({ store }: { store: Store }) {
             icon={<Music2 />}
             title="TikTok"
             connected={!!d.tiktok}
-            detail={d.tiktok ? `@${d.tiktok.username} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Not connected'}
+            detail={d.tiktok ? `@${d.tiktok.username} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips only'}
             action={
               <Button size="sm" variant={d.tiktok ? 'ghost' : 'secondary'} onClick={() => connectTikTok(store)}>
                 {d.tiktok ? 'Reconnect' : 'Connect'}
@@ -755,9 +764,9 @@ function Discover({ store }: { store: Store }) {
   const { openCampaigns } = core.creatorDashboard(store.state, store.viewer);
   return (
     <>
-      <PageHeader title="Discover" description="Open campaigns you haven’t joined. Every rate is paid on verified views or tracked sales." actions={<ViewAs store={store} />} />
+      <PageHeader title="Discover" description="Streamers looking for clippers. Rates are paid on views the platforms report, never screenshots." actions={<ViewAs store={store} />} />
       {openCampaigns.length === 0 ? (
-        <Empty icon={<Compass />} title="You’ve joined everything open" body="New campaigns show up here as soon as brands go live." />
+        <Empty icon={<Compass />} title="You’ve joined everything open" body="New campaigns show up here as soon as streamers go live." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {openCampaigns.map((c) => (
@@ -797,8 +806,11 @@ function Offer({ store, id }: { store: Store; id: string }) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-6">
           <div>
-            <p className="text-sm text-zinc-500">{c.brandName}</p>
-            <h1 className="balance mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
+            <h1 className="balance text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
+            <p className="mt-2 flex items-center gap-2 text-sm text-zinc-600">
+              <StreamerAvatar name={c.brandName} /> {c.brandName}
+            </p>
+            <PlatformChips platforms={c.platforms} className="mt-3" />
           </div>
           {c.brief && (
             <section>
@@ -807,13 +819,33 @@ function Offer({ store, id }: { store: Store; id: string }) {
             </section>
           )}
           <section>
+            <h2 className="mb-1 font-semibold tracking-tight">Moments to clip</h2>
+            <p className="mb-4 text-sm text-zinc-500">Claim one before you cut it. Each moment has a few slots so clips stay varied.</p>
+            <MomentBoard
+              moments={d.moments}
+              empty="No moments pinned yet. Anything from the VODs is fair game."
+              action={(m) =>
+                m.mine ? (
+                  <Badge tone="green">Yours</Badge>
+                ) : m.claimed_by.length >= m.max_claims ? (
+                  <Badge>Full</Badge>
+                ) : d.enrollment ? (
+                  <Button size="sm" variant="secondary" onClick={() => store.run((s, v) => core.claimMoment(s, v, m.id))}>
+                    Claim
+                  </Button>
+                ) : null
+              }
+            />
+          </section>
+          <section>
             <h2 className="mb-3 font-semibold tracking-tight">Requirements</h2>
             <RequirementList items={c.requirements} />
           </section>
           <section>
             <h2 className="mb-2 font-semibold tracking-tight">How you get paid</h2>
             <ul className="max-w-prose list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-600">
-              <li>Views are read from TikTok every 4 hours. Self-reported numbers aren’t accepted.</li>
+              <li>Views are read from TikTok and YouTube every 4 hours. Screenshots and self-reported numbers aren’t accepted.</li>
+              <li>Put your clip code in the caption. It proves the clip is yours on any platform.</li>
               {c.payout_model === 'cps_performance' && <li>Every order placed with your code or link earns you {c.cps_commission_pct}%.</li>}
               {c.payout_model === 'hybrid' && (
                 <li>
@@ -821,9 +853,9 @@ function Offer({ store, id }: { store: Store; id: string }) {
                 </li>
               )}
               <li>
-                Earnings stop at {usd(c.cpm_cap)} per creator. A {FEE_PERCENT}% platform fee comes out of each payout.
+                Earnings stop at {usd(c.cpm_cap)} per clipper. A {FEE_PERCENT}% platform fee comes out of each payout.
               </li>
-              <li>If the brand hasn’t reviewed a clean video with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
+              <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
             </ul>
           </section>
           {d.enrollment && (
@@ -852,11 +884,7 @@ function Offer({ store, id }: { store: Store; id: string }) {
             </div>
             <div className="mt-5">
               {d.enrollment ? (
-                <p className="rounded-lg bg-accent-50 px-3.5 py-2.5 text-sm text-accent-700">You’ve joined. Your code is on the left.</p>
-              ) : !d.tiktokConnected ? (
-                <Button className="w-full" onClick={() => connectTikTok(store)}>
-                  Connect TikTok to join
-                </Button>
+                <p className="rounded-lg bg-accent-50 px-3.5 py-2.5 text-sm text-accent-700">You’ve joined. Your clip code is on this page.</p>
               ) : (
                 <Button className="w-full" onClick={() => store.run((s, v) => core.joinCampaign(s, v, c.id))}>
                   Join campaign

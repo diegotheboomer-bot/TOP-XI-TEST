@@ -1,8 +1,8 @@
 // Server-side demo mode (no Supabase keys): one in-memory store per server process.
 // Resets on restart or via "Reset" in the header. Logic lives in demo-core.ts.
 //
-// The local demo uses well-known streamers as example creators, only in ordinary,
-// positive rows. Fraud examples use made-up handles. Brands and numbers are invented.
+// Streamers, clippers and every number are invented. Campaign photos are CC0
+// (public/demo/thumbs/credits.json).
 import { cookies } from 'next/headers';
 import * as core from './demo-core';
 import { platformFeePercent } from './stripe';
@@ -11,22 +11,13 @@ import type { Campaign } from './types';
 
 export { DEMO_BRAND_ID } from './demo-core';
 
-const ROSTER: core.CreatorSeed[] = [
-  { handle: 'kaicenat', displayName: 'Kai Cenat', followers: 14_200_000 },
-  { handle: 'ishowspeed', displayName: 'IShowSpeed', followers: 31_500_000 },
-  { handle: 'pokimane', displayName: 'Pokimane', followers: 7_900_000 },
-  { handle: 'ludwig', displayName: 'Ludwig', followers: 2_400_000 },
-  { handle: 'valkyrae', displayName: 'Valkyrae', followers: 5_100_000 },
-  { handle: 'xqc', displayName: 'xQc', followers: 3_300_000 },
-  { handle: 'sykkuno', displayName: 'Sykkuno', followers: 2_800_000 },
-];
 const CREATOR_COOKIE = 'demo_creator';
 
 const g = globalThis as unknown as { __creatorEngineDemo?: core.DemoState };
-const db = () => (g.__creatorEngineDemo ??= core.seedDemo(ROSTER, platformFeePercent()));
+const db = () => (g.__creatorEngineDemo ??= core.seedDemo(platformFeePercent(), '/demo/thumbs/'));
 
 export function resetDemo() {
-  g.__creatorEngineDemo = core.seedDemo(ROSTER, platformFeePercent());
+  g.__creatorEngineDemo = core.seedDemo(platformFeePercent(), '/demo/thumbs/');
 }
 
 export function currentCreatorId(): string {
@@ -55,3 +46,5 @@ export const joinCampaign = (campaignId: string) => core.joinCampaign(db(), curr
 export const submitVideo = (campaignId: string, url: string) => core.submitVideo(db(), currentCreatorId(), campaignId, url);
 export const connectTikTok = () => core.connectTikTok(db(), currentCreatorId());
 export const enablePayouts = () => core.enablePayouts(db(), currentCreatorId());
+export const addMoment = (campaignId: string, input: Parameters<typeof core.addMoment>[2]) => core.addMoment(db(), campaignId, input);
+export const claimMoment = (momentId: string) => core.claimMoment(db(), currentCreatorId(), momentId);

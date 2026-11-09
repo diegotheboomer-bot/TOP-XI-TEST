@@ -23,7 +23,7 @@ describe('budgetStats', () => {
 });
 
 describe('hasDisclosure', () => {
-  it.each(['New flavor drop #ad', '#Sponsored by Voltline', 'thanks @voltline #partner', 'fuel up #ad\n#fyp'])('accepts %s', (c) => {
+  it.each(['New flavor drop #ad', '#Sponsored by Marlow', 'thanks @marlowkade #partner', 'fuel up #ad\n#fyp'])('accepts %s', (c) => {
     expect(hasDisclosure(c)).toBe(true);
   });
   it.each(['#adventure time', 'love this #badge', 'no tags here', '', null, 'ad', 'email#ad'])('rejects %s', (c) => {
@@ -47,4 +47,10 @@ describe('auto-approval', () => {
     expect(shouldAutoApprove({ ...base, created_at: due, has_disclosure: false }, 48, now)).toBe(false);
     expect(shouldAutoApprove({ ...base, created_at: due, fraud_score: 40 }, 48, now)).toBe(false);
   });
+});
+
+import { hasClipCode } from '@/lib/compliance';
+describe('hasClipCode', () => {
+  it.each(['Insane clutch #ad code MK7Q2X', 'mk7q2x', 'clip code: MK7Q2X!', 'MK7Q2X\n#ad'])('finds it in %s', (c) => expect(hasClipCode(c, 'MK7Q2X')).toBe(true));
+  it.each(['MK7Q2XY', 'XMK7Q2X', 'MK7Q2', '', null])('rejects %s', (c) => expect(hasClipCode(c, 'MK7Q2X')).toBe(false));
 });

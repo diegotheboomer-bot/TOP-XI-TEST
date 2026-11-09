@@ -25,6 +25,20 @@ export interface Campaign {
   requirements: string[];
   /** Clean submissions still pending after this many hours are approved automatically. */
   auto_approve_hours: number;
+  /** Where clippers may post for this campaign. */
+  platforms: Platform[];
+}
+
+/** A moment the streamer pinned from a stream for clippers to cut. */
+export interface Moment {
+  id: string;
+  campaign_id: string;
+  title: string;
+  timestamp_label: string;
+  vod_url: string | null;
+  max_claims: number;
+  /** creator ids that claimed it */
+  claimed_by: string[];
 }
 
 export interface Submission {

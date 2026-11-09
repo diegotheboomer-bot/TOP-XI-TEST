@@ -4,6 +4,7 @@ import { detectBotVelocity, hashSimilarity, DUPLICATE_THRESHOLD } from './fraud'
 import { perceptualHashFromUrl } from './phash';
 import { hasDisclosure, shouldAutoApprove } from './compliance';
 import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
+import { getYouTubeVideos } from './platforms/youtube';
 import { getTikTokAccessToken } from './tokens';
 import type { Submission } from './types';
 
@@ -25,13 +26,35 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
     .from('submissions')
     .select('*, campaigns(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, auto_approve_hours)')
     .in('status', ['live_tracking', 'pending_review'])
-    .eq('platform', 'tiktok');
+    .in('platform', ['tiktok', 'youtube']);
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
   const report: SyncReport = { synced: 0, flagged: 0, autoApproved: 0, failed: [] };
+  const all = (data ?? []) as SubmissionWithCampaign[];
   const byCreator = new Map<string, SubmissionWithCampaign[]>();
-  for (const s of (data ?? []) as SubmissionWithCampaign[]) {
+  for (const s of all.filter((x) => x.platform === 'tiktok')) {
     byCreator.set(s.creator_id, [...(byCreator.get(s.creator_id) ?? []), s]);
+  }
+
+  // YouTube: one API-key batch for every submission.
+  const youtube = all.filter((x) => x.platform === 'youtube');
+  if (youtube.length) {
+    let stats: Map<string, VideoStats> | null = null;
+    try {
+      stats = new Map((await getYouTubeVideos(youtube.map((s) => s.social_platform_video_id))).map((v) => [v.id, v]));
+    } catch (e) {
+      youtube.forEach((s) => report.failed.push({ submissionId: s.id, error: String(e) }));
+    }
+    for (const sub of stats ? youtube : []) {
+      try {
+        const outcome = await applyStats(admin, sub, stats!.get(sub.social_platform_video_id));
+        report.synced++;
+        if (outcome === 'flagged') report.flagged++;
+        if (outcome === 'auto_approved') report.autoApproved++;
+      } catch (e) {
+        report.failed.push({ submissionId: sub.id, error: String(e) });
+      }
+    }
   }
 
   for (const [creatorId, subs] of byCreator) {
@@ -68,7 +91,8 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
 
   if (!v) {
     // Deleted, made private, or no longer owned by the connected account.
-    await admin.from('submissions').update({ status: 'flagged', flag_reason: 'Video unavailable on TikTok', last_synced_at: now.toISOString() }).eq('id', sub.id);
+    const where = sub.platform === 'youtube' ? 'YouTube' : 'TikTok';
+    await admin.from('submissions').update({ status: 'flagged', flag_reason: `Video unavailable on ${where}`, last_synced_at: now.toISOString() }).eq('id', sub.id);
     return 'flagged';
   }
 

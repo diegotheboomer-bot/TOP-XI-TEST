@@ -3,7 +3,7 @@
 // React/ReactDOM load from cdnjs (UMD globals); everything else is inlined.
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -65,4 +65,9 @@ const html = `<title>Creator Engine Demo</title>
 <script>${js}</script>
 `;
 writeFileSync(path.join(out, 'index.html'), html);
+
+// Campaign photos are published next to the page as thumbs/*.jpg.
+const thumbs = path.join(root, 'public/demo/thumbs');
+mkdirSync(path.join(out, 'thumbs'), { recursive: true });
+for (const f of readdirSync(thumbs).filter((f) => f.endsWith('.jpg'))) copyFileSync(path.join(thumbs, f), path.join(out, 'thumbs', f));
 console.log(`demo-dist/index.html  ${(html.length / 1024).toFixed(0)} KB`);

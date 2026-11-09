@@ -23,8 +23,8 @@ export function LoginForm() {
 }
 
 const roles = [
-  { value: 'brand', icon: Megaphone, title: 'I’m a brand', body: 'Fund campaigns and pay for results.' },
-  { value: 'creator', icon: Video, title: 'I’m a creator', body: 'Join campaigns and get paid per view or sale.' },
+  { value: 'brand', icon: Megaphone, title: 'I stream', body: 'Run campaigns and pay clippers for real views.' },
+  { value: 'creator', icon: Video, title: 'I clip', body: 'Clip streamers and get paid per view.' },
 ] as const;
 
 export function OnboardingForm() {
@@ -53,8 +53,8 @@ export function OnboardingForm() {
           </label>
         ))}
       </fieldset>
-      <Field label={role === 'brand' ? 'Brand name' : 'Display name'}>
-        <Input name="name" required minLength={2} placeholder={role === 'brand' ? 'Northwind Coffee' : 'Maya'} />
+      <Field label={role === 'brand' ? 'Channel name' : 'Display name'}>
+        <Input name="name" required minLength={2} placeholder={role === 'brand' ? 'Marlow Kade' : 'Rae'} />
       </Field>
       <FormMessage state={state} />
       <SubmitButton className="w-full" pendingText="Setting up…">Continue</SubmitButton>
