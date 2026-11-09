@@ -230,7 +230,7 @@ function App() {
       <>
         <LandingHeader />
         {route.name === 'home' ? (
-          <Landing startHref="#start" clipperHref="#discover" assetBase={ASSETS} feePercent={FEE_PERCENT} />
+          <Landing startHref="#start" clipperHref="#discover" feePercent={FEE_PERCENT} />
         ) : (
           <RolePicker streamerHref="#brand" clipperHref="#creator" assetBase={ASSETS} />
         )}

@@ -20,7 +20,7 @@ With no Supabase keys the app runs in **demo mode** (`src/lib/demo-core.ts`). Ev
 - **Clipper** (`/clipper`): switch clippers with **Viewing as**, browse Discover, join, claim a moment, submit a TikTok, Shorts or Reels link, and choose how to get paid: bank or debit card (mock Stripe form), PayPal or Venmo.
 - **Reset** in the sidebar restores the starting data.
 
-Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thumbs/credits.json` (also linked from the landing page).
+Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thumbs/credits.json`.
 
 ### Shareable single-page demo
 
