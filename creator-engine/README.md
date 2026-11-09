@@ -28,7 +28,7 @@ Campaign photos are CC0 images from StockSnap and Rawpixel; see `public/demo/thu
 
 ## Set up for real
 
-1. Create a Supabase project and run the migrations in `supabase/migrations/` in order (SQL editor or `supabase db push`). `0002` creates the `campaign-thumbnails` storage bucket; `0003` adds platforms and the moment board.
+1. Create a Supabase project. In the SQL Editor, paste and run `supabase/setup.sql` once (all migrations in one transaction), or run `supabase/migrations/` in order with `supabase db push`. `0002` creates the `campaign-thumbnails` storage bucket; `0003` adds platforms and the moment board.
 2. Copy `.env.example` to `.env.local` and fill it in. `TOKEN_ENCRYPTION_KEY`: `openssl rand -base64 32`.
 3. Supabase Auth → URL configuration: add `<APP_URL>/auth/callback` as a redirect URL.
 4. YouTube: a Data API v3 key in `YOUTUBE_API_KEY` (public video statistics).
