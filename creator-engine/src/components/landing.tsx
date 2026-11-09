@@ -40,12 +40,15 @@ export function Landing({
   clipperHref,
   assetBase,
   feePercent,
+  legal,
 }: {
   link?: LinkLike;
   startHref: string;
   clipperHref: string;
   assetBase: string;
   feePercent: number;
+  /** Links to the privacy policy and terms, when the site has them. */
+  legal?: { privacy: string; terms: string };
 }) {
   const withFee = (t: string) => t.replace('{fee}', String(feePercent));
   const Link = link;
@@ -119,7 +122,19 @@ export function Landing({
       </section>
 
       <footer className="flex flex-col gap-3 border-t border-zinc-200/80 py-8 text-xs text-zinc-500 sm:flex-row sm:items-start sm:justify-between">
-        <span className="text-sm">Creator Engine</span>
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          Creator Engine
+          {legal && (
+            <>
+              <Link href={legal.privacy} className="text-xs hover:text-zinc-900">
+                Privacy
+              </Link>
+              <Link href={legal.terms} className="text-xs hover:text-zinc-900">
+                Terms
+              </Link>
+            </>
+          )}
+        </span>
         <details className="max-w-xl sm:text-right">
           <summary className="cursor-pointer">Photo credits</summary>
           <ul className="mt-2 space-y-1">

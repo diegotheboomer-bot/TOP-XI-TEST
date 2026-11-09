@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <>
       <SiteHeader />
-      <Landing link={Link} startHref="/start" clipperHref="/clipper/discover" assetBase="/demo/thumbs/" feePercent={platformFeePercent()} />
+      <Landing link={Link} startHref="/start" clipperHref="/clipper/discover" assetBase="/demo/thumbs/" feePercent={platformFeePercent()} legal={{ privacy: '/privacy', terms: '/terms' }} />
     </>
   );
 }
