@@ -7,6 +7,9 @@
 import { useEffect, useState } from 'react';
 import { Eye } from 'lucide-react';
 import { cn } from './ui/cn';
+import { PlatformIcon } from './platform-icon';
+
+const ICON = { tiktok: 'tiktok', shorts: 'youtube', reels: 'instagram' } as const;
 
 const BARS = [3, 4, 3, 5, 4, 6, 5, 4, 3, 4, 5, 4, 6, 7, 5, 4, 5, 6, 8, 11, 14, 16, 15, 13, 10, 7, 6, 5, 4, 5, 4, 3, 4, 5, 6, 5, 4, 3, 4, 3];
 const MOMENT = { from: 18, to: 26 };
@@ -152,7 +155,7 @@ export function HeroFlow() {
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className={cn('font-mono text-[10px] font-semibold tabular-nums', rank === 1 ? 'text-brand' : 'text-zinc-400')}>#{rank}</span>
-                  <span className="size-1.5 rounded-full" style={{ background: l.color }} />
+                  <PlatformIcon platform={ICON[l.id]} className={cn('size-4 transition-colors', on ? 'text-[rgb(var(--brand-ta))]' : 'text-zinc-400')} />
                 </div>
                 <p className="mt-1.5 truncate text-lg font-bold tracking-tight sm:text-[1.4rem]" style={l.wordStyle}>
                   {l.word}

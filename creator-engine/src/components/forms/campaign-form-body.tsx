@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ImagePlus, X } from 'lucide-react';
+import { Check, ImagePlus, X } from 'lucide-react';
 import { Field, Input, Select } from '../ui/field';
 import { Card } from '../ui/card';
 import { MarketCard } from '../views';
+import { PlatformIcon } from '../platform-icon';
 import { cn } from '../ui/cn';
 import { THUMBNAIL_TYPES } from '@/lib/schemas';
 import type { PayoutModel, Platform } from '@/lib/types';
@@ -140,8 +141,8 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
                   <label
                     key={value}
                     className={cn(
-                      'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-accent-500',
-                      on ? 'border-transparent bg-brand text-brand-ink' : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300',
+                      'relative inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-accent-500',
+                      on ? 'border-brand-b/60 bg-brand-a/10 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-700',
                     )}
                   >
                     <input
@@ -152,7 +153,11 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
                       onChange={() => setPlatforms((p) => (on ? p.filter((x) => x !== value) : [...p, value]))}
                       className="sr-only"
                     />
+                    <PlatformIcon platform={value} className={cn('size-4 transition-colors', on ? 'text-[rgb(var(--brand-ta))]' : 'text-zinc-400')} />
                     {label}
+                    <span className={cn('ml-1 grid size-4 place-items-center rounded-full transition', on ? 'bg-brand text-brand-ink' : 'border border-zinc-300')}>
+                      {on && <Check className="size-3" strokeWidth={3} />}
+                    </span>
                   </label>
                 );
               })}

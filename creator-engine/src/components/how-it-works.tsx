@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Eye, Lock, Pin } from 'lucide-react';
 import { cn } from './ui/cn';
+import { PlatformIcon } from './platform-icon';
 
 type Who = 'streamer' | 'clipper';
 const STEP_MS = 5500;
@@ -136,9 +137,19 @@ function Preview({ who, step, feePercent }: { who: Who; step: number; feePercent
           <Field k="Cap per clipper" v="$500" />
         </div>
         <div className="mt-3 flex gap-1.5">
-          {['TikTok', 'Shorts', 'Reels'].map((p) => (
-            <span key={p} className="rounded-full bg-brand px-2.5 py-1 font-mono text-[11px] font-semibold text-brand-ink">
+          {(
+            [
+              ['tiktok', 'TikTok'],
+              ['youtube', 'Shorts'],
+              ['instagram', 'Reels'],
+            ] as const
+          ).map(([id, p]) => (
+            <span key={p} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-b/60 bg-brand-a/10 px-2.5 py-1.5 text-xs font-medium">
+              <PlatformIcon platform={id} className="size-3.5 text-[rgb(var(--brand-ta))]" />
               {p}
+              <span className="grid size-3.5 place-items-center rounded-full bg-brand text-brand-ink">
+                <Check className="size-2.5" strokeWidth={3.5} />
+              </span>
             </span>
           ))}
         </div>

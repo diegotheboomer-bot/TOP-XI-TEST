@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Compass, Music2, Wallet } from 'lucide-react';
+import { Compass, Wallet } from 'lucide-react';
+import { PlatformIcon } from '@/components/platform-icon';
 import { getCreatorDashboard } from '@/lib/data';
 import { compact, usd } from '@/lib/format';
 import { payoutDestination } from '@/lib/payout-methods';
@@ -117,7 +118,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
         <h2 className="mb-4 font-semibold tracking-tight">Accounts</h2>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <ConnectionCard
-            icon={<Music2 />}
+            icon={<PlatformIcon platform="tiktok" />}
             title="TikTok"
             connected={!!d.tiktok}
             detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips only'}

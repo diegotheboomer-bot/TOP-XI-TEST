@@ -12,6 +12,7 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
 import { cn } from './ui/cn';
+import { PlatformIcon } from './platform-icon';
 import { CopyField } from './copy-button';
 import { CampaignBadge, FraudBadge, SubmissionBadge } from './status';
 
@@ -32,7 +33,8 @@ export function PlatformChips({ platforms, className }: { platforms: Platform[];
   return (
     <span className={cn('flex flex-wrap gap-1', className)}>
       {PLATFORM_ORDER.filter((p) => platforms.includes(p)).map((p) => (
-        <span key={p} className="rounded border border-zinc-200 px-1.5 py-px text-[11px] font-medium text-zinc-600">
+        <span key={p} className="inline-flex items-center gap-1 rounded border border-zinc-200 px-1.5 py-px text-[11px] font-medium text-zinc-600">
+          <PlatformIcon platform={p} className="size-3 text-zinc-400" />
           {PLATFORM_LABEL[p]}
         </span>
       ))}
@@ -395,10 +397,22 @@ export function Checklist({ steps, title = 'Get started' }: { steps: ChecklistSt
 export function ConnectionCard({ icon, title, connected, detail, action }: { icon: React.ReactNode; title: string; connected: boolean; detail: string; action: React.ReactNode }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-700 [&>svg]:size-4">{icon}</span>
+      <span
+        className={cn(
+          'relative grid size-9 shrink-0 place-items-center rounded-lg transition [&>svg]:size-4',
+          connected ? 'bg-brand-a/10 text-[rgb(var(--brand-ta))] ring-1 ring-brand-b/50' : 'bg-zinc-100 text-zinc-400',
+        )}
+      >
+        {icon}
+        {connected && (
+          <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-brand text-brand-ink ring-2 ring-white">
+            <Check className="!size-2.5" strokeWidth={3.5} />
+          </span>
+        )}
+      </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">
-          {title} {connected && <span className="ml-1 text-xs font-normal text-accent-700">Connected</span>}
+          {title} {connected && <span className="ml-1 text-xs font-normal text-[rgb(var(--brand-ta))]">Connected</span>}
         </p>
         <p className="truncate text-xs text-zinc-500">{detail}</p>
       </div>

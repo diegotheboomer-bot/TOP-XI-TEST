@@ -4,7 +4,8 @@
 // Build: npm run build:demo
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowLeft, ArrowLeftRight, Compass, House, LayoutList, Megaphone, Music2, Plus, RotateCcw, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Compass, House, LayoutList, Megaphone, Plus, RotateCcw, Users, Wallet } from 'lucide-react';
+import { PlatformIcon } from '@/components/platform-icon';
 import * as core from '@/lib/demo-core';
 import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
 import { CampaignSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
@@ -848,7 +849,7 @@ function CreatorHome({ store }: { store: Store }) {
         <h2 className="mb-4 font-semibold tracking-tight">Accounts</h2>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <ConnectionCard
-            icon={<Music2 />}
+            icon={<PlatformIcon platform="tiktok" />}
             title="TikTok"
             connected={!!d.tiktok}
             detail={d.tiktok ? `@${d.tiktok.username} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips only'}
