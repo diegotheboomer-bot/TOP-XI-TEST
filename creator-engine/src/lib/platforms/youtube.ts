@@ -7,7 +7,7 @@ const API = 'https://www.googleapis.com/youtube/v3/videos';
 
 interface YouTubeVideo {
   id: string;
-  snippet?: { title?: string; description?: string; thumbnails?: { high?: { url?: string } } };
+  snippet?: { title?: string; description?: string; publishedAt?: string; thumbnails?: { high?: { url?: string } } };
   statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
 }
 
@@ -32,6 +32,7 @@ export async function getYouTubeVideos(ids: string[]): Promise<VideoStats[]> {
         shares: 0,
         coverUrl: v.snippet?.thumbnails?.high?.url ?? null,
         caption: [v.snippet?.title, v.snippet?.description].filter(Boolean).join('\n'),
+        publishedAt: v.snippet?.publishedAt ?? null,
       });
     }
   }

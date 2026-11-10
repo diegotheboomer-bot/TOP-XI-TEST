@@ -17,7 +17,7 @@ import { stripe } from '@/lib/stripe';
 import { paypalConfigured } from '@/lib/paypal';
 import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
-import type { ActionState } from './result';
+import type { ActionState, SubmitCheck, SubmitState } from './result';
 
 async function requireCreator() {
   const viewer = await getViewer();
@@ -59,7 +59,7 @@ const SubmitSchema = z.object({
  * creator's own TikTok token, stores a baseline metric sample and runs the
  * duplicate-asset check. Recurring sync starts once the streamer approves.
  */
-export async function submitVideo(_prev: ActionState, form: FormData): Promise<ActionState> {
+export async function submitVideo(_prev: SubmitState, form: FormData): Promise<SubmitState> {
   if (form.get('noPaidPromo') !== 'on') return { error: 'Confirm the clip isn’t paid-promoted.' };
   const parsedForm = SubmitSchema.safeParse({ campaignId: form.get('campaignId'), videoUrl: form.get('videoUrl') });
   if (!parsedForm.success) return { error: parsedForm.error.issues[0].message };
@@ -69,28 +69,37 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
   const creatorId = await requireCreator();
   const admin = createAdminClient();
 
+  // Each step adds a line to the checklist the clipper sees; the first failure stops.
+  const checks: SubmitCheck[] = [];
+  const pass = (label: string, detail?: string) => checks.push({ label, status: 'pass', detail });
+  const fail = (label: string, detail: string): SubmitState => {
+    checks.push({ label, status: 'fail', detail });
+    return { error: detail, checks };
+  };
+
   const { data: enrollment } = await admin
     .from('campaign_creators')
-    .select('id, discount_code, campaigns(status, platforms)')
+    .select('id, discount_code, joined_at, campaigns(status, platforms)')
     .eq('campaign_id', campaignId)
     .eq('creator_id', creatorId)
     .maybeSingle();
   const campaign = enrollment?.campaigns as unknown as { status: string; platforms: string[] } | null;
-  if (!enrollment) return { error: 'Join the campaign before submitting.' };
-  if (campaign?.status !== 'active') return { error: 'This campaign is not accepting submissions.' };
+  if (!enrollment) return fail('You’re in this campaign', 'Join the campaign before submitting.');
+  if (campaign?.status !== 'active') return fail('Campaign is open', 'This campaign is not accepting clips right now.');
 
   const parsed = await parseVideoUrlResolving(videoUrl);
   if (!parsed.ok) {
-    return {
-      error:
-        parsed.reason === 'unsupported_host'
-          ? 'Only TikTok, Instagram Reels and YouTube Shorts links are recognised.'
-          : 'That link does not point to a single video.',
-    };
+    return fail(
+      'Link recognised',
+      parsed.reason === 'unsupported_host' ? 'Only TikTok, Instagram Reels and YouTube Shorts links work.' : 'That link doesn’t point to a single video.',
+    );
   }
   const { platform, videoId, canonicalUrl } = parsed.video;
-  if (!campaign?.platforms.includes(platform)) return { error: 'This campaign doesn’t accept that platform.' };
-  if (platform === 'instagram') return { error: 'Instagram Reels tracking isn’t connected yet. Submit a TikTok or YouTube Short.' };
+  const where = { tiktok: 'TikTok', youtube: 'YouTube Shorts', instagram: 'Instagram Reels' }[platform];
+  pass('Link recognised', where);
+  if (!campaign.platforms.includes(platform)) return fail('Campaign takes this platform', `This campaign doesn’t take ${where} clips.`);
+  if (platform === 'instagram') return fail('Campaign takes this platform', 'Instagram Reels tracking isn’t connected yet. Submit a TikTok or YouTube Short.');
+  pass('Campaign takes this platform');
 
   let stats;
   if (platform === 'tiktok') {
@@ -99,21 +108,31 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
       const token = await getTikTokAccessToken(admin, creatorId);
       [stats] = await queryTikTokVideos(token, [videoId]);
     } catch (e) {
-      return { error: e instanceof Error && e.message.includes('not connected') ? 'Connect your TikTok account first.' : 'TikTok could not be reached. Try again shortly.' };
+      return fail('Video found', e instanceof Error && e.message.includes('not connected') ? 'Connect your TikTok account first.' : 'TikTok couldn’t be reached. Try again shortly.');
     }
-    if (!stats) return { error: 'That video is not on your connected TikTok account.' };
+    if (!stats) return fail('Video found', 'That video isn’t on your connected TikTok account.');
+    pass('Video found');
+    pass('It’s your video', 'On your connected TikTok');
   } else {
     // YouTube: public stats; ownership is proven by the clip code in the title or description.
     try {
       [stats] = await getYouTubeVideos([videoId]);
     } catch {
-      return { error: 'YouTube could not be reached. Try again shortly.' };
+      return fail('Video found', 'YouTube couldn’t be reached. Try again shortly.');
     }
-    if (!stats) return { error: 'That YouTube video is private or doesn’t exist.' };
+    if (!stats) return fail('Video found', 'That YouTube video is private or doesn’t exist.');
+    pass('Video found');
     if (!hasClipCode(stats.caption, enrollment.discount_code)) {
-      return { error: `Add your clip code ${enrollment.discount_code} to the video’s title or description so we know it’s yours.` };
+      return fail('It’s your video', `Add your clip code ${enrollment.discount_code} to the title or description, then try again.`);
     }
+    pass('It’s your video', `Clip code ${enrollment.discount_code} found`);
   }
+
+  // Only clips made for this campaign: posted after joining it.
+  if (stats.publishedAt && enrollment.joined_at && new Date(stats.publishedAt) < new Date(enrollment.joined_at)) {
+    return fail('Posted after you joined', 'This video was posted before you joined the campaign. Post a new clip for it.');
+  }
+  pass('Posted after you joined', stats.publishedAt ? `Posted ${timeAgo(stats.publishedAt)}` : undefined);
 
   const { data: submission, error } = await admin
     .from('submissions')
@@ -133,9 +152,9 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
     .single();
   if (error) {
     if (error.code === '23505') {
-      return { error: error.message.includes('creator_id') ? 'You already have a submission in this campaign.' : 'This video was already submitted to this campaign.' };
+      return fail('Not submitted before', error.message.includes('creator_id') ? 'You already have a clip in this campaign.' : 'This video was already submitted to this campaign.');
     }
-    return { error: 'Could not save the submission.' };
+    return fail('Saved', 'Couldn’t save the clip. Try again.');
   }
 
   await admin.from('social_metrics_logs').insert({
@@ -159,9 +178,24 @@ export async function submitVideo(_prev: ActionState, form: FormData): Promise<A
   }
 
   revalidatePath('/clipper');
-  if (dup.duplicateOf) return { error: 'Submitted, but flagged: it matches another creator’s video in this campaign.' };
-  if (!hasDisclosure(stats.caption)) return { success: 'Submitted. Add #ad to your caption so it can be approved.' };
-  return { success: 'Submitted. The streamer will review it shortly.' };
+  if (dup.duplicateOf) {
+    checks.push({ label: 'Original clip', status: 'fail', detail: 'It matches another clipper’s video in this campaign, so it’s held for the streamer.' });
+    return { error: 'Submitted, but held: it matches another clip in this campaign.', checks };
+  }
+  pass('Original clip', 'No copies found in this campaign');
+  if (!hasDisclosure(stats.caption)) {
+    checks.push({ label: '#ad in caption', status: 'warn', detail: 'Add #ad to your caption so it can be approved.' });
+    return { success: 'Submitted. Add #ad to your caption so it can be approved.', checks };
+  }
+  pass('#ad in caption');
+  return { success: 'Submitted. The streamer will review it shortly.', checks };
+}
+
+function timeAgo(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  return hours < 48 ? `${hours}h ago` : `${Math.round(hours / 24)} days ago`;
 }
 
 /**

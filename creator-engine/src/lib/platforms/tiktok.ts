@@ -76,6 +76,8 @@ export interface VideoStats {
   shares: number;
   coverUrl: string | null;
   caption: string | null;
+  /** When it was posted, if the platform says. */
+  publishedAt?: string | null;
 }
 
 /**
@@ -86,8 +88,8 @@ export async function queryTikTokVideos(accessToken: string, videoIds: string[])
   const out: VideoStats[] = [];
   for (let i = 0; i < videoIds.length; i += 20) {
     const data = await apiCall<{
-      videos: { id: string; view_count?: number; like_count?: number; comment_count?: number; share_count?: number; cover_image_url?: string; video_description?: string }[];
-    }>('/video/query/?fields=id,view_count,like_count,comment_count,share_count,cover_image_url,video_description', accessToken, {
+      videos: { id: string; view_count?: number; like_count?: number; comment_count?: number; share_count?: number; cover_image_url?: string; video_description?: string; create_time?: number }[];
+    }>('/video/query/?fields=id,view_count,like_count,comment_count,share_count,cover_image_url,video_description,create_time', accessToken, {
       method: 'POST',
       body: JSON.stringify({ filters: { video_ids: videoIds.slice(i, i + 20) } }),
     });
@@ -100,6 +102,7 @@ export async function queryTikTokVideos(accessToken: string, videoIds: string[])
         shares: v.share_count ?? 0,
         coverUrl: v.cover_image_url ?? null,
         caption: v.video_description ?? null,
+        publishedAt: v.create_time ? new Date(v.create_time * 1000).toISOString() : null,
       });
     }
   }
