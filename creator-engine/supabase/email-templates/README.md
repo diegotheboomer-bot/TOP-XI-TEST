@@ -6,6 +6,7 @@ Paste these into Supabase: **Authentication → Emails → Templates**.
 |---|---|---|
 | Confirm signup | `confirm-signup.html` | Confirm your Atlas Clipping email |
 | Magic Link | `magic-link.html` | Your Atlas Clipping sign-in code |
+| Reset Password | `reset-password.html` | Reset your Atlas Clipping password |
 
 Links go to `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`, where RedirectTo is `/auth/confirm?handoff=…` set by the sign-in form. Pressing Continue there confirms the email and the page that asked for the link signs in by itself (any browser or device), so the email tab can be closed. Email apps that pre-open links can't use the link up, because nothing happens until Continue is pressed. Plain tables and inline styles only, so they render the same in Gmail, Outlook and Apple Mail.
 

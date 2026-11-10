@@ -4,14 +4,14 @@ import { RolePicker } from '@/components/role-picker';
 import { isDemo } from '@/lib/env';
 
 export default function StartPage() {
-  // Demo: straight into each side. Real accounts sign in first, then pick (preselected).
+  // Demo: straight into each side. Real accounts: sign up with that side preselected.
   return (
     <>
       <SiteHeader />
       <RolePicker
         link={Link}
-        streamerHref={isDemo ? '/streamer' : '/onboarding?role=brand'}
-        clipperHref={isDemo ? '/clipper' : '/onboarding?role=creator'}
+        streamerHref={isDemo ? '/streamer' : '/signup?role=brand'}
+        clipperHref={isDemo ? '/clipper' : '/signup?role=creator'}
         assetBase="/demo/thumbs/"
       />
     </>

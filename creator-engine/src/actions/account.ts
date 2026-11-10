@@ -10,21 +10,100 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { resetDemo } from '@/lib/demo';
 import { DEMO_ERROR, type ActionState } from './result';
 
-export async function sendMagicLink(_prev: ActionState, form: FormData): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
-  const email = z.string().trim().email().safeParse(form.get('email'));
-  if (!email.success) return { error: 'Enter a valid email address.' };
-  // The page that asked waits on this id (cookie) and finishes signing in once
-  // the emailed link is confirmed, in any browser (see confirmHandoff).
+const Email = z.string().trim().toLowerCase().email('Enter a valid email address.');
+const Password = z.string().min(8, 'Use at least 8 characters for your password.').max(72);
+const Role = z.enum(['brand', 'creator']);
+const Name = z.string().trim().min(2, 'Name is too short').max(120);
+
+/** Starts a handoff the waiting page can finish if the person taps the email's button instead of typing the code. */
+async function startHandoff(): Promise<string> {
   const handoff = crypto.randomUUID();
   await createAdminClient().from('login_handoffs').insert({ id: handoff });
-  const { error } = await createClient().auth.signInWithOtp({
-    email: email.data,
-    options: { emailRedirectTo: `${appUrl()}/auth/confirm?handoff=${handoff}` },
+  cookies().set(HANDOFF_COOKIE, handoff, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 });
+  return handoff;
+}
+
+/** Sign up: role, name, email, password. Sends a 6-digit code to confirm the email. */
+export async function signUp(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const input = z
+    .object({ role: Role, name: Name, email: Email, password: Password })
+    .safeParse({ role: form.get('role'), name: form.get('name'), email: form.get('email'), password: form.get('password') });
+  if (!input.success) return { error: input.error.issues[0].message };
+  const handoff = await startHandoff();
+  const { data, error } = await createClient().auth.signUp({
+    email: input.data.email,
+    password: input.data.password,
+    options: { data: { role: input.data.role, name: input.data.name }, emailRedirectTo: `${appUrl()}/auth/confirm?handoff=${handoff}` },
   });
   if (error) return { error: error.message };
-  cookies().set(HANDOFF_COOKIE, handoff, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 });
-  return { success: 'Check your inbox for a sign-in link.' };
+  // Supabase answers an existing, confirmed email with a user that has no identities.
+  if (data.user && !data.user.identities?.length) return { error: 'There’s already an account with this email. Sign in instead.' };
+  if (data.session) redirect('/onboarding'); // email confirmation turned off
+  return { success: 'code_sent' };
+}
+
+/** The 6-digit code from the sign-up email, typed on the sign-up page. */
+export async function verifySignupCode(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const email = Email.safeParse(form.get('email'));
+  const code = String(form.get('code') ?? '').replace(/\D/g, '');
+  if (!email.success || code.length < 6) return { error: 'Enter the 6-digit code from the email.' };
+  const supabase = createClient();
+  let { error } = await supabase.auth.verifyOtp({ email: email.data, token: code, type: 'email' });
+  if (error) ({ error } = await supabase.auth.verifyOtp({ email: email.data, token: code, type: 'signup' }));
+  if (error) return { error: 'That code is wrong or has expired.' };
+  cookies().delete(HANDOFF_COOKIE);
+  redirect('/onboarding');
+}
+
+export async function resendCode(input: { email: string; kind: 'signup' | 'recovery' }): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const email = Email.safeParse(input.email);
+  if (!email.success) return { error: 'Enter a valid email address.' };
+  const supabase = createClient();
+  const handoff = cookies().get(HANDOFF_COOKIE)?.value;
+  const { error } =
+    input.kind === 'signup'
+      ? await supabase.auth.resend({ type: 'signup', email: email.data, options: { emailRedirectTo: `${appUrl()}/auth/confirm${handoff && isUuid(handoff) ? `?handoff=${handoff}` : '?'}` } })
+      : await supabase.auth.resetPasswordForEmail(email.data);
+  return error ? { error: error.message } : { success: 'Sent a new code.' };
+}
+
+export async function signIn(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const input = z.object({ email: Email, password: z.string().min(1, 'Enter your password.') }).safeParse({ email: form.get('email'), password: form.get('password') });
+  if (!input.success) return { error: input.error.issues[0].message };
+  const { error } = await createClient().auth.signInWithPassword(input.data);
+  if (error?.code === 'email_not_confirmed') return { error: 'Confirm your email first: use the code we sent when you signed up, or sign up again to get a new one.' };
+  if (error) return { error: 'Wrong email or password. No password yet? Use “Forgot password” to set one.' };
+  redirect('/onboarding');
+}
+
+/** Forgot password, step 1: email a 6-digit code. Same answer whether or not the account exists. */
+export async function sendResetCode(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const email = Email.safeParse(form.get('email'));
+  if (!email.success) return { error: email.error.issues[0].message };
+  const { error } = await createClient().auth.resetPasswordForEmail(email.data);
+  if (error && error.status === 429) return { error: 'Too many emails. Wait a minute and try again.' };
+  return { success: 'code_sent' };
+}
+
+/** Forgot password, step 2: code from the email plus a new password. Signs in. */
+export async function resetPassword(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const email = Email.safeParse(form.get('email'));
+  const password = Password.safeParse(form.get('password'));
+  const code = String(form.get('code') ?? '').replace(/\D/g, '');
+  if (!email.success || code.length < 6) return { error: 'Enter the 6-digit code from the email.' };
+  if (!password.success) return { error: password.error.issues[0].message };
+  const supabase = createClient();
+  const { error } = await supabase.auth.verifyOtp({ email: email.data, token: code, type: 'recovery' });
+  if (error) return { error: 'That code is wrong or has expired.' };
+  const { error: updateError } = await supabase.auth.updateUser({ password: password.data });
+  if (updateError) return { error: updateError.message };
+  redirect('/onboarding');
 }
 
 const HANDOFF_COOKIE = 'login_handoff';
@@ -65,18 +144,6 @@ export async function signInHere(input: { tokenHash: string; type: string; hando
   return { ok: !error };
 }
 
-/** The code from the email, typed on the page that asked for it. */
-export async function verifyEmailCode(_prev: ActionState, form: FormData): Promise<ActionState> {
-  if (isDemo) return { error: DEMO_ERROR };
-  const email = z.string().trim().email().safeParse(form.get('email'));
-  const code = String(form.get('code') ?? '').replace(/\D/g, '');
-  if (!email.success || code.length < 6) return { error: 'Enter the code from the email.' };
-  const { error } = await createClient().auth.verifyOtp({ email: email.data, token: code, type: 'email' });
-  if (error) return { error: 'That code is wrong or has expired.' };
-  cookies().delete(HANDOFF_COOKIE);
-  redirect('/onboarding');
-}
-
 /** Polled by the page that asked for the link: finishes signing in once the link is confirmed. */
 export async function checkHandoff(): Promise<{ status: 'waiting' | 'signed_in' | 'failed' }> {
   if (isDemo) return { status: 'failed' };
@@ -99,6 +166,7 @@ export async function checkHandoff(): Promise<{ status: 'waiting' | 'signed_in' 
   const { error } = await createClient().auth.verifyOtp({ token_hash: row.token_hash, type: otpType(row.otp_type) });
   return { status: error ? 'failed' : 'signed_in' };
 }
+
 
 export async function createProfile(_prev: ActionState, form: FormData): Promise<ActionState> {
   if (isDemo) return { error: DEMO_ERROR };
