@@ -28,7 +28,7 @@ export interface SyncReport {
 export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncReport> {
   const { data, error } = await admin
     .from('submissions')
-    .select('*, campaigns!inner(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, min_payout, status)')
+    .select('*, campaigns!inner(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, min_payout, platform_rates, status)')
     .in('status', ['live_tracking', 'pending_review'])
     // Ended (cancelled) campaigns are skipped: their earnings are final.
     .in('campaigns.status', ['active', 'paused'])
@@ -227,7 +227,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
   }
 
   const revenue = sub.campaigns.payout_model === 'cps_performance' ? await attributedRevenue(admin, sub) : 0;
-  const earned = Math.max(calculatePayout(sub.campaigns, v.views, revenue), Number(sub.payout_earned));
+  const earned = Math.max(calculatePayout(sub.campaigns, v.views, revenue, sub.platform), Number(sub.payout_earned));
 
   const { error } = await admin.from('submissions').update({ ...metrics, payout_earned: earned }).eq('id', sub.id);
   if (error) throw error;

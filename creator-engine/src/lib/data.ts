@@ -210,6 +210,8 @@ export interface CreatorCampaignDetail {
   youtubeCode: string;
   payoutsEnabled: boolean;
   moments: MomentRow[];
+  /** Clips the streamer has approved on this campaign, from everyone. */
+  approvedClips?: number;
 }
 
 /**
@@ -428,5 +430,39 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     youtubeCode: youtubeVerifyCode(creatorId),
     payoutsEnabled: payoutReady(await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false)),
     moments: await loadMoments(c.id, creatorId),
+    approvedClips:
+      (await createAdminClient().from('submissions').select('id', { count: 'exact', head: true }).eq('campaign_id', c.id).in('status', ['live_tracking', 'paid'])).count ?? 0,
   };
+}
+
+export interface JoinedCampaign {
+  campaign: MarketCampaign;
+  submission: Submission | null;
+}
+
+/** Campaigns this clipper has joined, newest first, with their own clip on each. */
+export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
+  if (isDemo) {
+    const d = demo.creatorDashboard();
+    return d.enrollments.map((e) => ({
+      campaign: { ...e.campaign, brandName: e.brandName, creators: 0, budget: { deposited: 0, committed: 0, available: 0, usedShare: 0, daysLeft: null } },
+      submission: e.submission,
+    }));
+  }
+  const creatorId = await requireRole('creator');
+  const db = createClient();
+  const [{ data: enrollments }, { data: subs }] = await Promise.all([
+    db.from('campaign_creators').select('joined_at, campaigns(*, brands(name))').eq('creator_id', creatorId).order('joined_at', { ascending: false }),
+    db.from('submissions').select('*').eq('creator_id', creatorId),
+  ]);
+  const camps = (enrollments ?? []).map((e) => {
+    const { brands, ...c } = e.campaigns as unknown as Record<string, unknown>;
+    return { ...num(c as unknown as Campaign, CAMPAIGN_NUMS), brandName: (brands as { name: string } | null)?.name ?? '' };
+  });
+  const budgets = await loadBudgets(camps);
+  return camps.map((c) => {
+    const { creators, ...budget } = budgets.get(c.id)!;
+    const sub = (subs ?? []).find((s) => s.campaign_id === c.id);
+    return { campaign: { ...c, budget, creators }, submission: sub ? num(sub as Submission, SUB_NUMS) : null };
+  });
 }

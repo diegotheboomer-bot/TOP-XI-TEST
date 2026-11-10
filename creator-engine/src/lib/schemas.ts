@@ -24,6 +24,19 @@ export const CampaignSchema = z
       .transform((t) => t.split('\n').map((l) => l.trim()).filter(Boolean))
       .pipe(z.array(z.string().max(120, 'Keep each requirement under 120 characters')).max(12, 'Up to 12 requirements')),
     min_payout: money(99_999).default(0),
+    moments_enabled: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(false),
+    platform_rates: z
+      .string()
+      .default('{}')
+      .transform((t, ctx) => {
+        try {
+          return JSON.parse(t) as unknown;
+        } catch {
+          ctx.addIssue({ code: 'custom', message: 'Platform rates could not be read.' });
+          return z.NEVER;
+        }
+      })
+      .pipe(z.object({ tiktok: money(9_999).optional(), youtube: money(9_999).optional(), instagram: money(9_999).optional() }).strict()),
     reference_items: z
       .string()
       .default('[]')
@@ -44,6 +57,32 @@ export const CampaignSchema = z
   .refine((c) => c.payout_model !== 'per_post' || c.base_payout > 0, { message: 'Set an amount per clip above $0.' })
   .refine((c) => c.payout_model !== 'pure_cpm' || c.cpm_rate > 0, { message: 'Set a rate per 1,000 views above $0.' })
   .refine((c) => c.min_payout <= c.cpm_cap, { message: 'The minimum payout must be below the maximum.' });
+
+/** What a streamer can change after creating a campaign. Pay terms stay fixed so clippers aren't surprised. */
+export const CampaignEditSchema = z.object({
+  title: z.string().trim().min(3, 'Give the campaign a title (3+ characters)').max(255),
+  category: z.enum(CATEGORY_IDS).optional(),
+  brief: z.string().trim().max(4000, 'Keep the brief under 4,000 characters').default(''),
+  requirements: z
+    .string()
+    .default('')
+    .transform((t) => t.split('\n').map((l) => l.trim()).filter(Boolean))
+    .pipe(z.array(z.string().max(120, 'Keep each requirement under 120 characters')).max(12, 'Up to 12 requirements')),
+  asset_folder_url: z.union([z.literal(''), z.string().url()]),
+  moments_enabled: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(false),
+  reference_items: z
+    .string()
+    .default('[]')
+    .transform((t, ctx) => {
+      try {
+        return JSON.parse(t) as unknown;
+      } catch {
+        ctx.addIssue({ code: 'custom', message: 'References could not be read.' });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.array(ReferenceSchema).max(REF_MAX, `Up to ${REF_MAX} references`)),
+});
 
 export const ShopDomainSchema = z
   .string()

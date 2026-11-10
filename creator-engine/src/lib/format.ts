@@ -32,13 +32,29 @@ export function termsLabel(c: { payout_model: keyof typeof payoutModelLabel; bas
 export const usdCompact = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: n >= 1000 ? 1 : 0 }).format(n);
 
+/** Per-platform rates that differ from the base rate, in the campaign's platform order. */
+export function platformRates(c: { cpm_rate: number; platform_rates?: Partial<Record<string, number>> | null; platforms?: string[] }): { platform: string; rate: number }[] {
+  const rates = c.platform_rates ?? {};
+  const list = (c.platforms ?? Object.keys(rates)).map((p) => ({ platform: p, rate: Number(rates[p] ?? c.cpm_rate) }));
+  return list.some((r) => r.rate !== Number(c.cpm_rate)) || list.some((r, _, a) => r.rate !== a[0].rate) ? list : [];
+}
+
 /** Headline rate and the smaller terms line for a campaign card. */
-export function rateParts(c: { payout_model: keyof typeof payoutModelLabel; base_payout: number; cpm_rate: number; cpm_cap: number; cps_commission_pct: number }): { rate: string; unit: string; terms: string } {
+export function rateParts(c: {
+  payout_model: keyof typeof payoutModelLabel;
+  base_payout: number;
+  cpm_rate: number;
+  cpm_cap: number;
+  cps_commission_pct: number;
+  platform_rates?: Partial<Record<string, number>> | null;
+  platforms?: string[];
+}): { rate: string; unit: string; terms: string } {
   const cap = `up to ${usd(c.cpm_cap)}`;
   if (c.payout_model === 'cps_performance') return { rate: `${c.cps_commission_pct}%`, unit: 'of each sale', terms: cap };
   if (c.payout_model === 'per_post') return { rate: usd(c.base_payout), unit: 'per clip', terms: 'flat, once approved' };
   if (c.payout_model === 'pool') return { rate: 'Pool', unit: 'split by views', terms: 'paid when it ends' };
-  const rate = usdCents(c.cpm_rate);
+  const split = platformRates(c);
+  const rate = split.length ? `from ${usdCents(Math.min(...split.map((r) => r.rate)))}` : usdCents(c.cpm_rate);
   return { rate, unit: 'per 1K views', terms: c.payout_model === 'hybrid' ? `${usd(c.base_payout)} base · ${cap}` : cap };
 }
 

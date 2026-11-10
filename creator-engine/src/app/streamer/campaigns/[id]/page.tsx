@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Check, ChevronDown, Rocket, Store, Users } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Pencil, Rocket, Store, Users } from 'lucide-react';
 import { cn } from '@/components/ui/cn';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, rateParts, usd, usdCompact } from '@/lib/format';
@@ -22,7 +22,7 @@ import type { Campaign } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CampaignPage({ params, searchParams }: { params: { id: string }; searchParams: { funded?: string; fund?: string } }) {
+export default async function CampaignPage({ params, searchParams }: { params: { id: string }; searchParams: { funded?: string; fund?: string; saved?: string } }) {
   const detail = await getCampaignDetail(params.id);
   if (!detail) notFound();
   const { campaign: c, submissions, shopDomain, deposited, refunded, paidOut, fees, budget } = detail;
@@ -69,6 +69,11 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           <PlatformChips platforms={c.platforms} className="mt-3" />
         </div>
         <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch [&>*]:flex-1 sm:[&>*]:flex-none">
+          {!ended && (
+            <Link href={`/streamer/campaigns/${c.id}/edit`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
+              <Pencil className="size-3.5" /> Edit
+            </Link>
+          )}
           <StatusActions campaign={c} />
           {c.status !== 'draft' || c.escrow_balance > 0 ? <CancelCampaign summary={cancel} ended={ended} onConfirm={cancelCampaign.bind(null, c.id)} /> : null}
         </div>
@@ -81,6 +86,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
         </DemoBar>
       )}
 
+      {searchParams.saved && <p className="rounded-xl bg-brand-a/10 px-4 py-3 text-sm ring-1 ring-inset ring-brand-a/30">Changes saved. Clippers see them now.</p>}
       {searchParams.funded && <p className="rounded-xl bg-brand-a/10 px-4 py-3 text-sm ring-1 ring-inset ring-brand-a/30">Payment received. Your budget updates as soon as Stripe confirms it.</p>}
       {c.status === 'draft' && <LaunchChecklist campaign={c} funded={c.escrow_balance > 0} />}
 
@@ -106,15 +112,17 @@ export default async function CampaignPage({ params, searchParams }: { params: {
               <SubmissionTable rows={submissions} cap={c.cpm_cap} actions={(s) => <SubmissionActions s={s} ended={ended} />} />
             )}
           </Card>
+          {c.moments_enabled && (
           <Card>
-            <CardHeader title="Moments to clip" description="Pin timestamps from your stream so clippers know what to cut." />
-            <MomentBoard moments={detail.moments} showClaimers empty="No moments pinned yet." />
-            {!ended && (
-              <div className="mt-5 border-t border-zinc-100 pt-5">
-                <MomentForm campaignId={c.id} />
-              </div>
-            )}
-          </Card>
+              <CardHeader title="Moments to clip" description="Pin timestamps from your stream so clippers know what to cut." />
+              <MomentBoard moments={detail.moments} showClaimers empty="No moments pinned yet." />
+              {!ended && (
+                <div className="mt-5 border-t border-zinc-100 pt-5">
+                  <MomentForm campaignId={c.id} />
+                </div>
+              )}
+            </Card>
+          )}
         </div>
 
         <div className="order-1 space-y-6 lg:order-2">

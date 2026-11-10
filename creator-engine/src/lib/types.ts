@@ -29,6 +29,10 @@ export interface Campaign {
   reference_items?: import('./references').Reference[];
   /** Clips earning less than this aren't paid (Per 1K views). */
   min_payout?: number;
+  /** Pinned stream moments for clippers to claim. */
+  moments_enabled?: boolean;
+  /** Rate per 1K views by platform; a missing platform uses cpm_rate. */
+  platform_rates?: Partial<Record<Platform, number>>;
   /** Where clippers may post for this campaign. */
   platforms: Platform[];
   /** Kinds of video the streamer wants (clipping, faceless, …). */

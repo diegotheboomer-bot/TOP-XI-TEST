@@ -12,7 +12,7 @@ import { payClip } from '@/lib/pay-clip';
 import { HOLD_HOURS, streamerCanFlag } from '@/lib/payout-rules';
 import type Stripe from 'stripe';
 import { usdCents } from '@/lib/format';
-import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
+import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError, CampaignEditSchema } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import { REF_MAX_BYTES } from '@/lib/references';
 import { LOW_ENGAGEMENT_REASON } from '@/lib/fraud';
@@ -67,6 +67,31 @@ export async function createCampaign(_prev: ActionState, form: FormData): Promis
     .single();
   if (error) return { error: error.message };
   redirect(`/streamer/campaigns/${data.id}${fund}`);
+}
+
+export async function updateCampaign(campaignId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+  const fields = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string'));
+  const parsed = CampaignEditSchema.safeParse({ ...fields, category: fields.category || undefined });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const file = form.get('thumbnail');
+  const thumb = file instanceof File && file.size > 0 ? file : null;
+  const thumbError = thumbnailError(thumb);
+  if (thumbError) return { error: thumbError };
+  const changes: Record<string, unknown> = { ...parsed.data, asset_folder_url: parsed.data.asset_folder_url || null };
+  if (isDemo) return { error: 'Editing is off in the demo.' };
+
+  const { admin, brandId } = await requireOwnCampaign(campaignId);
+  if (thumb) {
+    const ext = thumb.type.split('/')[1].replace('jpeg', 'jpg');
+    const path = `${brandId}/${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await admin.storage.from('campaign-thumbnails').upload(path, thumb, { contentType: thumb.type });
+    if (upErr) return { error: `Thumbnail upload failed: ${upErr.message}` };
+    changes.thumbnail_url = admin.storage.from('campaign-thumbnails').getPublicUrl(path).data.publicUrl;
+  }
+  const { error } = await admin.from('campaigns').update(changes).eq('id', campaignId);
+  if (error) return { error: error.message };
+  revalidatePath(`/streamer/campaigns/${campaignId}`);
+  redirect(`/streamer/campaigns/${campaignId}?saved=1`);
 }
 
 /**

@@ -596,12 +596,6 @@ export function clipperStage(enrollment: Enrollment | null, submission: Submissi
   return 'earning';
 }
 
-const STAGE_TRACK: { key: ClipperStage[]; label: string }[] = [
-  { key: ['join'], label: 'Join' },
-  { key: ['post'], label: 'Post' },
-  { key: ['review', 'flagged'], label: 'Review' },
-  { key: ['earning', 'paid'], label: 'Earn' },
-];
 
 /**
  * Tells a clipper exactly what to do next on a campaign, with the action right
@@ -629,22 +623,11 @@ export function NextStep({
   tiktokPrompt?: React.ReactNode;
 }) {
   const stage = clipperStage(enrollment, submission);
-  const current = STAGE_TRACK.findIndex((s) => s.key.includes(stage));
   const where = campaign.platforms.map((p) => ({ tiktok: 'TikTok', youtube: 'YouTube Shorts', instagram: 'Instagram Reels' })[p]).join(', ');
 
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">Your next step</p>
-      <ol className="mt-3 grid grid-cols-4 gap-1.5" aria-label="Progress">
-        {STAGE_TRACK.map((s, i) => (
-          <li key={s.label} className="min-w-0">
-            <div className={cn('h-1 rounded-full', i < current ? 'bg-accent-500' : i === current ? 'bg-brand' : 'bg-zinc-200')} />
-            <p className={cn('mt-1.5 truncate text-xs', i === current ? 'font-medium text-zinc-900' : 'text-zinc-500')}>{s.label}</p>
-          </li>
-        ))}
-      </ol>
-
-      <div className="mt-5">
+      <div>
         {stage === 'join' && (
           <>
             <h3 className="font-semibold tracking-tight">Join this campaign</h3>
@@ -656,26 +639,9 @@ export function NextStep({
         {stage === 'post' && enrollment && (
           <>
             <h3 className="font-semibold tracking-tight">Post your clip, then paste the link</h3>
-            <ol className="mt-3 space-y-2 text-sm text-zinc-700">
-              <li className="flex gap-2.5">
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">1</span>
-                <span>{claimedMoment ? <>Cut your moment: <span className="font-medium">{claimedMoment}</span></> : 'Cut a moment. Claim one below so nobody else takes it.'}</span>
-              </li>
-              <li className="flex gap-2.5">
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">2</span>
-                <span>Post it on {where}.</span>
-              </li>
-              <li className="flex gap-2.5">
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">3</span>
-                <span>
-                  Post from your connected TikTok or Instagram, or your verified YouTube channel.
-                </span>
-              </li>
-              <li className="flex gap-2.5">
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">4</span>
-                <span>Paste the link below.</span>
-              </li>
-            </ol>
+            <p className="mt-1 text-sm text-zinc-600">
+              Post it on {where} from your connected account{claimedMoment ? <> (your moment: <span className="font-medium text-zinc-900">{claimedMoment}</span>)</> : ''}, then paste the link here.
+            </p>
             {tiktokPrompt && <div className="mt-3">{tiktokPrompt}</div>}
             <div className="mt-4">{submitForm}</div>
           </>

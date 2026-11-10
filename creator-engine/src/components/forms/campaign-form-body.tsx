@@ -12,6 +12,8 @@ import type { MarketCampaign } from '@/lib/data';
 import { CATEGORIES, CONTENT_TYPES } from '@/lib/campaign-tags';
 import { REF_MAX, REF_MAX_BYTES, kindOf, linkName, type Reference } from '@/lib/references';
 import { THUMBNAIL_TYPES, thumbnailError } from '@/lib/schemas';
+import { InstructionsFields, type UploadUrl } from './campaign-fields';
+export type { UploadUrl };
 
 const MODELS: { id: PayoutModel; title: string; body: string; icon: React.ElementType }[] = [
   { id: 'pure_cpm', title: 'Per 1K views', body: 'Pay a rate for every 1,000 real views.', icon: Eye },
@@ -86,7 +88,6 @@ function Money(props: React.ComponentProps<typeof Input>) {
  * Fields for a new campaign plus a live preview of the Discover card.
  * The caller supplies the <form> and the submit row (`footer`).
  */
-export type UploadUrl = (name: string, size: number) => Promise<{ error: string } | { uploadUrl: string; publicUrl: string }>;
 
 export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: string; footer: React.ReactNode; uploadUrl: UploadUrl }) {
   const [model, setModel] = useState<PayoutModel>('pure_cpm');
@@ -99,62 +100,19 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
   const [cpm, setCpm] = useState('3');
   const [min, setMin] = useState('5');
   const [cap, setCap] = useState('500');
+  const [perPlatform, setPerPlatform] = useState(false);
+  const [platRates, setPlatRates] = useState<Partial<Record<Platform, string>>>({});
   const [platforms, setPlatforms] = useState<Platform[]>(['tiktok', 'youtube', 'instagram']);
   const [types, setTypes] = useState<string[]>(['clipping']);
   const [category, setCategory] = useState<string>('Gaming');
-  const [rules, setRules] = useState<string[]>(['Credit my channel on screen', 'Vertical 9:16 with captions']);
-  const [rule, setRule] = useState('');
-  const [refs, setRefs] = useState<Reference[]>([]);
-  const [link, setLink] = useState('');
-  const [uploading, setUploading] = useState(0);
-  const [refError, setRefError] = useState('');
 
-  const rate = Number(cpm) || 0;
+  // With per-platform rates, the base rate is the lowest one (used for estimates and the card).
+  const ratesUsed = perPlatform && model === 'pure_cpm' ? platforms.map((p) => Number(platRates[p] ?? cpm) || 0) : [];
+  const rate = ratesUsed.length ? Math.min(...ratesUsed) : Number(cpm) || 0;
+  const platformRatesJson = JSON.stringify(
+    perPlatform && model === 'pure_cpm' ? Object.fromEntries(platforms.map((p) => [p, Number(platRates[p] ?? cpm) || 0])) : {},
+  );
   const prefix = (title.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6) || 'CLIP').padEnd(2, 'X');
-
-  const addRule = () => {
-    const t = rule.trim();
-    if (t && rules.length < 12) setRules((r) => [...r, t.slice(0, 120)]);
-    setRule('');
-  };
-
-  const addLink = () => {
-    setRefError('');
-    let url = link.trim();
-    if (!url) return;
-    if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
-    try {
-      new URL(url);
-    } catch {
-      return setRefError('That doesn’t look like a link.');
-    }
-    if (refs.length >= REF_MAX) return setRefError(`Up to ${REF_MAX} references.`);
-    setRefs((r) => [...r, { kind: 'link', url, name: linkName(url) }]);
-    setLink('');
-  };
-
-  const upload = async (files: FileList | null) => {
-    setRefError('');
-    for (const f of Array.from(files ?? [])) {
-      if (refs.length + uploading >= REF_MAX) return setRefError(`Up to ${REF_MAX} references.`);
-      if (f.size > REF_MAX_BYTES) {
-        setRefError(`${f.name} is over 50 MB. Put it on Drive or YouTube and add the link.`);
-        continue;
-      }
-      setUploading((n) => n + 1);
-      try {
-        const res = await uploadUrl(f.name, f.size);
-        if ('error' in res) throw new Error(res.error);
-        const put = await fetch(res.uploadUrl, { method: 'PUT', body: f, headers: { 'content-type': f.type || 'application/octet-stream', 'x-upsert': 'false' } });
-        if (!put.ok) throw new Error(`Upload of ${f.name} failed. Try again.`);
-        setRefs((r) => [...r, { kind: kindOf(f.type), url: res.publicUrl, name: f.name.slice(0, 120) }]);
-      } catch (e) {
-        setRefError(e instanceof Error ? e.message : 'Upload failed.');
-      } finally {
-        setUploading((n) => n - 1);
-      }
-    }
-  };
 
   const preview: MarketCampaign = {
     id: 'preview',
@@ -198,10 +156,9 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
         <input type="hidden" name="code_prefix" value={prefix} />
         <input type="hidden" name="cps_commission_pct" value="0" />
         <input type="hidden" name="payout_model" value={model} />
-        <input type="hidden" name="requirements" value={rules.join('\n')} />
-        <input type="hidden" name="reference_items" value={JSON.stringify(refs)} />
         {model !== 'per_post' && <input type="hidden" name="base_payout" value="0" />}
         {model !== 'pure_cpm' && <input type="hidden" name="cpm_rate" value="0" />}
+        <input type="hidden" name="platform_rates" value={platformRatesJson} />
         {model !== 'pure_cpm' && <input type="hidden" name="min_payout" value="0" />}
         {model === 'per_post' && <input type="hidden" name="cpm_cap" value={base || '0'} />}
         {model === 'pool' && <input type="hidden" name="cpm_cap" value="1000000" />}
@@ -313,123 +270,7 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
         </Step>
 
         <Step n={3} title="Instructions" sub="What to make, the rules, and anything that helps.">
-          <Field label="What you want">
-            <textarea
-              id="brief"
-              name="brief"
-              rows={4}
-              maxLength={4000}
-              className={textarea}
-              placeholder="Cut the clutches, the rage and the comebacks from my ranked streams. Hook in the first second, keep it under 45 seconds."
-            />
-          </Field>
-          <div className="mt-5">
-            <p className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-zinc-700"><ListChecks className="size-4 text-zinc-400" /> Rules</p>
-            <ul className="space-y-2">
-              {rules.map((r, i) => (
-                <li key={i} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm">
-                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand text-brand-ink">
-                    <Check className="size-3" strokeWidth={3.5} />
-                  </span>
-                  <span className="min-w-0 flex-1">{r}</span>
-                  <button type="button" onClick={() => setRules((x) => x.filter((_, j) => j !== i))} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700" aria-label={`Remove ${r}`}>
-                    <X className="size-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {rules.length < 12 && (
-              <div className="mt-2 flex gap-2">
-                <Input
-                  value={rule}
-                  maxLength={120}
-                  onChange={(e) => setRule(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addRule();
-                    }
-                  }}
-                  placeholder="Add a rule, e.g. No swearing in the first 3 seconds"
-                />
-                <button type="button" onClick={addRule} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
-                  <Plus className="size-4" /> Add
-                </button>
-              </div>
-            )}
-            <p className="mt-2 text-xs text-zinc-500">Clippers tick these off before they submit. You check them when you approve.</p>
-          </div>
-          <div className="mt-6 border-t border-zinc-200/80 pt-5">
-            <p className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-zinc-700">
-              <Paperclip className="size-4 text-zinc-400" /> References <span className="font-normal text-zinc-400">· optional</span>
-            </p>
-          <Field label="VODs or source footage" hint="A Twitch, YouTube or Drive link clippers can cut from.">
-            <Input id="asset_folder_url" name="asset_folder_url" type="url" placeholder="https://twitch.tv/you/videos" />
-          </Field>
-          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="flex gap-2">
-              <Input
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addLink();
-                  }
-                }}
-                placeholder="Paste a link: an example clip, a sound, a doc"
-              />
-              <button type="button" onClick={addLink} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
-                <Link2 className="size-4" /> Add
-              </button>
-            </div>
-            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-ink transition hover:brightness-110 focus-within:ring-2 focus-within:ring-accent-500">
-              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              {uploading ? 'Uploading…' : 'Upload files'}
-              <input
-                type="file"
-                multiple
-                accept="image/*,video/*,application/pdf,.zip,.txt,.doc,.docx"
-                className="sr-only"
-                onChange={(e) => {
-                  void upload(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-          </div>
-          <p className="mt-2 text-xs text-zinc-500">Images, videos, PDFs or docs, up to 50 MB each and {REF_MAX} in total.</p>
-          {refError && <p className="mt-2 text-sm text-rose-600">{refError}</p>}
-          {refs.length > 0 && (
-            <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {refs.map((r, i) => {
-                const Icon = REF_ICON[r.kind];
-                return (
-                  <li key={r.url} className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white">
-                    <div className="grid aspect-video place-items-center bg-zinc-100">
-                      {r.kind === 'image' ? (
-                        <img src={r.url} alt="" className="size-full object-cover" />
-                      ) : r.kind === 'video' ? (
-                        <video src={r.url} muted playsInline preload="metadata" className="size-full object-cover" />
-                      ) : (
-                        <Icon className="size-6 text-zinc-400" />
-                      )}
-                    </div>
-                    <p className="truncate px-2.5 py-2 text-xs font-medium">{r.name}</p>
-                    <button
-                      type="button"
-                      onClick={() => setRefs((x) => x.filter((_, j) => j !== i))}
-                      className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-                      aria-label={`Remove ${r.name}`}
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          </div>
+          <InstructionsFields uploadUrl={uploadUrl} />
         </Step>
 
         <Step n={4} title="Pay clippers" sub="You approve every clip. Payouts after that are automatic.">
@@ -464,10 +305,48 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
           <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-4 sm:p-5">
             {model === 'pure_cpm' && (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Field label="Rate per 1K views">
-                    <Money id="cpm_rate" name="cpm_rate" min="0.01" required value={cpm} onChange={(e) => setCpm(e.target.value)} />
-                  </Field>
+                <label className="mb-4 flex cursor-pointer items-center justify-between gap-3">
+                  <span>
+                    <span className="block text-sm font-medium">Different rate per platform</span>
+                    <span className="block text-xs text-zinc-500">e.g. $1 on TikTok, $1.50 on Reels</span>
+                  </span>
+                  <input type="checkbox" checked={perPlatform} onChange={(e) => setPerPlatform(e.target.checked)} className="sr-only" />
+                  <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition', perPlatform ? 'bg-brand' : 'bg-zinc-200')}>
+                    <span className={cn('absolute top-0.5 size-5 rounded-full shadow transition-all', perPlatform ? 'left-[22px]' : 'left-0.5')} style={{ backgroundColor: '#fff' }} />
+                  </span>
+                </label>
+                {perPlatform && (
+                  <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {PLATFORMS.filter(([p]) => platforms.includes(p)).map(([p, label]) => (
+                      <label key={p} className="flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-white px-3 py-2">
+                        <span className="platform-tile relative grid size-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-brand text-brand-ink">
+                          <PlatformIcon platform={p} className="relative size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[11px] text-zinc-500">{label} · per 1K</span>
+                          <span className="flex items-center text-sm font-semibold">
+                            $
+                            <input
+                              inputMode="decimal"
+                              aria-label={`${label} rate per 1K views`}
+                              value={platRates[p] ?? cpm}
+                              onChange={(e) => setPlatRates((r) => ({ ...r, [p]: e.target.value.replace(/[^0-9.]/g, '') }))}
+                              className="w-full min-w-0 bg-transparent pl-0.5 tabular-nums focus:outline-none"
+                            />
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <div className={cn('grid grid-cols-1 gap-4', perPlatform ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}>
+                  {perPlatform ? (
+                    <input type="hidden" name="cpm_rate" value={String(rate || 0.01)} />
+                  ) : (
+                    <Field label="Rate per 1K views">
+                      <Money id="cpm_rate" name="cpm_rate" min="0.01" required value={cpm} onChange={(e) => setCpm(e.target.value)} />
+                    </Field>
+                  )}
                   <Field label="Min payout per clip">
                     <Money id="min_payout" name="min_payout" min="0" value={min} onChange={(e) => setMin(e.target.value)} />
                   </Field>
@@ -568,7 +447,7 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
 }
 
 /** A dropdown of niches, each with its icon. */
-function CategoryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function CategoryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {

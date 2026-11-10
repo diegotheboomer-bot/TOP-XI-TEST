@@ -8,6 +8,14 @@ export interface PayoutTerms {
   cps_commission_pct: number;
   /** Below this a clip earns nothing (it counts once it gets there). */
   min_payout?: number;
+  /** Rate per 1K views by platform, overriding cpm_rate. */
+  platform_rates?: Partial<Record<string, number>> | null;
+}
+
+/** The rate per 1K views for a clip on `platform`. */
+export function rateFor(terms: Pick<PayoutTerms, 'cpm_rate' | 'platform_rates'>, platform?: string | null): number {
+  const r = platform ? terms.platform_rates?.[platform] : undefined;
+  return r != null && Number(r) > 0 ? Number(r) : Number(terms.cpm_rate);
 }
 
 /**
@@ -18,8 +26,8 @@ export interface PayoutTerms {
  *   cps_performance  attributed revenue × commission %
  * Always capped at cpm_cap.
  */
-export function calculatePayout(terms: PayoutTerms, views: number, attributedRevenue = 0): number {
-  const cpmPart = (Math.max(0, views) / 1000) * terms.cpm_rate;
+export function calculatePayout(terms: PayoutTerms, views: number, attributedRevenue = 0, platform?: string | null): number {
+  const cpmPart = (Math.max(0, views) / 1000) * rateFor(terms, platform);
   let earned: number;
   switch (terms.payout_model) {
     case 'hybrid':
