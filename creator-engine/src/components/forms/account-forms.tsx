@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormState } from 'react-dom';
 import { MailCheck, Megaphone, Video } from 'lucide-react';
-import { checkHandoff, createProfile, sendMagicLink } from '@/actions/account';
+import { checkHandoff, createProfile, sendMagicLink, verifyEmailCode } from '@/actions/account';
 import { FormMessage } from '../form-message';
 import { SubmitButton } from '../submit-button';
 import { Field, Input } from '../ui/field';
@@ -12,21 +12,26 @@ import { cn } from '../ui/cn';
 
 export function LoginForm() {
   const [state, action] = useFormState(sendMagicLink, undefined);
-  if (state?.success) return <WaitingForEmail />;
+  const [email, setEmail] = useState('');
+  if (state?.success) return <WaitingForEmail email={email} />;
   return (
     <form action={action} className="space-y-4">
-      <Field label="Work email">
-        <Input name="email" type="email" required autoComplete="email" placeholder="you@company.com" />
+      <Field label="Email">
+        <Input name="email" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
       <FormMessage state={state} />
-      <SubmitButton className="w-full" pendingText="Sending…">Email me a sign-in link</SubmitButton>
+      <SubmitButton className="w-full" pendingText="Sending…">Email me a sign-in code</SubmitButton>
     </form>
   );
 }
 
-/** After the link is sent: waits here and signs in once the emailed link is confirmed, from any device. */
-function WaitingForEmail() {
+/**
+ * After the email is sent: type the code here, or tap the link in the email
+ * (any device) and this page signs in by itself.
+ */
+function WaitingForEmail({ email }: { email: string }) {
   const router = useRouter();
+  const [codeState, verify] = useFormState(verifyEmailCode, undefined);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let stop = false;
@@ -44,13 +49,34 @@ function WaitingForEmail() {
     };
   }, [router]);
   return (
-    <div className="text-center">
-      <MailCheck className="mx-auto size-9 text-[rgb(var(--brand-ta))]" />
-      <p className="mt-3 font-medium">Check your inbox</p>
-      <p className="mt-1 text-sm text-zinc-500">
-        {failed ? 'This page stopped waiting. Open the link from the email to sign in.' : 'Open the link on any device and press Continue. This page signs you in automatically.'}
+    <div>
+      <div className="text-center">
+        <MailCheck className="mx-auto size-9 text-[rgb(var(--brand-ta))]" />
+        <p className="mt-3 font-medium">Check your inbox</p>
+        <p className="mt-1 text-sm text-zinc-500">
+          We sent a code to <span className="text-zinc-900">{email}</span>.
+        </p>
+      </div>
+      <form action={verify} className="mt-5 space-y-3">
+        <input type="hidden" name="email" value={email} />
+        <Input
+          name="code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          autoFocus
+          maxLength={8}
+          placeholder="Code"
+          aria-label="Code from the email"
+          className="h-12 text-center font-mono text-xl tracking-[0.4em]"
+        />
+        <FormMessage state={codeState} />
+        <SubmitButton className="h-11 w-full" pendingText="Checking…">
+          Sign in
+        </SubmitButton>
+      </form>
+      <p className="mt-4 text-center text-xs text-zinc-500">
+        {failed ? 'Or use the button in the email.' : 'Or tap the button in the email. This page signs in by itself.'}
       </p>
-      {!failed && <span className="mx-auto mt-4 block size-4 animate-spin rounded-full border-2 border-zinc-300 border-r-transparent" aria-label="Waiting" />}
     </div>
   );
 }

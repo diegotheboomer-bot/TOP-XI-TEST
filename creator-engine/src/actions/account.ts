@@ -65,6 +65,18 @@ export async function signInHere(input: { tokenHash: string; type: string; hando
   return { ok: !error };
 }
 
+/** The code from the email, typed on the page that asked for it. */
+export async function verifyEmailCode(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: DEMO_ERROR };
+  const email = z.string().trim().email().safeParse(form.get('email'));
+  const code = String(form.get('code') ?? '').replace(/\D/g, '');
+  if (!email.success || code.length < 6) return { error: 'Enter the code from the email.' };
+  const { error } = await createClient().auth.verifyOtp({ email: email.data, token: code, type: 'email' });
+  if (error) return { error: 'That code is wrong or has expired.' };
+  cookies().delete(HANDOFF_COOKIE);
+  redirect('/onboarding');
+}
+
 /** Polled by the page that asked for the link: finishes signing in once the link is confirmed. */
 export async function checkHandoff(): Promise<{ status: 'waiting' | 'signed_in' | 'failed' }> {
   if (isDemo) return { status: 'failed' };
