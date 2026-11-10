@@ -1,15 +1,13 @@
 'use client';
 
-// Landing hero visual, type only (no photos): a stream's chat activity with a
-// spike pinned as a moment, and what the clips of it on TikTok, Shorts and
-// Reels have earned, ticking up. Decorative (aria-hidden); names and numbers are made up.
+// Landing hero visual: a streamer's campaign (rate and a budget that drains)
+// and what three clips on TikTok, Shorts and Reels have earned, ticking up. Decorative (aria-hidden); names and numbers are made up.
 import { useEffect, useState } from 'react';
 import type { Platform } from '@/lib/types';
-import { cn } from './ui/cn';
 import { PlatformTile } from './platform-icon';
 
-const BARS = [3, 4, 3, 5, 4, 6, 5, 4, 5, 6, 8, 11, 14, 16, 15, 13, 10, 7, 6, 5, 4, 5, 4, 3, 4, 5, 6, 5];
-const MOMENT = { from: 10, to: 17 };
+const BUDGET = 5000;
+const SPENT_BEFORE = 1_480; // earned by other clips before these three
 const RATE = 2; // $ per 1K views
 const LOOP = 120; // ticks before the counters start over
 
@@ -20,7 +18,7 @@ const CLIPS: { platform: Platform; name: string; base: number; speed: number }[]
 ];
 
 const views = (n: number) => `${(n / 1000).toFixed(1)}K views`;
-const money = (n: number) => `$${n.toFixed(2)}`;
+const money = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export function HeroFlow() {
   const [tick, setTick] = useState(0);
@@ -42,26 +40,35 @@ export function HeroFlow() {
     <div aria-hidden className="relative min-w-0 select-none">
       <div className="pointer-events-none absolute -inset-y-6 inset-x-0 -z-10 rounded-[2rem] bg-brand opacity-[0.07] blur-3xl" />
       <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
-        {/* The stream, with the moment that got pinned */}
+        {/* The campaign: rate and a budget that drains as the clips below earn */}
         <div className="p-5">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full bg-[#ff3b30]/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#ff6b61]">
-                <span className="hero-pulse size-1.5 rounded-full bg-[#ff3b30]" /> LIVE
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-100 text-sm font-semibold">M</span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  marlowkade
+                  <span className="flex items-center gap-1 rounded-full bg-[#ff3b30]/15 px-1.5 py-px font-mono text-[9px] font-semibold text-[#ff6b61]">
+                    <span className="hero-pulse size-1 rounded-full bg-[#ff3b30]" /> LIVE
+                  </span>
+                </span>
+                <span className="block truncate text-xs text-zinc-500">Ranked grind · season 4</span>
               </span>
-              <span className="truncate font-medium">marlowkade</span>
             </span>
-            <span className="shrink-0 rounded-full bg-brand px-2.5 py-0.5 font-mono text-[10px] font-semibold text-brand-ink">moment pinned</span>
+            <span className="shrink-0 rounded-full bg-brand px-2.5 py-1 font-mono text-[11px] font-semibold text-brand-ink">${RATE.toFixed(2)} / 1K views</span>
           </div>
-          <div className="relative mt-5 flex h-16 items-end gap-[3px]">
-            {BARS.map((h, i) => (
-              <span
-                key={i}
-                className={cn('flex-1 rounded-full', i >= MOMENT.from && i <= MOMENT.to ? 'bg-brand' : 'bg-zinc-200')}
-                style={{ height: `${(h / 16) * 100}%` }}
-              />
-            ))}
-            <span className="hero-playhead absolute -top-1 bottom-0 w-px bg-zinc-900/50" />
+          <div className="mt-5">
+            <div className="flex items-baseline justify-between text-xs">
+              <span className="text-zinc-500">Campaign budget</span>
+              <span className="tabular-nums">
+                <span className="font-semibold text-zinc-900">{money(BUDGET - total - SPENT_BEFORE)}</span>
+                <span className="text-zinc-500"> left of {money(BUDGET).replace('.00', '')}</span>
+              </span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
+              <div className="h-full rounded-full bg-brand transition-[width] duration-700 ease-out" style={{ width: `${((total + SPENT_BEFORE) / BUDGET) * 100}%` }} />
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">18 clippers posting · pays only for real views</p>
           </div>
         </div>
 
