@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { calculatePayout, type PayoutTerms } from './payout';
+import { calculatePayout, poolShares, type PayoutTerms } from './payout';
 import { detectBotVelocity, detectLowEngagement, hashSimilarity, DUPLICATE_THRESHOLD, LOW_ENGAGEMENT_REASON } from './fraud';
 import { perceptualHashFromUrl } from './phash';
 import { hasDisclosure, shouldAutoApprove } from './compliance';
@@ -94,8 +94,31 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
       }
     }
   }
+  await recomputePools(admin, [...new Set(all.filter((s) => s.campaigns.payout_model === 'pool').map((s) => s.campaign_id))]);
   await runAutoPayouts(admin, report);
   return report;
+}
+
+/**
+ * Pool campaigns: the whole funded budget is split between approved clips by
+ * their share of views. Shares move as views come in; money is only sent when
+ * the campaign ends. Pool = what's still in escrow + what's already been paid.
+ */
+async function recomputePools(admin: SupabaseClient, campaignIds: string[]) {
+  for (const id of campaignIds) {
+    const [{ data: camp }, { data: subs }] = await Promise.all([
+      admin.from('campaigns').select('escrow_balance').eq('id', id).single(),
+      admin.from('submissions').select('id, status, current_view_count, payout_transferred').eq('campaign_id', id),
+    ]);
+    if (!camp || !subs) continue;
+    const eligible = subs.filter((s) => s.status === 'live_tracking' || s.status === 'paid');
+    const pool = Number(camp.escrow_balance) + subs.reduce((n, s) => n + Number(s.payout_transferred), 0);
+    const shares = poolShares(pool, eligible.map((s) => ({ id: s.id, views: Number(s.current_view_count) })));
+    for (const s of eligible) {
+      const earned = Math.max(shares.get(s.id) ?? 0, Number(s.payout_transferred));
+      await admin.from('submissions').update({ payout_earned: earned }).eq('id', s.id);
+    }
+  }
 }
 
 /**

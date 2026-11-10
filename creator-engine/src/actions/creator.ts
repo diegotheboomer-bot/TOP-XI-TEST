@@ -374,12 +374,16 @@ export async function cashOut(): Promise<ActionState> {
   const creatorId = await requireCreator();
   const admin = createAdminClient();
   const [{ data: subs }, { count }] = await Promise.all([
-    admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred').eq('creator_id', creatorId),
+    admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred, campaigns(payout_model, status)').eq('creator_id', creatorId),
     admin.from('cashouts').select('id', { count: 'exact', head: true }).eq('creator_id', creatorId).gte('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString()),
   ]);
   const ready = (subs ?? [])
     .map((s) => ({ ...s, owed: Math.round((Number(s.payout_earned) - Number(s.payout_transferred)) * 100) / 100 }))
-    .filter((s) => s.owed > 0 && cashoutReady(s as { status: 'live_tracking'; approved_at: string | null }))
+    .filter((s) => {
+      const c = s.campaigns as unknown as { payout_model: string; status: string } | null;
+      const openPool = c?.payout_model === 'pool' && c.status !== 'completed';
+      return s.owed > 0 && !openPool && cashoutReady(s as { status: 'live_tracking'; approved_at: string | null });
+    })
     .sort((a, b) => b.owed - a.owed);
   const total = ready.reduce((n, s) => n + s.owed, 0);
   if (total < MIN_CASHOUT) return { error: `You can cash out once you have at least ${usd(MIN_CASHOUT)} ready.` };

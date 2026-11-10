@@ -14,6 +14,7 @@ const SECTIONS: Record<Role, NavSection> = {
     items: [
       { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
       { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus /> },
+      { href: '/streamer/stats', label: 'Stats', icon: <ChartColumn /> },
     ],
   },
   clipper: {

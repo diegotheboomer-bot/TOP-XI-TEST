@@ -71,12 +71,15 @@ export interface CreatorDashboard {
 export async function getCreatorViewHistory(): Promise<{ day: string; views: number }[]> {
   if (isDemo) return [];
   const creatorId = await requireRole('creator');
-  const admin = createAdminClient();
-  const { data: subs } = await admin.from('submissions').select('id').eq('creator_id', creatorId);
-  const ids = (subs ?? []).map((s) => s.id as string);
+  const { data: subs } = await createAdminClient().from('submissions').select('id').eq('creator_id', creatorId);
+  return viewHistory((subs ?? []).map((s) => s.id as string));
+}
+
+/** Total views across the given clips, one point per day for the last 30 days. */
+async function viewHistory(ids: string[]): Promise<{ day: string; views: number }[]> {
   if (!ids.length) return [];
   const since = new Date(Date.now() - 30 * 86_400_000);
-  const { data: logs } = await admin
+  const { data: logs } = await createAdminClient()
     .from('social_metrics_logs')
     .select('submission_id, captured_at, view_count')
     .in('submission_id', ids)
@@ -100,6 +103,44 @@ export async function getCreatorViewHistory(): Promise<{ day: string; views: num
     }
     return { day, views: total };
   });
+}
+
+export interface StreamerStats {
+  views: number;
+  spend: number;
+  paid: number;
+  clips: number;
+  history: { day: string; views: number }[];
+  campaigns: { id: string; title: string; status: string; views: number; clips: number; spend: number }[];
+}
+
+/** Streamer stats across all their campaigns, optionally for one platform. */
+export async function getStreamerStats(platform?: string): Promise<StreamerStats> {
+  const empty: StreamerStats = { views: 0, spend: 0, paid: 0, clips: 0, history: [], campaigns: [] };
+  if (isDemo) return empty;
+  const brandId = await requireRole('brand');
+  const admin = createAdminClient();
+  const { data: camps } = await admin.from('campaigns').select('id, title, status').eq('brand_id', brandId).order('created_at', { ascending: false });
+  if (!camps?.length) return empty;
+  let q = admin
+    .from('submissions')
+    .select('id, campaign_id, platform, status, current_view_count, payout_earned, payout_transferred')
+    .in('campaign_id', camps.map((c) => c.id));
+  if (platform) q = q.eq('platform', platform);
+  const { data: subs } = await q;
+  const counted = (subs ?? []).filter((s) => s.status !== 'flagged');
+  const sum = (list: typeof counted, k: 'current_view_count' | 'payout_earned' | 'payout_transferred') => list.reduce((n, s) => n + Number(s[k]), 0);
+  return {
+    views: sum(counted, 'current_view_count'),
+    spend: sum(counted, 'payout_earned'),
+    paid: sum(counted, 'payout_transferred'),
+    clips: (subs ?? []).length,
+    history: await viewHistory(counted.map((s) => s.id)),
+    campaigns: camps.map((c) => {
+      const list = counted.filter((s) => s.campaign_id === c.id);
+      return { id: c.id, title: c.title, status: c.status, views: sum(list, 'current_view_count'), clips: list.length, spend: sum(list, 'payout_earned') };
+    }),
+  };
 }
 
 export interface CreatorCampaignDetail {

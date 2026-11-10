@@ -1,4 +1,4 @@
-export type PayoutModel = 'hybrid' | 'pure_cpm' | 'cps_performance';
+export type PayoutModel = 'hybrid' | 'pure_cpm' | 'cps_performance' | 'per_post' | 'pool';
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
 export type SubmissionStatus = 'pending_review' | 'live_tracking' | 'flagged' | 'paid';
 export type Platform = 'tiktok' | 'instagram' | 'youtube';
@@ -27,6 +27,10 @@ export interface Campaign {
   auto_approve_hours: number;
   /** Where clippers may post for this campaign. */
   platforms: Platform[];
+  /** Kinds of video the streamer wants (clipping, faceless, …). */
+  content_types?: string[];
+  /** The streamer's niche (Gaming, IRL, …). */
+  category?: string | null;
 }
 
 /** A moment the streamer pinned from a stream for clippers to cut. */

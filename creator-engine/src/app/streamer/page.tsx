@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
 import { CampaignRow, Checklist } from '@/components/views';
+import { StreamerTour } from '@/components/streamer-tour';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export default async function BrandDashboardPage() {
 
   return (
     <>
+      <StreamerTour />
       <PageHeader
         eyebrow={<span className="text-sm text-zinc-500">{brandName}</span>}
         title="Campaigns"

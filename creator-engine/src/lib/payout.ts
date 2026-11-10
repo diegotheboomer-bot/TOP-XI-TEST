@@ -29,6 +29,14 @@ export function calculatePayout(terms: PayoutTerms, views: number, attributedRev
     case 'cps_performance':
       earned = (Math.max(0, attributedRevenue) * terms.cps_commission_pct) / 100;
       break;
+    case 'per_post':
+      // A flat amount for the approved clip, whatever its views.
+      earned = terms.base_payout;
+      break;
+    case 'pool':
+      // Worked out across the whole campaign by poolShares(); nothing per clip here.
+      earned = 0;
+      break;
   }
   return floorCents(Math.min(earned, terms.cpm_cap));
 }
@@ -44,3 +52,14 @@ export function streamerCharge(budget: number, feePercent: number, feeFixed = 0)
 }
 
 const floorCents = (n: number) => Math.floor(n * 100 + 1e-6) / 100;
+
+/**
+ * Pool campaigns: split `pool` between clips by their share of views. Rounded
+ * down to the cent, so the total never exceeds the pool.
+ */
+export function poolShares(pool: number, clips: { id: string; views: number }[]): Map<string, number> {
+  const total = clips.reduce((n, c) => n + Math.max(0, c.views), 0);
+  const out = new Map<string, number>();
+  for (const c of clips) out.set(c.id, total > 0 ? floorCents((pool * Math.max(0, c.views)) / total) : 0);
+  return out;
+}

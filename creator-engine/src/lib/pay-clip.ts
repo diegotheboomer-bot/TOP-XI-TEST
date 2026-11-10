@@ -15,13 +15,15 @@ export type PayResult = { ok: true; gross: number; via: string; campaignId: stri
 export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 1, fee = 0): Promise<PayResult> {
   const { data: sub } = await admin
     .from('submissions')
-    .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, creators(stripe_account_id, payouts_enabled), campaigns(cpm_cap)')
+    .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, creators(stripe_account_id, payouts_enabled), campaigns(cpm_cap, payout_model, status)')
     .eq('id', submissionId)
     .single();
   if (!sub) return { ok: false, error: 'Submission not found.' };
 
   const creator = sub.creators as unknown as { stripe_account_id: string | null; payouts_enabled: boolean };
   if (sub.status !== 'live_tracking') return { ok: false, error: 'Only approved, unflagged submissions can be paid.' };
+  const camp = sub.campaigns as unknown as { cpm_cap: number; payout_model: string; status: string };
+  if (camp.payout_model === 'pool' && camp.status !== 'completed') return { ok: false, error: 'Pool campaigns are paid when they end.' };
   const { data: method } = await admin.from('payout_methods').select('method, handle').eq('creator_id', sub.creator_id).maybeSingle();
   const setup = {
     method: (method?.method ?? 'stripe') as PayoutMethod,

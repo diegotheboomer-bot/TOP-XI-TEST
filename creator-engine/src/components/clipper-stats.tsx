@@ -11,12 +11,19 @@ import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
 import { cn } from './ui/cn';
 
-type Row = { sub: Submission; campaignTitle: string; brandName: string; cap: number; campaignId: string };
+type Row = { sub: Submission; campaignTitle: string; brandName: string; cap: number; campaignId: string; openPool: boolean };
 
 export function rowsOf(d: CreatorDashboard): Row[] {
   return d.enrollments
     .filter((e) => e.submission)
-    .map((e) => ({ sub: e.submission!, campaignTitle: e.campaign.title, brandName: e.brandName, cap: e.campaign.cpm_cap, campaignId: e.campaign.id }))
+    .map((e) => ({
+      sub: e.submission!,
+      campaignTitle: e.campaign.title,
+      brandName: e.brandName,
+      cap: e.campaign.payout_model === 'pool' ? 0 : e.campaign.cpm_cap,
+      campaignId: e.campaign.id,
+      openPool: e.campaign.payout_model === 'pool' && e.campaign.status !== 'completed',
+    }))
     .sort((a, b) => b.sub.created_at.localeCompare(a.sub.created_at));
 }
 
@@ -133,7 +140,7 @@ function coverOf(sub: Submission): string | null {
 }
 
 /** Area chart of daily total views, edge to edge. */
-function Spark({ points }: { points: number[] }) {
+export function Spark({ points }: { points: number[] }) {
   if (points.length < 2 || Math.max(...points) === 0) return <div className="h-4" />;
   const max = Math.max(...points);
   const min = Math.min(...points);
@@ -166,7 +173,7 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
   const paid = rows.reduce((n, r) => n + r.sub.payout_transferred, 0);
   const owed = rows.filter((r) => r.sub.status !== 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const held = rows.filter((r) => r.sub.status === 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
-  const ready = rows.filter((r) => cashoutReady(r.sub)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
+  const ready = rows.filter((r) => !r.openPool && cashoutReady(r.sub)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const fee = cashoutFee(d.recentCashouts);
   return (
     <div className="space-y-6">

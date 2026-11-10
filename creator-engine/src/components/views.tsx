@@ -6,6 +6,7 @@ import type { BudgetStats } from '@/lib/budget';
 import type { Campaign, Enrollment, Platform, Submission } from '@/lib/types';
 import { compact, hoursLabel, percent, rateParts, timeAgo, usd, usdCompact } from '@/lib/format';
 import { trackingLink } from '@/lib/attribution';
+import { contentTypeLabel } from '@/lib/campaign-tags';
 import { reviewDueIn } from '@/lib/compliance';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -172,6 +173,14 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
             <span className="text-sm text-zinc-500">{r.unit}</span>
           </div>
           <p className="-mt-2 text-xs text-zinc-500">{r.terms}</p>
+          {(c.category || (c.content_types?.length ?? 0) > 0) && (
+            <div className="-mt-1 flex flex-wrap gap-1.5">
+              {c.category && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-ink">{c.category}</span>}
+              {(c.content_types ?? []).map((t) => (
+                <span key={t} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600">{contentTypeLabel(t)}</span>
+              ))}
+            </div>
+          )}
           <BudgetMeter budget={c.budget} className="mt-auto" />
           <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
             <PlatformChips platforms={c.platforms} />
