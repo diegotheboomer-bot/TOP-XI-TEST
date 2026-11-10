@@ -32,16 +32,6 @@
 .hero-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: hero-draw 1.6s ease-out 0.3s forwards; }
 @keyframes hero-draw { to { stroke-dashoffset: 0; } }
 
-/* Outlined words scrolling across the page. */
-.hero-outline { color: transparent; -webkit-text-stroke: 1px rgb(var(--zinc-300)); transition: color 0.3s, -webkit-text-stroke-color 0.3s; }
-.hero-outline:hover { color: rgb(var(--brand-a)); -webkit-text-stroke-color: transparent; }
-.hero-ticker { animation: hero-ticker 40s linear infinite; }
-.hero-ticker-mask:hover .hero-ticker { animation-play-state: paused; }
-@keyframes hero-ticker { to { transform: translateX(-50%); } }
-.hero-ticker-mask {
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-}
 
 /* How it works: step progress and preview transitions. */
 .step-progress { animation: step-progress linear both; }
@@ -61,5 +51,5 @@
   .hero-pulse, .hero-playhead, .hero-flow, .hero-pop { animation: none; }
   .hero-playhead { left: 55%; }
   .hero-draw { animation: none; stroke-dashoffset: 0; }
-  .hero-ticker, .step-progress, .step-in, .step-stagger, .step-bar, .step-caret { animation: none; }
+  .step-progress, .step-in, .step-stagger, .step-bar, .step-caret { animation: none; }
 }

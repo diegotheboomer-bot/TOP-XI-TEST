@@ -96,26 +96,3 @@ export function HeroFlow() {
     </div>
   );
 }
-
-/** Big outlined platform words scrolling across the page. */
-export function WordTicker() {
-  const words = ['TikTok', 'Shorts', 'Reels', 'Clipped', 'Posted', 'Paid per view'];
-  const row = (
-    <span className="flex shrink-0 items-center">
-      {words.map((w) => (
-        <span key={w} className="flex items-center">
-          <span className="hero-outline px-4 text-3xl font-bold tracking-tight sm:px-6 sm:text-6xl">{w}</span>
-          <span className="text-xl text-brand sm:text-3xl">✦</span>
-        </span>
-      ))}
-    </span>
-  );
-  return (
-    <div aria-hidden className="hero-ticker-mask overflow-hidden border-y border-zinc-200/80 py-4 sm:py-5">
-      <div className="hero-ticker flex w-max">
-        {row}
-        {row}
-      </div>
-    </div>
-  );
-}
