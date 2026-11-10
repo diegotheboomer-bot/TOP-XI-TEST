@@ -11,6 +11,8 @@ import { StripePayment } from './stripe-payment';
 export function AppAddBudget({
   campaign,
   feePercent,
+  feeFixed = 0,
+  early = false,
   publishableKey,
   createIntent,
   payDemo,
@@ -19,6 +21,8 @@ export function AppAddBudget({
   bankTransfer?: boolean;
   campaign: CheckoutCampaign;
   feePercent: number;
+  feeFixed?: number;
+  early?: boolean;
   /** null in demo mode. */
   publishableKey: string | null;
   createIntent: (campaignId: string, amount: number) => Promise<DepositIntentResult>;
@@ -29,6 +33,8 @@ export function AppAddBudget({
     <AddBudget
       campaign={campaign}
       feePercent={feePercent}
+      feeFixed={feeFixed}
+      early={early}
       className="w-full"
       // Stripe confirms the deposit by webhook, so the balance can lag a moment behind.
       onDone={() => router.refresh()}

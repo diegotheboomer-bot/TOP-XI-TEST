@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { isDemo } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { stripe, platformFeePercent, achEnabled } from '@/lib/stripe';
+import { stripe, platformFeePercent, achEnabled, feeFor } from '@/lib/stripe';
 import { streamerCharge } from '@/lib/payout';
 import { planRefunds } from '@/lib/refunds';
 import { payClip } from '@/lib/pay-clip';
@@ -90,10 +90,12 @@ export async function createDepositIntent(campaignId: string, amount: number): P
   const parsed = DepositSchema.safeParse(amount);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (isDemo) return { error: 'Stripe is off in demo mode.' };
-  const { campaign } = await requireOwnCampaign(campaignId);
+  const { campaign, admin, brandId } = await requireOwnCampaign(campaignId);
   if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
-  const fee = platformFeePercent();
-  const charge = streamerCharge(parsed.data, fee);
+  const { data: brand } = await admin.from('brands').select('early_partner').eq('id', brandId).single();
+  const plan = feeFor(!!brand?.early_partner);
+  const fee = plan.percent;
+  const charge = streamerCharge(parsed.data, plan.percent, plan.fixed);
   const cents = (n: number) => Math.round(n * 100);
   try {
     const intent = await stripe().paymentIntents.create({
@@ -101,7 +103,7 @@ export async function createDepositIntent(campaignId: string, amount: number): P
       currency: 'usd',
       // Card (Apple Pay and Google Pay are card wallets) or US bank account (ACH: about 0.8%, capped at $5).
       allowed_payment_method_types: achEnabled() ? ['card', 'us_bank_account'] : ['card'],
-      description: `Clipper budget ${usdCents(charge.budget)} + ${fee}% service fee: ${campaign.title}`,
+      description: `Clipper budget ${usdCents(charge.budget)} + ${plan.early ? 'card processing' : `${fee}% service fee`}: ${campaign.title}`,
       metadata: { kind: 'campaign_deposit', campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
       transfer_group: `campaign_${campaignId}`,
     });

@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0011 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0012 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -466,5 +466,11 @@ create policy "creators read own cashouts" on cashouts for select using (creator
 -- campaign_creators (campaign_id, creator_id), so the API couldn't join
 -- submissions to campaigns and the view sync failed.
 alter table submissions add constraint submissions_campaign_id_fkey foreign key (campaign_id) references campaigns (id) on delete cascade;
+
+
+-- ═════ 0012_early_partner.sql ═════
+-- 0012: early partners pay no service fee, only Stripe's card processing.
+-- Turn it on per streamer in the Supabase table editor (brands → early_partner).
+alter table brands add column early_partner boolean not null default false;
 
 commit;

@@ -4,7 +4,8 @@ import { ArrowLeft, Users } from 'lucide-react';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
-import { achEnabled, platformFeePercent } from '@/lib/stripe';
+import { achEnabled, feeFor } from '@/lib/stripe';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
@@ -26,7 +27,9 @@ export default async function CampaignPage({ params, searchParams }: { params: {
   const { campaign: c, submissions, shopDomain, deposited, refunded, paidOut, fees, budget } = detail;
   const r = rateParts(c);
   const ended = c.status === 'completed';
-  const feePercent = platformFeePercent();
+  const { data: brandRow } = isDemo ? { data: null } : await createAdminClient().from('brands').select('early_partner').eq('id', c.brand_id).single();
+  const plan = feeFor(!!brandRow?.early_partner);
+  const feePercent = plan.percent;
   const cancel: CancelSummary = {
     refund: budget.available,
     reserved: Math.max(0, c.escrow_balance - budget.available),
@@ -114,11 +117,17 @@ export default async function CampaignPage({ params, searchParams }: { params: {
                     bankTransfer={achEnabled()}
                     campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate, status: c.status }}
                     feePercent={feePercent}
+                    feeFixed={plan.fixed}
+                    early={plan.early}
                     publishableKey={publishableKey}
                     createIntent={createDepositIntent}
                     payDemo={payDemoDeposit}
                   />
-                  <p className="mt-2 text-xs text-zinc-500">{feePercent}% service fee on top (covers card processing). Cancel anytime: unspent budget is refunded, the fee isn’t.</p>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    {plan.early
+                      ? 'Early partner: no service fee, only Stripe’s card processing. Cancel anytime: unspent budget is refunded.'
+                      : `${feePercent}% service fee on top (covers card processing). Cancel anytime: unspent budget is refunded, the fee isn’t.`}
+                  </p>
                 </>
               )}
             </div>

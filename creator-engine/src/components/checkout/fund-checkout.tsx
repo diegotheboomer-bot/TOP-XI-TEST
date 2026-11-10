@@ -33,6 +33,8 @@ const QUICK_PICKS = [500, 1000, 5000, 10000];
 export function AddBudget({
   campaign,
   feePercent,
+  feeFixed = 0,
+  early = false,
   payment,
   note,
   onDone,
@@ -40,6 +42,10 @@ export function AddBudget({
 }: {
   campaign: CheckoutCampaign;
   feePercent: number;
+  /** Flat part of the fee, in dollars (early partners). */
+  feeFixed?: number;
+  /** Early partner: the only fee is Stripe's card processing. */
+  early?: boolean;
   payment: PaymentSlot;
   /** Small print under the payment form. */
   note: React.ReactNode;
@@ -68,11 +74,13 @@ export function AddBudget({
       </Button>
       <Dialog open={open} onClose={close} title={paid ? (pending ? 'Bank transfer started' : 'Payment received') : 'Add budget'} description={paid ? undefined : campaign.title}>
         {paid ? (
-          <Paid quote={paid} feePercent={feePercent} title={campaign.title} draft={campaign.status === 'draft'} pending={pending} onClose={close} />
+          <Paid quote={paid} feePercent={feePercent} feeFixed={feeFixed} early={early} title={campaign.title} draft={campaign.status === 'draft'} pending={pending} onClose={close} />
         ) : (
           <Checkout
             campaign={campaign}
             feePercent={feePercent}
+            feeFixed={feeFixed}
+            early={early}
             payment={payment}
             note={note}
             onPaid={(q, isPending) => {
@@ -89,19 +97,23 @@ export function AddBudget({
 function Checkout({
   campaign,
   feePercent,
+  feeFixed,
+  early,
   payment,
   note,
   onPaid,
 }: {
   campaign: CheckoutCampaign;
   feePercent: number;
+  feeFixed: number;
+  early: boolean;
   payment: PaymentSlot;
   note: React.ReactNode;
   onPaid: (quote: Quote, pending?: boolean) => void;
 }) {
   const [value, setValue] = useState('1000');
   const parsed = DepositSchema.safeParse(value);
-  const quote: Quote | null = parsed.success ? toQuote(parsed.data, feePercent) : null;
+  const quote: Quote | null = parsed.success ? toQuote(parsed.data, feePercent, feeFixed) : null;
   const error = value.trim() && !parsed.success ? parsed.error.issues[0].message : undefined;
   const views = quote && campaign.payout_model !== 'cps_performance' && campaign.cpm_rate > 0 ? (quote.amount / campaign.cpm_rate) * 1000 : null;
 
@@ -149,9 +161,11 @@ function Checkout({
         ))}
       </div>
 
-      <Breakdown quote={quote} feePercent={feePercent} className="mt-5" />
+      <Breakdown quote={quote} feePercent={feePercent} feeFixed={feeFixed} early={early} className="mt-5" />
       <p className="mt-2.5 text-xs text-zinc-500">
-        All of the budget goes to clippers. If you cancel the campaign, unspent budget is refunded to your card; the {feePercent}% fee isn’t refundable.
+        {early
+          ? 'Early partner: no service fee. The only fee is Stripe’s card processing, which isn’t refundable. All of the budget goes to clippers, and unspent budget is refunded if you cancel.'
+          : `All of the budget goes to clippers. If you cancel the campaign, unspent budget is refunded to your card; the ${feePercent}% fee isn’t refundable.`}
       </p>
 
       <div className="mt-6 border-t border-zinc-100 pt-5">
@@ -166,7 +180,7 @@ function Checkout({
   );
 }
 
-function Paid({ quote, feePercent, title, draft, pending, onClose }: { quote: Quote; feePercent: number; title: string; draft: boolean; pending: boolean; onClose: () => void }) {
+function Paid({ quote, feePercent, feeFixed, early, title, draft, pending, onClose }: { quote: Quote; feePercent: number; feeFixed: number; early: boolean; title: string; draft: boolean; pending: boolean; onClose: () => void }) {
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -185,7 +199,7 @@ function Paid({ quote, feePercent, title, draft, pending, onClose }: { quote: Qu
           )}
         </p>
       </div>
-      <Breakdown quote={quote} feePercent={feePercent} className="mt-5" />
+      <Breakdown quote={quote} feePercent={feePercent} feeFixed={feeFixed} early={early} className="mt-5" />
       {draft && <p className="mt-3 rounded-lg bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">Next: click <strong>Go live</strong> on the campaign page, so clippers can find it in Discover.</p>}
       <button type="button" onClick={onClose} className={buttonClass('primary', 'md', 'mt-5 w-full')}>
         Done
@@ -200,12 +214,12 @@ function cleanAmount(raw: string): string {
   return rest.length ? `${whole}.${rest.join('').slice(0, 2)}` : whole;
 }
 
-export function toQuote(amount: number, feePercent: number): Quote {
-  const c = streamerCharge(amount, feePercent);
+export function toQuote(amount: number, feePercent: number, feeFixed = 0): Quote {
+  const c = streamerCharge(amount, feePercent, feeFixed);
   return { amount: c.budget, fee: c.fee, total: c.total, totalCents: Math.round(c.total * 100) };
 }
 
-function Breakdown({ quote, feePercent, className }: { quote: Quote | null; feePercent: number; className?: string }) {
+function Breakdown({ quote, feePercent, feeFixed = 0, early = false, className }: { quote: Quote | null; feePercent: number; feeFixed?: number; early?: boolean; className?: string }) {
   const row = 'flex justify-between gap-3';
   return (
     <dl className={cn('space-y-2 rounded-xl bg-zinc-50 px-4 py-3.5 text-sm', className)}>
@@ -214,7 +228,7 @@ function Breakdown({ quote, feePercent, className }: { quote: Quote | null; feeP
         <dd className="tabular-nums">{quote ? usdCents(quote.amount) : '—'}</dd>
       </div>
       <div className={row}>
-        <dt className="text-zinc-500">Service fee ({feePercent}%, incl. card processing, non-refundable)</dt>
+        <dt className="text-zinc-500">{early ? `Card processing by Stripe (${feePercent}% + ${usdCents(feeFixed)}), the only fee` : `Service fee (${feePercent}%, incl. card processing, non-refundable)`}</dt>
         <dd className="tabular-nums">{quote ? usdCents(quote.fee) : '—'}</dd>
       </div>
       <div className={cn(row, 'border-t border-zinc-200 pt-2 font-semibold')}>

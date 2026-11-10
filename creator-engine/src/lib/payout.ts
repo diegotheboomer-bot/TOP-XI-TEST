@@ -37,9 +37,9 @@ export function calculatePayout(terms: PayoutTerms, views: number, attributedRev
  * What a streamer is charged to add `budget` to a campaign: the budget (all of
  * which goes to clippers) plus the platform fee on top, rounded to the cent.
  */
-export function streamerCharge(budget: number, feePercent: number): { budget: number; fee: number; total: number } {
+export function streamerCharge(budget: number, feePercent: number, feeFixed = 0): { budget: number; fee: number; total: number } {
   const budgetCents = Math.round(budget * 100);
-  const feeCents = Math.round((budgetCents * feePercent) / 100);
+  const feeCents = Math.round((budgetCents * feePercent) / 100) + Math.round(feeFixed * 100);
   return { budget: budgetCents / 100, fee: feeCents / 100, total: (budgetCents + feeCents) / 100 };
 }
 
