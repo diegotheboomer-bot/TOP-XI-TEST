@@ -7,12 +7,19 @@ import { PageHeader } from '@/components/ui/page-header';
 import { CreatorSwitcher } from '@/components/creator-switcher';
 import { Button } from '@/components/ui/button';
 import { PayoutsView } from '@/components/payouts/payouts-view';
+import { rowsOf } from '@/components/clipper-stats';
+import { usdCents } from '@/lib/format';
 import { AppPayoutForm } from '@/components/payouts/app-payouts';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PayoutsPage() {
   const d = await getCreatorDashboard();
+  const rows = rowsOf(d);
+  const summary = {
+    paid: usdCents(rows.reduce((n, r) => n + r.sub.payout_transferred, 0)),
+    owed: usdCents(rows.filter((r) => r.sub.status !== 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0)),
+  };
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
   return (
     <div className="space-y-8">
@@ -24,6 +31,7 @@ export default async function PayoutsPage() {
       <PayoutsView
         key={isDemo ? currentCreatorId() : undefined}
         setup={d.payout}
+        summary={summary}
         onSave={savePayoutMethod}
         methods={isDemo || paypalConfigured() ? ['stripe', 'paypal', 'venmo'] : ['stripe']}
         stripeForm={

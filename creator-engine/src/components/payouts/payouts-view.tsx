@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, BadgeCheck, Landmark, Mail, Smartphone } from 'lucide-react';
+import { AlertTriangle, Check, Landmark, Mail, Smartphone } from 'lucide-react';
 import type { ActionState } from '@/actions/result';
 import { PAYOUT_METHODS, PAYOUT_METHOD_LABEL, payoutDestination, payoutReady, formatUsPhone, type PayoutMethod, type PayoutSetup } from '@/lib/payout-methods';
 import { Card } from '../ui/card';
@@ -26,7 +26,10 @@ export function PayoutsView({
   manageStripe,
   onSave,
   methods = PAYOUT_METHODS,
+  summary,
 }: {
+  /** Paid out / on the way, shown on the "Payouts are on" card. */
+  summary?: { paid: string; owed: string };
   setup: PayoutSetup;
   /** Stripe's embedded onboarding (or the demo's mock form). */
   stripeForm: React.ReactNode;
@@ -53,20 +56,32 @@ export function PayoutsView({
 
   if (ready && !editing) {
     return (
-      <Card className="max-w-xl">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-50 text-accent-700">
-            <BadgeCheck className="size-5" />
-          </span>
+      <Card className="relative max-w-xl overflow-hidden">
+        <div className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-brand opacity-[0.08] blur-3xl" />
+        <div className="relative flex items-center gap-4">
+          <Tile on>{OPTIONS.find((o) => o.method === setup.method)?.icon}</Tile>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold tracking-tight">Payouts are on</h2>
-            <p className="mt-1 break-words text-sm text-zinc-500">
-              Your earnings go to <span className="font-medium text-zinc-900">{payoutDestination(setup)}</span>. You keep 100%.
+            <p className="flex items-center gap-1.5 text-sm font-medium text-[rgb(var(--brand-ta))]">
+              <span className="hero-pulse size-1.5 rounded-full bg-brand-b" /> Payouts are on
             </p>
+            <p className="mt-0.5 break-words text-lg font-semibold tracking-tight">{payoutDestination(setup)}</p>
           </div>
         </div>
+        {summary && (
+          <div className="relative mt-5 grid grid-cols-2 divide-x divide-zinc-200/80 rounded-xl bg-zinc-50">
+            <div className="px-4 py-3">
+              <p className="text-xs text-zinc-500">Paid out</p>
+              <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight">{summary.paid}</p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-zinc-500">On the way</p>
+              <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight text-brand">{summary.owed}</p>
+            </div>
+          </div>
+        )}
+        <p className="relative mt-4 text-sm text-zinc-500">Paid automatically 3 days after a clip is approved. You keep 100%.</p>
         {setup.lastFailure && <Failure text={setup.lastFailure} />}
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-zinc-100 pt-5">
+        <div className="relative mt-5 flex flex-wrap gap-2 border-t border-zinc-100 pt-5">
           <Button
             variant="secondary"
             onClick={() => {
@@ -96,12 +111,15 @@ export function PayoutsView({
               aria-checked={choice === o.method}
               onClick={() => setChoice(o.method)}
               className={cn(
-                'flex items-start gap-3 rounded-xl border p-3.5 text-left transition sm:flex-col sm:gap-2',
-                choice === o.method ? 'border-brand-a bg-brand-a/5 ring-1 ring-brand-a' : 'border-zinc-200 hover:border-zinc-300',
+                'relative flex items-center gap-3 rounded-xl border p-3.5 text-left transition sm:flex-col sm:items-start sm:gap-3',
+                choice === o.method ? 'border-brand-b/60 bg-brand-a/10' : 'border-zinc-200 hover:border-zinc-300',
               )}
             >
-              <span className={cn('mt-0.5 [&>svg]:size-5', choice === o.method ? 'text-zinc-900' : 'text-zinc-400')}>{o.icon}</span>
-              <span className="min-w-0">
+              <Tile on={choice === o.method}>{o.icon}</Tile>
+              <span className={cn('absolute right-3 top-3 grid size-4 place-items-center rounded-full transition', choice === o.method ? 'bg-brand text-brand-ink' : 'border border-zinc-300')}>
+                {choice === o.method && <Check className="size-3" strokeWidth={3.5} />}
+              </span>
+              <span className="min-w-0 pr-5 sm:pr-0">
                 <span className="block text-sm font-medium">{PAYOUT_METHOD_LABEL[o.method]}</span>
                 <span className="mt-0.5 block text-xs text-zinc-500">{o.detail}</span>
               </span>
@@ -126,7 +144,7 @@ export function PayoutsView({
           </button>
         )}
       </Card>
-      <Card className="space-y-4 text-sm">
+      <Card className="space-y-4 text-sm lg:sticky lg:top-6">
         <Point title="No fees for you" body="You keep 100% of what you earn. We cover the transfer costs." />
         <Point title="Bank or debit card" body="Stripe checks your identity once: name, date of birth, address and the last 4 digits of your SSN." />
         {methods.includes('paypal') && <Point title="PayPal or Venmo" body="We only need your email or mobile number. Payouts nobody claims come back after 30 days." />}
@@ -195,11 +213,29 @@ function Failure({ text }: { text: string }) {
   );
 }
 
+function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl transition [&>svg]:relative [&>svg]:size-5',
+        on ? 'platform-tile bg-brand text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.45),0_4px_14px_-4px_rgb(var(--brand-b)/0.5)]' : 'bg-zinc-100 text-zinc-400',
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 function Point({ title, body }: { title: string; body: string }) {
   return (
-    <div>
-      <p className="font-medium">{title}</p>
-      <p className="mt-0.5 text-zinc-500">{body}</p>
+    <div className="flex gap-3">
+      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-brand text-brand-ink">
+        <Check className="size-3" strokeWidth={3.5} />
+      </span>
+      <div>
+        <p className="font-medium">{title}</p>
+        <p className="mt-0.5 text-zinc-500">{body}</p>
+      </div>
     </div>
   );
 }
