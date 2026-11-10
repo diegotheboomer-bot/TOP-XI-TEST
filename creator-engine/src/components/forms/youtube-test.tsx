@@ -2,7 +2,7 @@
 
 import { useFormState } from 'react-dom';
 import { Check, TriangleAlert, X } from 'lucide-react';
-import { testChannel, testShort, type TestResult } from '@/actions/test-youtube';
+import { testChannel, testShort, testTikTok, type TestResult } from '@/actions/test-youtube';
 import { CopyField } from '../copy-button';
 import { SubmitButton } from '../submit-button';
 import { Card } from '../ui/card';
@@ -12,6 +12,7 @@ import { cn } from '../ui/cn';
 export function YouTubeTest({ code }: { code: string }) {
   const [channel, checkChannel] = useFormState(testChannel, undefined);
   const [short, checkShort] = useFormState(testShort, undefined);
+  const [tiktok, checkTikTok] = useFormState(testTikTok, undefined);
   return (
     <div className="space-y-4">
       <Card className="p-5">
@@ -35,6 +36,15 @@ export function YouTubeTest({ code }: { code: string }) {
           <SubmitButton pendingText="Checking…">Check Short</SubmitButton>
         </form>
         <Results result={short} />
+      </Card>
+      <Card className="p-5">
+        <h2 className="font-semibold">3. Check a TikTok</h2>
+        <p className="mt-1 text-sm text-zinc-500">Uses your connected TikTok (sign in as your clipper). Reads the video only if it’s on that account.</p>
+        <form action={checkTikTok} className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Input name="video" type="url" required placeholder="tiktok.com/@you/video/…" className="sm:flex-1" />
+          <SubmitButton pendingText="Checking…">Check TikTok</SubmitButton>
+        </form>
+        <Results result={tiktok} />
       </Card>
     </div>
   );

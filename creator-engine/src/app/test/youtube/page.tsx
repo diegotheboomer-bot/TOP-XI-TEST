@@ -15,7 +15,7 @@ export default async function YouTubeTestPage() {
   const viewer = await getViewer();
   if (!viewer) redirect('/login');
   return (
-    <AuthShell title="YouTube test" subtitle="Nothing here is saved. It only runs the same checks the site uses." wide>
+    <AuthShell title="YouTube & TikTok test" subtitle="Nothing here is saved. It only runs the same checks the site uses." wide>
       <YouTubeTest code={youtubeVerifyCode(`test:${viewer.userId}`)} />
     </AuthShell>
   );
