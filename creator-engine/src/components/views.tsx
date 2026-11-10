@@ -300,7 +300,9 @@ export function submissionNote(s: Submission, now = Date.now()): { text: string;
 }
 
 const NOTE_TONE = { muted: 'text-zinc-500', warn: 'text-amber-700', bad: 'text-rose-600' } as const;
-/** Clips as compact rows that fit any column width: who and what, the numbers, then the actions. */
+/** Clips on a fixed grid so numbers and buttons line up: who, views, earned, actions. */
+const CLIP_COLS = 'md:grid md:grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_10.5rem] md:items-center md:gap-4';
+
 export function SubmissionTable({
   rows,
   cap,
@@ -311,52 +313,52 @@ export function SubmissionTable({
   actions: (s: SubmissionRow) => React.ReactNode;
 }) {
   return (
-    <ul className="-mx-5 divide-y divide-zinc-100 border-t border-zinc-100 sm:-mx-6">
-      {rows.map((s) => {
-        const note = submissionNote(s);
-        const ratio = s.current_view_count > 0 ? s.current_comment_count / s.current_view_count : 0;
-        const act = actions(s);
-        return (
-          <li key={s.id} className="flex flex-col gap-3 px-5 py-4 sm:px-6 md:flex-row md:items-center md:gap-5">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <StreamerAvatar name={s.creator_name} size="md" />
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <a href={s.video_url} target="_blank" rel="noreferrer" className="truncate font-medium hover:underline">
+    <div className="-mx-5 border-t border-zinc-100 sm:-mx-6">
+      <div className={cn('hidden px-5 py-2 text-[11px] font-medium uppercase tracking-wider text-zinc-400 sm:px-6', CLIP_COLS)}>
+        <span>Clip</span>
+        <span className="text-right">Views</span>
+        <span className="text-right">Earned</span>
+        <span />
+      </div>
+      <ul className="divide-y divide-zinc-100 md:border-t md:border-zinc-100">
+        {rows.map((s) => {
+          const note = submissionNote(s);
+          const ratio = s.current_view_count > 0 ? s.current_comment_count / s.current_view_count : 0;
+          const act = actions(s);
+          return (
+            <li key={s.id} className={cn('px-5 py-4 sm:px-6', CLIP_COLS)}>
+              <div className="flex min-w-0 items-center gap-3">
+                <StreamerAvatar name={s.creator_name} size="md" />
+                <div className="min-w-0">
+                  <a href={s.video_url} target="_blank" rel="noreferrer" className="block truncate text-sm font-semibold hover:underline">
                     {s.creator_name}
                   </a>
-                  <SubmissionBadge status={s.status} />
-                  {s.fraud_score > 0 && <FraudBadge score={s.fraud_score} />}
+                  <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
+                    <SubmissionBadge status={s.status} />
+                    <PlatformIcon platform={s.platform} className="size-3 shrink-0" />
+                    <span className={cn('truncate md:hidden xl:inline', NOTE_TONE[note.tone])} title={note.text}>
+                      {note.text}
+                    </span>
+                  </p>
                 </div>
-                <p className={cn('mt-0.5 line-clamp-2 text-xs', NOTE_TONE[note.tone])}>
-                  <span className="inline-flex items-center gap-1 font-medium text-zinc-600">
-                    <PlatformIcon platform={s.platform} className="size-3" />
-                    {PLATFORM_LABEL[s.platform]}
-                  </span>{' '}
-                  · {note.text}
-                </p>
               </div>
-            </div>
-            <dl className="flex shrink-0 items-center gap-5 text-sm">
-              <div>
-                <dt className="text-[11px] text-zinc-500">Views</dt>
-                <dd className="font-semibold tabular-nums">{compact(s.current_view_count)}</dd>
+              {/* Phone: numbers on one line under the name. */}
+              <div className="mt-3 flex items-center justify-between gap-3 text-sm md:contents">
+                <div className="md:text-right">
+                  <p className="font-semibold tabular-nums">{compact(s.current_view_count)}</p>
+                  <p className="whitespace-nowrap text-[11px] text-zinc-500">{percent(ratio)} engaged</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold tabular-nums">{usd(s.payout_earned)}</p>
+                  <Progress value={s.payout_earned} max={cap} className="ml-auto mt-1 w-20" />
+                </div>
               </div>
-              <div>
-                <dt className="text-[11px] text-zinc-500">Engagement</dt>
-                <dd className="tabular-nums">{percent(ratio)}</dd>
-              </div>
-              <div className="w-20">
-                <dt className="text-[11px] text-zinc-500">Earned</dt>
-                <dd className="font-semibold tabular-nums">{usd(s.payout_earned)}</dd>
-                <Progress value={s.payout_earned} max={cap} className="mt-1" />
-              </div>
-            </dl>
-            {act && <div className="flex shrink-0 flex-wrap gap-2 md:justify-end [&>*]:flex-1 md:[&>*]:flex-none">{act}</div>}
-          </li>
-        );
-      })}
-    </ul>
+              <div className={cn('mt-3 grid grid-cols-2 gap-2 md:mt-0 md:flex md:justify-end [&>*:only-child]:col-span-2 [&_button]:w-full md:[&_button]:w-auto', !act && 'hidden md:flex')}>{act}</div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

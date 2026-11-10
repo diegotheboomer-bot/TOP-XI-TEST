@@ -18,15 +18,6 @@ export interface NavSection {
   items: NavItem[];
 }
 
-/** Phone tab bar order: the primary action sits in the middle, the rest keep their order. */
-function middlePrimary(items: NavItem[]): NavItem[] {
-  const primary = items.find((i) => i.primary);
-  if (!primary) return items;
-  const rest = items.filter((i) => i !== primary);
-  const mid = Math.ceil(rest.length / 2);
-  return [...rest.slice(0, mid), primary, ...rest.slice(mid)];
-}
-
 /** Picks the nav item whose href (or alias) is the longest prefix of the current path. */
 export function activeHref(sections: NavSection[], path: string): string | null {
   let best: { href: string; len: number } | null = null;
@@ -99,14 +90,14 @@ export function AppShell({
     );
   };
 
-  /** Phone tab bar item: icon over a short label; the primary one is a raised volt circle. */
+  /** Phone tab bar item: icon over a short label; the primary one gets a volt pill. */
   const tab = (item: NavItem) => {
     const on = item.href === current;
     const label = item.label.replace('New campaign', 'New');
     if (item.primary) {
       return (
-        <Link key={item.href} href={item.href} aria-label={item.label} className="flex flex-1 flex-col items-center gap-1 text-[10.5px] font-medium text-zinc-600">
-          <span className="platform-tile relative -mt-6 grid size-14 place-items-center overflow-hidden rounded-2xl bg-brand text-brand-ink shadow-[0_10px_28px_-8px_rgb(var(--brand-b)/0.9)] ring-4 ring-white transition active:scale-95 [&>svg]:relative [&>svg]:size-6">
+        <Link key={item.href} href={item.href} aria-label={item.label} className="flex flex-1 flex-col items-center gap-1 pt-2 text-[10.5px] font-semibold text-zinc-900">
+          <span className="platform-tile relative grid h-8 w-12 place-items-center overflow-hidden rounded-full bg-brand text-brand-ink shadow-[0_6px_16px_-6px_rgb(var(--brand-b)/0.9)] transition active:scale-95 [&>svg]:relative [&>svg]:size-[18px]">
             {item.icon}
           </span>
           {label}
@@ -164,7 +155,7 @@ export function AppShell({
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200/80 bg-white/90 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur-xl lg:hidden"
       >
-        <div className="mx-auto flex max-w-md items-end px-2">{middlePrimary(items).map(tab)}</div>
+        <div className="mx-auto flex max-w-md items-end px-2">{items.map(tab)}</div>
       </nav>
 
       <main className="gutter mx-auto w-full max-w-6xl pb-28 pt-6 lg:px-10 lg:py-10">{children}</main>
