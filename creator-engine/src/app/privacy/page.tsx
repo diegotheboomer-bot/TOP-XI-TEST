@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 import { LEGAL } from '@/lib/legal';
 
-export const metadata: Metadata = { title: 'Privacy Policy · Atlas Clips' };
+export const metadata: Metadata = { title: 'Privacy Policy · Atlas Clipping' };
 
 export default function PrivacyPage() {
   const { companyName, contactEmail, effectiveDate, minimumAge } = LEGAL;
@@ -10,8 +10,9 @@ export default function PrivacyPage() {
     <LegalPage title="Privacy Policy" updated={effectiveDate}>
       <section>
         <p>
-          Atlas Clips is operated by {companyName} (“we”). It lets streamers run clipping campaigns and pays clippers for the views their clips get.
-          This policy explains what we collect, why, and the choices you have. Questions: {contactEmail}.
+          Atlas Clipping (atlasclipping.com) is run by {companyName} (“we”), the data controller. It lets streamers run clipping campaigns and pays clippers for the
+          views their clips get. This policy explains what we collect, why, and your rights under the EU General Data Protection Regulation (GDPR). Questions or
+          requests: {contactEmail}.
         </p>
       </section>
 
@@ -25,7 +26,8 @@ export default function PrivacyPage() {
             <strong>TikTok, if you connect it:</strong> your TikTok account ID, display name and follower count, and the access tokens TikTok gives us, which we store
             encrypted. For videos you submit we read the view, like, comment and share counts, the caption and the cover image.
           </li>
-          <li><strong>YouTube Shorts you submit:</strong> the video’s public statistics, title and description, through the YouTube API Services.</li>
+          <li><strong>YouTube, if you connect it:</strong> your channel ID, name and subscriber count. For Shorts you submit, the video’s public statistics, title, description, publish date and thumbnail, through the YouTube API Services.</li>
+          <li><strong>Video information:</strong> for every clip you submit, its link, platform, cover image, caption, publish date, and view, like, comment and share counts over time.</li>
           <li><strong>Clips:</strong> the links you submit, their view history, review status and earnings.</li>
           <li>
             <strong>Payments:</strong> handled by Stripe, and by PayPal for clippers who choose PayPal or Venmo. Card and bank details go to Stripe, not to us. We keep
@@ -46,6 +48,10 @@ export default function PrivacyPage() {
           <li>To contact you about your account, and to meet legal obligations.</li>
         </ul>
         <p className="mt-3">We don’t sell your personal information and we don’t use it for advertising.</p>
+        <p className="mt-3">
+          Legal bases (GDPR): running the service you signed up for (contract); fraud prevention and keeping the service secure (legitimate interests); and tax,
+          accounting and anti-money-laundering records (legal obligation).
+        </p>
       </section>
 
       <section>
@@ -72,9 +78,11 @@ export default function PrivacyPage() {
       <section>
         <h2>Your choices</h2>
         <ul>
-          <li>Disconnect TikTok any time in your TikTok settings. We stop reading your videos, and you can ask us to delete the stored tokens.</li>
-          <li>Ask for a copy of your data, a correction, or deletion of your account by emailing {contactEmail}.</li>
-          <li>We keep payment and payout records as long as tax and accounting laws require, even after an account is deleted.</li>
+          <li>Disconnect TikTok or Instagram any time in their settings, or reconnect a different account. We stop reading your videos, and you can ask us to delete the stored tokens.</li>
+          <li>You have the right to access, correct, delete or export your data, and to object to or restrict how we use it. Email {contactEmail}; we reply within one month.</li>
+          <li>You can complain to the Portuguese data protection authority (CNPD, cnpd.pt) or the authority in your own EU country.</li>
+          <li>We keep your data while your account is open. After you delete it we remove it, except payment and payout records, which Portuguese law requires us to keep for up to 10 years.</li>
+          <li>Some providers (Stripe, PayPal, Google, Meta, TikTok, our host) may process data outside the EU. They do so under the EU’s Standard Contractual Clauses or another legal safeguard.</li>
         </ul>
       </section>
 
@@ -85,7 +93,7 @@ export default function PrivacyPage() {
 
       <section>
         <h2>Age</h2>
-        <p>Atlas Clips is for people aged {minimumAge} and over.</p>
+        <p>Atlas Clipping is for people aged {minimumAge} and over. We don’t knowingly collect data from anyone younger.</p>
       </section>
 
       <section>
