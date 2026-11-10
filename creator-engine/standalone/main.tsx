@@ -358,7 +358,7 @@ function BrandDashboard({ store }: { store: Store }) {
               </a>
             ) : undefined,
           },
-          { label: 'Go live and pin moments', detail: 'Pin timestamps from your stream so clippers know what to cut.', done: campaigns.some((c) => c.status === 'active') },
+          { label: 'Launch and pin moments', detail: 'Pin timestamps from your stream so clippers know what to cut.', done: campaigns.some((c) => c.status === 'active') },
         ]}
       />
       <StatGrid

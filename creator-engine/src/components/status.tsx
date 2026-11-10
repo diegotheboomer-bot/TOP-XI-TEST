@@ -8,8 +8,8 @@ const submission: Record<SubmissionStatus, [Tone, string]> = {
   paid: ['blue', 'Paid'],
 };
 const campaign: Record<CampaignStatus, [Tone, string]> = {
-  draft: ['neutral', 'Draft'],
-  active: ['green', 'Active'],
+  draft: ['amber', 'Draft · not live'],
+  active: ['green', 'Live'],
   paused: ['amber', 'Paused'],
   completed: ['blue', 'Ended'],
 };

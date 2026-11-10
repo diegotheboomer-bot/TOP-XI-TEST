@@ -36,7 +36,7 @@ export default async function BrandDashboardPage() {
         steps={[
           { label: 'Create a campaign', detail: 'Set your rate, cap and which platforms clippers can post on.', done: campaigns.length > 0, action: <ButtonLink href="/streamer/campaigns/new" size="sm">Create</ButtonLink> },
           { label: 'Fund it', detail: 'Add the budget. Clippers are paid from it as their views come in.', done: campaigns.some((c) => c.budget.deposited > 0), action: firstDraft ? <ButtonLink href={`/streamer/campaigns/${firstDraft.id}`} size="sm">Open</ButtonLink> : undefined },
-          { label: 'Go live and pin moments', detail: 'Pin timestamps from your stream so clippers know what to cut.', done: campaigns.some((c) => c.status === 'active') },
+          { label: 'Launch and pin moments', detail: 'Pin timestamps from your stream so clippers know what to cut.', done: campaigns.some((c) => c.status === 'active') },
         ]}
       />
       <StatGrid
@@ -54,7 +54,7 @@ export default async function BrandDashboardPage() {
             <Empty
               icon={<Megaphone />}
               title="No campaigns yet"
-              body="Create a campaign, fund it and go live to start getting clips."
+              body="Create a campaign, add a budget and launch it to start getting clips."
               action={<ButtonLink href="/streamer/campaigns/new">Create campaign</ButtonLink>}
             />
           </div>

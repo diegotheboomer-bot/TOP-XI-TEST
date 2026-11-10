@@ -206,7 +206,7 @@ function Paid({ quote, feePercent, feeFixed, early, title, draft, pending, onClo
         </p>
       </div>
       <Breakdown quote={quote} feePercent={feePercent} feeFixed={feeFixed} early={early} className="mt-5" />
-      {draft && <p className="mt-3 rounded-lg bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">Next: click <strong>Go live</strong> on the campaign page, so clippers can find it in Discover.</p>}
+      {draft && <p className="mt-3 rounded-lg bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">Next: tap <strong>Launch campaign</strong> at the top of the page, so clippers can find it in Discover.</p>}
       <button type="button" onClick={onClose} className={buttonClass('primary', 'md', 'mt-5 w-full')}>
         Done
       </button>

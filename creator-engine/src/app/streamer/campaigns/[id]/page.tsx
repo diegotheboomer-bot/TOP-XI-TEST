@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ChevronDown, Store, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Rocket, Store, Users } from 'lucide-react';
+import { cn } from '@/components/ui/cn';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
@@ -81,11 +82,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
       )}
 
       {searchParams.funded && <p className="rounded-xl bg-brand-a/10 px-4 py-3 text-sm ring-1 ring-inset ring-brand-a/30">Payment received. Your budget updates as soon as Stripe confirms it.</p>}
-      {c.status === 'draft' && c.escrow_balance <= 0 && !searchParams.funded && (
-        <p className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600">
-          <Wallet className="size-4 shrink-0 text-[rgb(var(--brand-ta))]" /> Add a budget to go live. Clippers can only join funded campaigns.
-        </p>
-      )}
+      {c.status === 'draft' && <LaunchChecklist campaign={c} funded={c.escrow_balance > 0} />}
 
       <StatGrid
         items={[
@@ -225,13 +222,62 @@ function topClippers(rows: SubmissionRow[]) {
   return [...by.values()].sort((a, b) => b.views - a.views);
 }
 
+/** Shown while a campaign is a draft: what's done, what's left, and the launch button. */
+function LaunchChecklist({ campaign, funded }: { campaign: Campaign; funded: boolean }) {
+  const steps: [string, string, boolean][] = [
+    ['Set up the campaign', 'Title, thumbnail, pay and rules', true],
+    ['Add a budget', funded ? `${usd(campaign.escrow_balance)} ready for clippers` : 'Use “Add budget” below. Clippers can only join funded campaigns', funded],
+    ['Launch', 'Clippers see it in Discover and can start posting', false],
+  ];
+  return (
+    <section className="relative overflow-hidden rounded-2xl border border-amber-300/60 bg-white p-5 shadow-card sm:p-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-20" style={{ background: 'radial-gradient(70% 100% at 10% 0%, rgb(245 158 11 / 0.14), transparent 70%)' }} />
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-700">
+            <span className="size-2 animate-pulse rounded-full" style={{ backgroundColor: "#f59e0b" }} /> Not live yet
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight">Finish setting up your campaign</h2>
+          <ol className="mt-4 space-y-3">
+            {steps.map(([title, body, done], i) => (
+              <li key={title} className="flex items-start gap-3">
+                <span
+                  className={cn(
+                    'mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold',
+                    done ? 'bg-brand text-brand-ink' : 'border border-zinc-300 text-zinc-500',
+                  )}
+                >
+                  {done ? <Check className="size-3.5" strokeWidth={3.5} /> : i + 1}
+                </span>
+                <div>
+                  <p className={cn('text-sm font-medium', done && 'text-zinc-500 line-through decoration-zinc-300')}>{title}</p>
+                  <p className="text-xs text-zinc-500">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="sm:w-56">
+          {funded ? (
+            <ActionButton variant="primary" action={setCampaignStatus.bind(null, campaign.id, 'active')}>
+              <Rocket className="size-4" /> Launch campaign
+            </ActionButton>
+          ) : (
+            <p className="rounded-xl bg-zinc-50 px-4 py-3 text-center text-sm text-zinc-500">Add a budget to unlock launch</p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function StatusActions({ campaign }: { campaign: Campaign }) {
-  if (campaign.status === 'completed') return null;
+  if (campaign.status === 'completed' || campaign.status === 'draft') return null;
   return (
     <>
-      {campaign.status !== 'active' && (
+      {campaign.status === 'paused' && (
         <ActionButton variant="primary" action={setCampaignStatus.bind(null, campaign.id, 'active')}>
-          {campaign.status === 'paused' ? 'Resume' : 'Go live'}
+          Resume
         </ActionButton>
       )}
       {campaign.status === 'active' && <ActionButton action={setCampaignStatus.bind(null, campaign.id, 'paused')}>Pause</ActionButton>}

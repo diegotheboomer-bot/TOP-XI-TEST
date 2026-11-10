@@ -266,6 +266,7 @@ export function CampaignRow({ c, href, link: Link = 'a' }: { c: CampaignSummary;
           <p className="mt-1 text-sm text-zinc-500">
             {r.rate} {r.unit} · {r.terms}
           </p>
+          {c.status === 'draft' && <p className="mt-1 text-xs font-medium text-amber-700">Finish setup: {c.escrow_balance > 0 ? 'launch it' : 'add a budget, then launch'} →</p>}
           {c.pendingReview > 0 && <p className="mt-1 text-xs font-medium text-amber-700">{c.pendingReview} waiting for review</p>}
         </div>
         <Metric label="Clips" value={String(c.submissions)} className="hidden lg:block" />

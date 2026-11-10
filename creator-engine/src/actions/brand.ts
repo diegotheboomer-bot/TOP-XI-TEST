@@ -89,10 +89,10 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
   if (isDemo) return done(demo.setCampaignStatus(campaignId, status), campaignId);
   const { admin, campaign } = await requireOwnCampaign(campaignId);
   if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
-  if (status === 'active' && Number(campaign.escrow_balance) <= 0) return { error: 'Fund escrow before going live.' };
+  if (status === 'active' && Number(campaign.escrow_balance) <= 0) return { error: 'Add a budget before launching.' };
   await admin.from('campaigns').update({ status }).eq('id', campaignId);
   revalidatePath(`/streamer/campaigns/${campaignId}`);
-  return { success: `Campaign ${status}.` };
+  return { success: status === 'active' ? 'Your campaign is live.' : status === 'paused' ? 'Campaign paused.' : 'Campaign ended.' };
 }
 
 export type DepositIntentResult = { clientSecret: string } | { error: string };

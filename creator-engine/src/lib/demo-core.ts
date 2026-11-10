@@ -461,7 +461,7 @@ export function setCampaignStatus(s: State, id: string, status: Campaign['status
   const c = ownCampaign(s, id);
   if (!c) return { error: 'Campaign not found.' };
   if (c.status === 'completed') return { error: 'This campaign has ended.' };
-  if (status === 'active' && c.escrow_balance <= 0) return { error: 'Fund escrow before going live.' };
+  if (status === 'active' && c.escrow_balance <= 0) return { error: 'Add a budget before launching.' };
   c.status = status;
   return { success: `Campaign ${status}.` };
 }
