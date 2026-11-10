@@ -195,7 +195,7 @@ function Breakdown({ quote, feePercent, className }: { quote: Quote | null; feeP
         <dd className="tabular-nums">{quote ? usdCents(quote.amount) : '—'}</dd>
       </div>
       <div className={row}>
-        <dt className="text-zinc-500">Platform fee ({feePercent}%, non-refundable)</dt>
+        <dt className="text-zinc-500">Service fee ({feePercent}%, incl. card processing, non-refundable)</dt>
         <dd className="tabular-nums">{quote ? usdCents(quote.fee) : '—'}</dd>
       </div>
       <div className={cn(row, 'border-t border-zinc-200 pt-2 font-semibold')}>

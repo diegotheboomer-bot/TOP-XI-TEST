@@ -83,7 +83,7 @@ export function CancelCampaign({ summary, ended: endedNow, onConfirm }: { summar
               )}
               {fees > 0 && (
                 <div className="flex justify-between gap-3">
-                  <dt className="text-zinc-500">Platform fee ({feePercent}%), not refunded</dt>
+                  <dt className="text-zinc-500">Service fee ({feePercent}%), not refunded</dt>
                   <dd className="tabular-nums">{usdCents(fees)}</dd>
                 </div>
               )}

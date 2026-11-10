@@ -29,7 +29,7 @@ export default function TermsPage() {
       <section>
         <h2>For streamers</h2>
         <ul>
-          <li>You fund a campaign before it goes live. You pay the budget plus a {fee}% platform fee, shown before you pay. The whole budget is for clippers.</li>
+          <li>You fund a campaign before it goes live. You pay the budget plus a {fee}% service fee, shown before you pay. The fee covers card processing and payouts; the whole budget is for clippers.</li>
           <li>Clippers are paid for views their clips get, at your rate and up to your cap, from the campaign budget.</li>
           <li>You can review clips. Clean clips are approved automatically after the review window you set.</li>
           <li>You give clippers in your campaign permission to use your stream footage to make clips for that campaign.</li>
@@ -72,7 +72,7 @@ export default function TermsPage() {
         <h2>Payments</h2>
         <p>
           Payments are processed by Stripe; payouts by Stripe or PayPal. Card payments can be disputed; if a funding payment is reversed, we may hold payouts from that
-          campaign. Streamers can cancel a campaign at any time: unspent budget is refunded to the original payment method, the platform fee is not, and money clippers
+          campaign. Streamers can cancel a campaign at any time: unspent budget is refunded to the original payment method, the service fee is not, and money clippers
           have already earned is still paid to them.
         </p>
       </section>

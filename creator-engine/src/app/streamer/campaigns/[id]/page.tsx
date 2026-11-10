@@ -117,7 +117,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
                     createIntent={createDepositIntent}
                     payDemo={payDemoDeposit}
                   />
-                  <p className="mt-2 text-xs text-zinc-500">{feePercent}% platform fee on top. Cancel anytime: unspent budget is refunded, the fee isn’t.</p>
+                  <p className="mt-2 text-xs text-zinc-500">{feePercent}% service fee on top (covers card processing). Cancel anytime: unspent budget is refunded, the fee isn’t.</p>
                 </>
               )}
             </div>

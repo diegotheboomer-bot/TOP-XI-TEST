@@ -545,7 +545,7 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
                       <MockPayment quote={quote} onPay={(amount) => store.run((s) => core.fundEscrow(s, c.id, amount), { quiet: true })} onPaid={onPaid} />
                     )}
                   />
-                  <p className="mt-2 text-xs text-zinc-500">{FEE_PERCENT}% platform fee on top. Cancel anytime: unspent budget is refunded, the fee isn’t.</p>
+                  <p className="mt-2 text-xs text-zinc-500">{FEE_PERCENT}% service fee on top (covers card processing). Cancel anytime: unspent budget is refunded, the fee isn’t.</p>
                 </>
               )}
             </div>
