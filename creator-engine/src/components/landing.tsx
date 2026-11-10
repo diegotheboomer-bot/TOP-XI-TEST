@@ -4,6 +4,8 @@ import { HeroFlow } from './hero-flow';
 import { PlatformTile } from './platform-icon';
 import { HowItWorks } from './how-it-works';
 import { Features } from './features';
+import { ClipperPitch } from './clipper-pitch';
+import { Faq } from './faq';
 import { LogoMark } from './logo';
 import { buttonClass } from './ui/button';
 
@@ -11,12 +13,15 @@ export function Landing({
   link = 'a',
   startHref,
   clipperHref,
+  clipperStartHref,
   feePercent,
   legal,
 }: {
   link?: LinkLike;
   startHref: string;
   clipperHref: string;
+  /** Sign-up with the clipper side picked. */
+  clipperStartHref: string;
   feePercent: number;
   /** Links to the privacy policy and terms, when the site has them. */
   legal?: { privacy: string; terms: string };
@@ -28,15 +33,15 @@ export function Landing({
         <div className="hero-grid pointer-events-none absolute inset-x-0 -top-16 bottom-0 -z-10" aria-hidden />
         <div className="min-w-0">
           <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-zinc-600 backdrop-blur">
-            <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> Clipping campaigns for streamers
+            <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> Paid per real view
           </p>
           <h1 className="balance mt-5 text-[2.75rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl">
             Your stream, <span className="text-brand">clipped everywhere.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
-            Pin your best moments. Clippers post them everywhere. You only pay for real views.
+            Streamers: pin your best moments and only pay for real views. Clippers: post them and get paid per view.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:flex">
             <Link href={startHref} className={buttonClass('primary', 'md', 'h-11 px-5')}>
               Get started
             </Link>
@@ -56,9 +61,13 @@ export function Landing({
         <HeroFlow />
       </section>
 
+      <ClipperPitch link={Link} href={clipperStartHref} />
+
       <HowItWorks feePercent={feePercent} />
 
       <Features feePercent={feePercent} />
+
+      <Faq />
 
       <section className="flex flex-col items-center gap-4 border-t border-zinc-200/80 py-20 text-center">
         <LogoMark className="size-14" />

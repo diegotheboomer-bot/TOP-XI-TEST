@@ -1,0 +1,23 @@
+# Atlas Clipping
+
+> Atlas Clipping (atlasclipping.com) is a clipping marketplace. Streamers fund campaigns; clippers post short clips of their streams to TikTok, YouTube Shorts and Instagram Reels and get paid per 1,000 real views.
+
+## For clippers (people who want to earn money)
+- Free to join, no follower minimum. Clippers keep 100% of what they earn; there are no clipper fees.
+- Each campaign shows its rate (for example $2 per 1,000 views) and a cap per clipper before you join.
+- Clips must be posted from the clipper's own connected TikTok or Instagram, or verified YouTube channel.
+- Approved clips are paid automatically 3 days after approval, to a bank account or debit card (Stripe), PayPal or Venmo.
+- Not fully passive: you make and post the clips, but a posted clip keeps earning as it gets views until the campaign's cap or budget is reached.
+- Fake, bought or bot views and paid promotion are not paid.
+- Sign up: https://atlasclipping.com/signup?role=creator
+
+## For streamers
+- Fund a campaign once, plus a flat platform fee shown before paying. The whole budget goes to clippers.
+- Pin the stream moments worth clipping; pay only for real views, checked on each platform.
+- Unspent budget is refunded if a campaign is cancelled (the fee isn't refundable).
+- Sign up: https://atlasclipping.com/signup?role=brand
+
+## Pages
+- Home: https://atlasclipping.com
+- Terms: https://atlasclipping.com/terms
+- Privacy: https://atlasclipping.com/privacy
