@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Clapperboard, Dumbbell, Eye, FileText, Film, GalleryHorizontal, Gamepad2, GraduationCap, Image as ImageIcon, Laugh, Link2, ListChecks, Loader2, MapPin, MessageCircle, Music, Paperclip, PieChart, Plus, Repeat2, Scissors, ShieldCheck, Sparkles, Trophy, Upload, Webcam, X } from 'lucide-react';
+import { Check, ChevronDown, Clapperboard, Dumbbell, Eye, FileText, Film, GalleryHorizontal, Gamepad2, GraduationCap, Image as ImageIcon, Laugh, Link2, ListChecks, Loader2, Play, MapPin, MessageCircle, Music, Paperclip, PieChart, Plus, Repeat2, Scissors, ShieldCheck, Sparkles, Trophy, Upload, Webcam, X } from 'lucide-react';
 import { Field, Input } from '../ui/field';
 import { Card } from '../ui/card';
 import { MarketCard } from '../views';
@@ -553,43 +553,76 @@ const PITCH: Record<string, { tag: string; best: string }> = {
   pool: { tag: 'e.g. $1,000 split', best: 'Best for a fixed budget: clippers compete' },
 };
 
-/** A small moving picture of each pay type. */
+const INK = 'rgb(26 46 5)';
+const LIME = '#d9f99d';
+
+/** A dark 9:16 clip with a play button, the shape clippers post. */
+function MiniClip({ className, style, children }: { className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
+  return (
+    <span className={cn('absolute grid aspect-[9/16] place-items-center rounded-[5px] shadow-md', className)} style={{ backgroundColor: INK, ...style }}>
+      <Play className="size-2.5 fill-current" style={{ color: LIME }} />
+      {children}
+    </span>
+  );
+}
+
+/** A small moving picture of each pay type: a clip and what it earns. */
 function ModelViz({ id }: { id: PayoutModel }) {
   if (id === 'pure_cpm') {
+    // A clip whose views tick up, with dollars following.
     return (
-      <span className="flex h-full items-end justify-center gap-[3px] px-2.5 pb-2.5" aria-hidden>
-        {[0.35, 0.5, 0.45, 0.7, 0.85, 1].map((h, i) => (
-          <span key={i} className="viz-bar w-[7px] rounded-[3px] bg-brand-ink/80" style={{ height: `${h * 70}%`, animationDelay: `${i * 0.12}s` }} />
-        ))}
+      <span className="relative block h-full" aria-hidden>
+        <MiniClip className="left-[12%] top-[12%] h-[76%]" />
+        <span className="viz-float absolute right-[8%] top-[16%] flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[9px] font-bold shadow" style={{ backgroundColor: INK, color: LIME }}>
+          <Eye className="size-2.5" /> 1K
+        </span>
+        <span className="viz-float absolute bottom-[16%] right-[8%] rounded-full px-1.5 py-0.5 font-mono text-[9px] font-bold shadow" style={{ color: INK, backgroundColor: '#fff', animationDelay: '0.5s' }}>
+          +$3
+        </span>
       </span>
     );
   }
   if (id === 'per_post') {
+    // Approved clips, each with a fixed price tag.
     return (
       <span className="relative block h-full" aria-hidden>
         {[0, 1, 2].map((i) => (
-          <span
+          <MiniClip
             key={i}
-            className="viz-float absolute grid h-[60%] w-[38%] place-items-center rounded-md font-mono text-[10px] font-bold shadow-md"
-            style={{ left: `${12 + i * 19}%`, top: `${24 - i * 5}%`, rotate: `${(i - 1) * 9}deg`, animationDelay: `${i * 0.3}s`, zIndex: i, backgroundColor: 'rgb(26 46 5)', color: '#d9f99d' }}
+            className="top-[8%] h-[62%] ring-1 ring-[#d9f99d]/40"
+            style={{ left: `${50 + (i - 1) * 22}%`, translate: '-50% 0', rotate: `${(i - 1) * 12}deg`, transformOrigin: 'bottom center', zIndex: i === 1 ? 3 : i }}
           >
-            {i === 2 ? '$20' : ''}
-          </span>
+            <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full" style={{ color: INK, backgroundColor: LIME }}>
+              <Check className="size-2" strokeWidth={4} />
+            </span>
+          </MiniClip>
         ))}
+        <span className="absolute bottom-[6%] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 font-mono text-[9px] font-bold shadow" style={{ color: INK, backgroundColor: '#fff' }}>
+          $20 each
+        </span>
       </span>
     );
   }
+  // One pot of money, split between clippers by their views.
   return (
-    <span className="grid h-full place-items-center" aria-hidden>
-      <svg viewBox="0 0 36 36" className="viz-spin size-[62%]">
+    <span className="flex h-full flex-col items-center justify-center gap-1.5 px-2.5" aria-hidden>
+      <span className="rounded-full px-2 py-0.5 font-mono text-[9px] font-bold shadow" style={{ backgroundColor: INK, color: LIME }}>
+        $1,000
+      </span>
+      <span className="flex w-full items-end gap-[3px]">
         {[
-          [45, 0],
-          [30, 45],
-          [25, 75],
-        ].map(([len, off], i) => (
-          <circle key={i} cx="18" cy="18" r="14" fill="none" strokeWidth="6" pathLength={100} strokeDasharray={`${len - 2} ${102 - len}`} strokeDashoffset={-off} className="stroke-brand-ink" style={{ opacity: 0.85 - i * 0.25 }} />
+          [45, 'A'],
+          [33, 'B'],
+          [22, 'C'],
+        ].map(([w, l], i) => (
+          <span key={l} className="flex flex-col items-center gap-0.5" style={{ width: `${w}%` }}>
+            <span className="grid size-3.5 place-items-center rounded-full text-[7px] font-bold" style={{ color: INK, backgroundColor: '#fff' }}>
+              {l}
+            </span>
+            <span className="viz-bar h-2 w-full rounded-[3px]" style={{ backgroundColor: INK, opacity: 1 - i * 0.25, animationDelay: `${i * 0.15}s` }} />
+          </span>
         ))}
-      </svg>
+      </span>
     </span>
   );
 }
