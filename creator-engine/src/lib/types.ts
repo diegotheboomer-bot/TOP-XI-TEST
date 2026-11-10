@@ -56,6 +56,8 @@ export interface Submission {
   payout_transferred: number;
   status: SubmissionStatus;
   fraud_score: number;
+  /** The streamer approved it after a low-engagement hold; don't hold it again. */
+  engagement_cleared: boolean;
   flag_reason: string | null;
   phash: string | null;
   /** Caption carries an ad disclosure (#ad, #sponsored, …). */

@@ -52,6 +52,7 @@ export default function TermsPage() {
         <h2>Not allowed</h2>
         <ul>
           <li>Buying views, using bots, or re-uploading someone else’s clip.</li>
+          <li>Paying to promote or boost a clip (for example TikTok Promote, Spark Ads or YouTube ads). Only organic views earn.</li>
           <li>Content that is illegal, hateful, sexual involving minors, or that infringes someone else’s rights.</li>
           <li>Breaking TikTok’s, YouTube’s or Instagram’s rules when you post.</li>
           <li>Interfering with the service or other users’ accounts.</li>

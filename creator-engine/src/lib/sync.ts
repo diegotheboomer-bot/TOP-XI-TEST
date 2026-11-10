@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, type PayoutTerms } from './payout';
-import { detectBotVelocity, hashSimilarity, DUPLICATE_THRESHOLD } from './fraud';
+import { detectBotVelocity, detectLowEngagement, hashSimilarity, DUPLICATE_THRESHOLD, LOW_ENGAGEMENT_REASON } from './fraud';
 import { perceptualHashFromUrl } from './phash';
 import { hasDisclosure, shouldAutoApprove } from './compliance';
 import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
@@ -164,6 +164,23 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
           status: 'flagged',
           fraud_score: 90,
           flag_reason: `Bot farm activity: ${Math.round(check.viewsPerMinute).toLocaleString('en-US')} views/min, ${(check.commentRatio * 100).toFixed(3)}% comment ratio`,
+        })
+        .eq('id', sub.id);
+      return 'flagged';
+    }
+  }
+
+  if (!sub.engagement_cleared) {
+    const low = detectLowEngagement({ views: v.views, likes: v.likes, comments: v.comments });
+    if (low.flagged) {
+      // Hold: payout_earned stays where it was until the streamer approves the clip.
+      await admin
+        .from('submissions')
+        .update({
+          ...metrics,
+          status: 'flagged',
+          fraud_score: 60,
+          flag_reason: `${LOW_ENGAGEMENT_REASON}: ${(low.ratio * 100).toFixed(2)}% likes and comments per view at ${v.views.toLocaleString('en-US')} views. Check it isn’t paid-promoted, then approve.`,
         })
         .eq('id', sub.id);
       return 'flagged';

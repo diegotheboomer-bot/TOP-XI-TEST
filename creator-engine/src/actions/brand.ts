@@ -14,6 +14,7 @@ import type Stripe from 'stripe';
 import { usdCents } from '@/lib/format';
 import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
+import { LOW_ENGAGEMENT_REASON } from '@/lib/fraud';
 import type { ActionState } from './result';
 
 async function requireBrand() {
@@ -196,7 +197,7 @@ export async function connectStore(_prev: ActionState, form: FormData): Promise<
 export async function reviewSubmission(submissionId: string, decision: 'approve' | 'flag'): Promise<ActionState> {
   if (isDemo) return done(demo.reviewSubmission(submissionId, decision));
   const admin = createAdminClient();
-  const { data: sub } = await admin.from('submissions').select('campaign_id, status, approved_at').eq('id', submissionId).single();
+  const { data: sub } = await admin.from('submissions').select('campaign_id, status, approved_at, flag_reason').eq('id', submissionId).single();
   if (!sub) return { error: 'Submission not found.' };
   const { campaign } = await requireOwnCampaign(sub.campaign_id);
   if (decision === 'approve' && campaign.status === 'completed') return { error: 'This campaign has ended, so new clips can’t earn.' };
@@ -206,7 +207,14 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
 
   const update =
     decision === 'approve'
-      ? { status: 'live_tracking', flag_reason: null, fraud_score: 0, approved_at: new Date().toISOString() }
+      ? {
+          status: 'live_tracking',
+          flag_reason: null,
+          fraud_score: 0,
+          approved_at: new Date().toISOString(),
+          // Approving a low-engagement hold means the streamer checked it.
+          ...(sub.flag_reason?.startsWith(LOW_ENGAGEMENT_REASON) ? { engagement_cleared: true } : {}),
+        }
       : { status: 'flagged', flag_reason: 'Flagged by the streamer' };
   await admin.from('submissions').update(update).eq('id', submissionId);
   revalidatePath(`/streamer/campaigns/${sub.campaign_id}`);

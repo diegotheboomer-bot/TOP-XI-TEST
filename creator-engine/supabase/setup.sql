@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0006 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0007 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -424,5 +424,12 @@ create table login_handoffs (
   created_at timestamptz not null default now()
 );
 alter table login_handoffs enable row level security;
+
+
+-- ═════ 0007_engagement_check.sql ═════
+-- 0007: low-engagement hold. Clips with far fewer likes and comments per view
+-- than normal (a sign of paid promotion) are held for the streamer to check.
+-- Set once the streamer approves such a clip, so it isn't held again.
+alter table submissions add column engagement_cleared boolean not null default false;
 
 commit;

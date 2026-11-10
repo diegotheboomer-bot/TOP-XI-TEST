@@ -60,6 +60,7 @@ const SubmitSchema = z.object({
  * duplicate-asset check. Recurring sync starts once the streamer approves.
  */
 export async function submitVideo(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (form.get('noPaidPromo') !== 'on') return { error: 'Confirm the clip isn’t paid-promoted.' };
   const parsedForm = SubmitSchema.safeParse({ campaignId: form.get('campaignId'), videoUrl: form.get('videoUrl') });
   if (!parsedForm.success) return { error: parsedForm.error.issues[0].message };
   const { campaignId, videoUrl } = parsedForm.data;

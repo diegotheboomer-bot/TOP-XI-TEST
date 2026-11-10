@@ -33,3 +33,18 @@ export function detectBotVelocity(prev: MetricSample, curr: MetricSample): { fla
   const burst = delta > BURST_VIEWS && viewsPerMinute >= BURST_VIEWS / BURST_WINDOW_MIN;
   return { flagged: burst && commentRatio < MIN_COMMENT_RATIO, viewsPerMinute, commentRatio };
 }
+
+// Paid boosts (TikTok Promote, ads) bring views with far fewer likes and comments
+// than organic ones. Typical short-form clips get a few percent; below 0.3% at
+// this many views is held for the streamer to check before it earns more.
+export const LOW_ENGAGEMENT_MIN_VIEWS = 20_000;
+export const LOW_ENGAGEMENT_RATIO = 0.003;
+
+/** Likes + comments per view far below normal: a sign the clip may be paid-promoted. */
+export function detectLowEngagement(s: { views: number; likes: number; comments: number }): { flagged: boolean; ratio: number } {
+  const ratio = s.views > 0 ? (s.likes + s.comments) / s.views : 0;
+  return { flagged: s.views >= LOW_ENGAGEMENT_MIN_VIEWS && ratio < LOW_ENGAGEMENT_RATIO, ratio };
+}
+
+/** Prefix of the flag reason, so approving it can clear the check for that clip. */
+export const LOW_ENGAGEMENT_REASON = 'Low engagement';

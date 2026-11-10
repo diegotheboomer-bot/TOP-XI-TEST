@@ -221,6 +221,7 @@ export function seedDemo(feePercent: number, assetBase: string): State {
       payout_transferred: 0,
       status: 'live_tracking',
       fraud_score: 0,
+      engagement_cleared: false,
       flag_reason: null,
       phash: null,
       has_disclosure: true,
@@ -673,6 +674,7 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
     payout_transferred: 0,
     status: 'pending_review',
     fraud_score: 0,
+    engagement_cleared: false,
     flag_reason: null,
     phash: null,
     has_disclosure: true, // mock caption includes #ad
