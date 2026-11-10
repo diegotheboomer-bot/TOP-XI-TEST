@@ -14,10 +14,10 @@ const money = (n: number) => `$${n.toFixed(2)}`;
 
 export function TestMoney({ publishableKey }: { publishableKey: string }) {
   const [status, setStatus] = useState<TestStatus | { error: string }>();
-  const [amount, setAmount] = useState('5');
+  const [amount, setAmount] = useState('1');
   const [paid, setPaid] = useState(false);
   const [onboarding, setOnboarding] = useState(false);
-  const [cash, setCash] = useState('2');
+  const [cash, setCash] = useState('0.50');
   const [cashState, setCashState] = useState<ActionState>();
   const [busy, setBusy] = useState(false);
   const refresh = useCallback(async () => setStatus(await testStatus()), []);
@@ -33,7 +33,7 @@ export function TestMoney({ publishableKey }: { publishableKey: string }) {
       {status && 'error' in status && <FormMessage state={{ error: status.error }} />}
       {s && (
         <Card className="grid grid-cols-3 gap-2 p-4 text-center">
-          <Box k="Your test balance" v={money(s.available)} hint={s.pending ? `${money(s.pending)} pending` : 'available'} />
+          <Box k="Your Stripe balance" v={money(s.available)} hint={s.pending ? `${money(s.pending)} pending` : 'available'} />
           <Box k="Clipper bank" v={s.payoutsEnabled ? 'Connected' : 'Not yet'} />
           <Box k="Clipper received" v={money(s.clipperBalance)} />
         </Card>
@@ -42,7 +42,7 @@ export function TestMoney({ publishableKey }: { publishableKey: string }) {
       <Card className="p-5">
         <h2 className="font-semibold">1. Deposit</h2>
         <p className="mb-4 mt-1 text-sm text-zinc-500">
-          Use card <span className="font-mono text-zinc-900">4000 0000 0000 0077</span> (funds are available right away), any future date, any CVC.
+          Real card, real money. Stripe’s minimum is $0.50; try $1.
         </p>
         <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} aria-label="Amount" className="mb-4" />
         {paid ? (
@@ -66,8 +66,7 @@ export function TestMoney({ publishableKey }: { publishableKey: string }) {
       <Card className="p-5">
         <h2 className="font-semibold">2. Connect a test bank</h2>
         <p className="mb-4 mt-1 text-sm text-zinc-500">
-          Fake details work: phone code <span className="font-mono">000 000</span>, routing <span className="font-mono">110000000</span>, account{' '}
-          <span className="font-mono">000123456789</span>, SSN last 4 <span className="font-mono">0000</span>.
+          Your real details and bank, through Stripe, exactly like a clipper would.
         </p>
         {onboarding ? (
           <StripeOnboarding
@@ -87,7 +86,7 @@ export function TestMoney({ publishableKey }: { publishableKey: string }) {
 
       <Card className="p-5">
         <h2 className="font-semibold">3. Cash out</h2>
-        <p className="mb-4 mt-1 text-sm text-zinc-500">Sends money from your test balance to the test clipper account, like a real cash-out.</p>
+        <p className="mb-4 mt-1 text-sm text-zinc-500">Sends money from your deposit to the connected bank account. It lands in the bank in a few business days.</p>
         <div className="flex gap-2">
           <Input inputMode="decimal" value={cash} onChange={(e) => setCash(e.target.value.replace(/[^\d.]/g, ''))} aria-label="Cash-out amount" />
           <Button

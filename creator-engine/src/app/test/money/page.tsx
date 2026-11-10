@@ -8,14 +8,14 @@ import { getViewer } from '@/lib/session';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Money test', robots: { index: false } };
 
-/** Temporary: deposit and cash out with Stripe test keys (fake money). */
+/** Temporary: a small real deposit and cash-out with the live Stripe keys. */
 export default async function MoneyTestPage() {
   if (isDemo) redirect('/');
   if (!(await getViewer())) redirect('/login');
-  const pk = process.env.STRIPE_TEST_PUBLISHABLE_KEY?.trim();
+  const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
   return (
-    <AuthShell title="Money test" subtitle="Stripe test mode: fake money, nothing touches your live account or the database." wide>
-      {pk?.startsWith('pk_test_') ? <TestMoney publishableKey={pk} /> : <p className="text-sm text-rose-600">Add STRIPE_TEST_PUBLISHABLE_KEY and STRIPE_TEST_SECRET_KEY (test keys) on Render.</p>}
+    <AuthShell title="Money test" subtitle="Real money, live Stripe. Use small amounts. Nothing is saved in the app’s database." wide>
+      {pk ? <TestMoney publishableKey={pk} /> : <p className="text-sm text-rose-600">Stripe isn’t set up.</p>}
     </AuthShell>
   );
 }

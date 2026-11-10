@@ -1,18 +1,15 @@
 'use server';
 
-// /test/money only: deposit and cash out with Stripe TEST keys (fake money).
-// Separate from the live site: own keys, nothing saved in the database.
-import Stripe from 'stripe';
+// /test/money only: a small REAL deposit and cash-out with the live Stripe keys.
+// Nothing is saved in the database; the test clipper account lives in a cookie.
 import { cookies } from 'next/headers';
+import { stripe } from '@/lib/stripe';
 import { getViewer } from '@/lib/session';
 import type { ActionState } from './result';
 
-const testStripe = () => {
-  const key = process.env.STRIPE_TEST_SECRET_KEY?.trim();
-  if (!key?.startsWith('sk_test_') && !key?.startsWith('rk_test_')) throw new Error('Add STRIPE_TEST_SECRET_KEY (a test key) on Render.');
-  return new Stripe(key);
-};
+const testStripe = stripe;
 const ACCOUNT_COOKIE = 'test_connect_account';
+const INTENT_COOKIE = 'test_deposit_intent';
 
 async function signedIn() {
   if (!(await getViewer())) throw new Error('Sign in first.');
@@ -27,6 +24,7 @@ export async function testDeposit(_campaignId: string, amount: number): Promise<
       allowed_payment_method_types: ['card'],
       description: 'Atlas test deposit',
     });
+    cookies().set(INTENT_COOKIE, intent.id, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 86_400, path: '/' });
     return { clientSecret: intent.client_secret! };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not start the payment.' };
@@ -87,7 +85,12 @@ export async function testCashOut(amount: number): Promise<ActionState> {
     await signedIn();
     const account = cookies().get(ACCOUNT_COOKIE)?.value;
     if (!account) return { error: 'Connect a test bank first (step 2).' };
-    const t = await testStripe().transfers.create({ amount: Math.round(amount * 100), currency: 'usd', destination: account, description: 'Atlas test cash-out' });
+    // Tied to the deposit's charge, so it can be sent before the card money becomes available (about 2 days).
+    const intentId = cookies().get(INTENT_COOKIE)?.value;
+    const intent = intentId ? await testStripe().paymentIntents.retrieve(intentId) : null;
+    const charge = intent?.status === 'succeeded' ? (intent.latest_charge as string | null) : null;
+    if (!charge) return { error: 'Make a deposit first (step 1).' };
+    const t = await testStripe().transfers.create({ amount: Math.round(amount * 100), currency: 'usd', destination: account, source_transaction: charge, description: 'Atlas test cash-out' });
     return { success: `Sent $${amount.toFixed(2)} to the test clipper account (${t.id}).` };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Cash-out failed.' };
