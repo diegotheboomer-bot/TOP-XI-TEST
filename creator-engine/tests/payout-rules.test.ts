@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOLD_HOURS, autoPayoutDue, holdHoursLeft, isPayday, streamerCanFlag } from '@/lib/payout-rules';
+import { HOLD_HOURS, autoPayoutDue, cashoutFee, cashoutReady, holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
 
 const now = Date.parse('2026-11-10T12:00:00Z');
 const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
@@ -54,9 +54,18 @@ describe('automatic payouts (demo)', () => {
   });
 });
 
-describe('payday', () => {
-  it('is Friday (UTC) only', () => {
-    expect(isPayday(Date.parse('2026-11-13T12:00:00Z'))).toBe(true);
-    expect(isPayday(Date.parse('2026-11-10T12:00:00Z'))).toBe(false);
+describe('cash-outs', () => {
+  it('first cash-out in 7 days is free, extra ones cost $1', () => {
+    expect(cashoutFee(0)).toBe(0);
+    expect(cashoutFee(1)).toBe(1);
+    expect(cashoutFee(3)).toBe(1);
+  });
+  it('only approved clips past the 3-day hold can be cashed out', () => {
+    const now = Date.parse('2026-11-10T12:00:00Z');
+    const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
+    expect(cashoutReady({ status: 'live_tracking', approved_at: ago(HOLD_HOURS + 1) }, now)).toBe(true);
+    expect(cashoutReady({ status: 'live_tracking', approved_at: ago(10) }, now)).toBe(false);
+    expect(cashoutReady({ status: 'flagged', approved_at: ago(500) }, now)).toBe(false);
+    expect(cashoutReady({ status: 'pending_review', approved_at: null }, now)).toBe(false);
   });
 });

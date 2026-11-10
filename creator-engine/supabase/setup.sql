@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0009 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0010 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -444,5 +444,20 @@ alter table social_accounts alter column access_expires_at drop not null;
 -- 0009: the clip's cover image, shown on the clipper's Clips page. Platform
 -- cover links can expire, so the sync refreshes it.
 alter table submissions add column cover_url text;
+
+
+-- ═════ 0010_cashouts.sql ═════
+-- 0010: clipper cash-outs. Clippers cash out whenever they like: one free per
+-- 7 days, then a small fee per extra cash-out (kept by the platform).
+create table cashouts (
+  id         uuid primary key default gen_random_uuid(),
+  creator_id uuid not null references creators (id) on delete cascade,
+  amount     numeric(12, 2) not null,  -- total paid out to the clipper (after any fee)
+  fee        numeric(12, 2) not null default 0,
+  created_at timestamptz not null default now()
+);
+create index cashouts_creator_time_idx on cashouts (creator_id, created_at desc);
+alter table cashouts enable row level security;
+create policy "creators read own cashouts" on cashouts for select using (creator_id = my_creator_id());
 
 commit;

@@ -19,6 +19,9 @@ import { stripe } from '@/lib/stripe';
 import { paypalConfigured } from '@/lib/paypal';
 import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
+import { payClip } from '@/lib/pay-clip';
+import { MIN_CASHOUT, cashoutFee, cashoutReady } from '@/lib/payout-rules';
+import { usd, usdCents } from '@/lib/format';
 import type { ActionState, SubmitCheck, SubmitState } from './result';
 
 async function requireCreator() {
@@ -253,8 +256,6 @@ async function payoutAccount(creatorId: string): Promise<string> {
       stripe_dashboard: { type: 'express' },
     },
     capabilities: { transfers: { requested: true } },
-    // Money reaches the clipper's bank once a week (Fridays): fewer bank payouts, lower fees.
-    settings: { payouts: { schedule: { interval: 'weekly', weekly_anchor: 'friday' } } },
     metadata: { creator_id: creatorId },
   });
   await admin.from('creators').update({ stripe_account_id: account.id }).eq('id', creatorId);
@@ -361,6 +362,45 @@ export async function connectTikTok(): Promise<void> {
     redirect('/clipper?tiktok=connected');
   }
   redirect('/api/oauth/tiktok/start');
+}
+
+/**
+ * Cash out: send everything that's ready (approved, past the 3-day hold) to the
+ * clipper's payout method now. One free cash-out every 7 days; extra ones cost
+ * EXTRA_CASHOUT_FEE, taken from the amount sent.
+ */
+export async function cashOut(): Promise<ActionState> {
+  if (isDemo) return { success: 'Cashed out (demo).' };
+  const creatorId = await requireCreator();
+  const admin = createAdminClient();
+  const [{ data: subs }, { count }] = await Promise.all([
+    admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred').eq('creator_id', creatorId),
+    admin.from('cashouts').select('id', { count: 'exact', head: true }).eq('creator_id', creatorId).gte('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString()),
+  ]);
+  const ready = (subs ?? [])
+    .map((s) => ({ ...s, owed: Math.round((Number(s.payout_earned) - Number(s.payout_transferred)) * 100) / 100 }))
+    .filter((s) => s.owed > 0 && cashoutReady(s as { status: 'live_tracking'; approved_at: string | null }))
+    .sort((a, b) => b.owed - a.owed);
+  const total = ready.reduce((n, s) => n + s.owed, 0);
+  if (total < MIN_CASHOUT) return { error: `You can cash out once you have at least ${usd(MIN_CASHOUT)} ready.` };
+  const fee = cashoutFee(count ?? 0);
+
+  let sent = 0;
+  let feeTaken = 0;
+  const errors: string[] = [];
+  for (const s of ready) {
+    const takeFee = feeTaken === 0 && fee > 0 && s.owed > fee ? fee : 0;
+    const r = await payClip(admin, s.id, 0.01, takeFee);
+    if (r.ok) {
+      sent += r.gross;
+      feeTaken += takeFee;
+    } else errors.push(r.error);
+  }
+  if (sent > 0) await admin.from('cashouts').insert({ creator_id: creatorId, amount: Math.round(sent * 100) / 100, fee: feeTaken });
+  revalidatePath('/clipper/earnings');
+  revalidatePath('/clipper/payouts');
+  if (!sent) return { error: errors[0] ?? 'Couldn’t cash out. Try again.' };
+  return { success: `${usdCents(sent)} is on its way${feeTaken ? ` (${usd(feeTaken)} extra cash-out fee)` : ''}.` };
 }
 
 export async function connectInstagram(): Promise<void> {

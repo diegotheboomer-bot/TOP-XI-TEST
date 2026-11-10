@@ -17,7 +17,7 @@ const POINTS = [
   'Rate and cap shown before you join.',
   'Post on TikTok, YouTube Shorts or Instagram Reels.',
   'Clips keep earning while they get views.',
-  'Paid automatically to your bank, PayPal or Venmo.',
+  'Cash out anytime to your bank, PayPal or Venmo.',
 ];
 
 

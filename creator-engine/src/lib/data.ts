@@ -58,6 +58,8 @@ export interface CreatorDashboard {
   youtube: { channel: string | null; subscribers: number | null } | null;
   instagram: { username: string | null; followers: number | null } | null;
   youtubeCode: string;
+  /** Cash-outs in the last 7 days (the first each week is free). */
+  recentCashouts: number;
   /** Ready to be paid by the chosen method. */
   payoutsEnabled: boolean;
   payout: PayoutSetup;
@@ -256,6 +258,11 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     .map(({ brands, ...c }) => ({ ...num(c as Campaign, CAMPAIGN_NUMS), brandName: (brands as { name: string } | null)?.name ?? '' }));
   const budgets = await loadBudgets(openList);
   const payout = await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false);
+  const { count: recentCashouts } = await createAdminClient()
+    .from('cashouts')
+    .select('id', { count: 'exact', head: true })
+    .eq('creator_id', creatorId)
+    .gte('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString());
   const tiktok = (account ?? []).find((a) => a.platform === 'tiktok');
   const youtube = (account ?? []).find((a) => a.platform === 'youtube');
   const instagram = (account ?? []).find((a) => a.platform === 'instagram');
@@ -265,6 +272,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     youtube: youtube ? { channel: youtube.username, subscribers: youtube.follower_count } : null,
     instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
     youtubeCode: youtubeVerifyCode(creatorId),
+    recentCashouts: recentCashouts ?? 0,
     payoutsEnabled: payoutReady(payout),
     payout,
     enrollments: (enrollments ?? []).map(({ campaigns, ...e }) => {

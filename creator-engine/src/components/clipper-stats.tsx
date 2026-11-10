@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import type { CreatorDashboard } from '@/lib/data';
 import type { Submission, SubmissionStatus } from '@/lib/types';
-import { holdHoursLeft } from '@/lib/payout-rules';
+import { EXTRA_CASHOUT_FEE, MIN_CASHOUT, cashoutFee, cashoutReady } from '@/lib/payout-rules';
+import { cashOut } from '@/actions/creator';
+import { ActionButton } from './action-button';
 import { compact, usd, usdCents } from '@/lib/format';
 import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
@@ -164,23 +166,31 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
   const paid = rows.reduce((n, r) => n + r.sub.payout_transferred, 0);
   const owed = rows.filter((r) => r.sub.status !== 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const held = rows.filter((r) => r.sub.status === 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
-  const nextHold = rows
-    .filter((r) => r.sub.status === 'live_tracking' && r.sub.payout_earned > r.sub.payout_transferred)
-    .map((r) => holdHoursLeft(r.sub.approved_at))
-    .sort((a, b) => a - b)[0];
+  const ready = rows.filter((r) => cashoutReady(r.sub)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
+  const fee = cashoutFee(d.recentCashouts);
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full bg-brand opacity-[0.08] blur-3xl" />
-        <p className="text-sm text-zinc-500">Total earned</p>
-        <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight text-brand">{usdCents(earned)}</p>
-        <p className="mt-3 text-sm text-zinc-500">
-          {owed > 0
-            ? nextHold != null && nextHold > 0
-              ? `${usdCents(owed)} on the way. Next payout in about ${Math.ceil(nextHold / 24)} day${Math.ceil(nextHold / 24) === 1 ? '' : 's'}.`
-              : `${usdCents(owed)} on the way with the next payout.`
-            : 'You’re all paid up.'}
+        <p className="text-sm text-zinc-500">Ready to cash out</p>
+        <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight text-brand">{usdCents(ready)}</p>
+        <p className="mt-2 text-sm text-zinc-500">
+          {usdCents(earned)} earned in total{owed > ready ? ` · ${usdCents(owed - ready)} still in the 3-day check` : ''}
         </p>
+        <div className="mt-5">
+          {ready >= MIN_CASHOUT && d.payoutsEnabled ? (
+            <ActionButton variant="primary" block action={cashOut}>
+              Cash out {usdCents(Math.max(0, ready - fee))}
+            </ActionButton>
+          ) : (
+            <p className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+              {!d.payoutsEnabled ? 'Set up a payout method to cash out.' : `You can cash out once ${usd(MIN_CASHOUT)} is ready.`}
+            </p>
+          )}
+          <p className="mt-3 text-xs text-zinc-500">
+            {fee ? `You’ve used this week’s free cash-out. Extra cash-outs cost ${usd(EXTRA_CASHOUT_FEE)}.` : `1 free cash-out every 7 days. Extra ones cost ${usd(EXTRA_CASHOUT_FEE)}.`}
+          </p>
+        </div>
       </div>
       {/* Where the money is: one bar split into paid, on the way and held */}
       <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
@@ -197,7 +207,7 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
           {(
             [
               ['Paid out', paid, 'bg-brand', 'In your account'],
-              ['On the way', owed, 'bg-brand opacity-40', 'Sent every Friday'],
+              ['On the way', owed, 'bg-brand opacity-40', 'In the 3-day check or ready to cash out'],
               ['Held', held, 'bg-rose-600/70', 'Flagged clips, under review'],
             ] as const
           ).map(([label, v, dot, hint]) => (

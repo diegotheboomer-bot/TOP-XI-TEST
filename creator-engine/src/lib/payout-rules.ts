@@ -27,13 +27,23 @@ export function streamerCanFlag(c: ClipState, now = Date.now()): boolean {
   return false;
 }
 
-/** Clippers are paid in one weekly run, on Fridays (UTC), so fewer payouts mean lower per-payout costs. */
-export const PAYDAY_UTC = 5;
-export const isPayday = (now = Date.now()) => new Date(now).getUTCDay() === PAYDAY_UTC;
-
 /** Whether the sync should pay this clip now. `owed` is earned minus already transferred. */
 export function autoPayoutDue(c: ClipState & { owed: number; campaignEnded: boolean }, now = Date.now()): boolean {
   if (c.status !== 'live_tracking' || !c.approved_at) return false;
   if (holdHoursLeft(c.approved_at, now) > 0) return false;
   return c.owed >= (c.campaignEnded ? 1 : MIN_AUTO_PAYOUT);
+}
+
+// Cash-outs: clippers choose when to get paid. One free cash-out every 7 days,
+// then a small fee for each extra one (it covers the extra transfer costs).
+export const MIN_CASHOUT = 10;
+export const FREE_CASHOUTS_PER_WEEK = 1;
+export const EXTRA_CASHOUT_FEE = 1;
+
+/** Fee for the next cash-out, given how many the clipper made in the last 7 days. */
+export const cashoutFee = (recentCount: number) => (recentCount >= FREE_CASHOUTS_PER_WEEK ? EXTRA_CASHOUT_FEE : 0);
+
+/** Approved clips past the hold, with money not yet sent, can be cashed out. */
+export function cashoutReady(c: ClipState, now = Date.now()): boolean {
+  return c.status === 'live_tracking' && !!c.approved_at && holdHoursLeft(c.approved_at, now) <= 0;
 }

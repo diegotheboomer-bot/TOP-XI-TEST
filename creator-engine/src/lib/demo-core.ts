@@ -416,6 +416,7 @@ export function creatorDashboard(s: State, viewer: string): CreatorDashboard {
     youtube: { channel: `@${me.handle}`, subscribers: me.followers },
     instagram: { username: me.handle, followers: me.followers },
     youtubeCode: 'ATLAS-7K2Q9M',
+    recentCashouts: 0,
     payoutsEnabled: payoutReady(payoutSetupOf(me)),
     payout: payoutSetupOf(me),
     enrollments: mine.map((e) => {

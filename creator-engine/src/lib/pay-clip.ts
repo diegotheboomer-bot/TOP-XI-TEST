@@ -12,7 +12,7 @@ export type PayResult = { ok: true; gross: number; via: string; campaignId: stri
  * Each failed step reverses the ones before it. Used by the streamer's Pay button
  * and by the automatic payouts in the sync. `minimum` is the smallest amount to send.
  */
-export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 1): Promise<PayResult> {
+export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 1, fee = 0): Promise<PayResult> {
   const { data: sub } = await admin
     .from('submissions')
     .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, creators(stripe_account_id, payouts_enabled), campaigns(cpm_cap)')
@@ -35,6 +35,8 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   const gross = Math.round((Number(sub.payout_earned) - Number(sub.payout_transferred)) * 100) / 100;
   if (gross < minimum) return { ok: false, error: 'Nothing to pay out yet.' };
 
+  if (fee >= gross) return { ok: false, error: 'Amount is too small to cover the cash-out fee.' };
+  const sent = Math.round((gross - fee) * 100) / 100;
   const before = Number(sub.payout_transferred);
   const after = Math.round((before + gross) * 100) / 100;
 
@@ -50,20 +52,20 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
     return { ok: false, error: 'Not enough escrow. Top up the campaign first.' };
   }
 
-  // 3. Send the full amount the clipper's chosen way. Clippers pay no fee
-  // (the streamer paid it at deposit; the platform covers transfer costs).
+  // 3. Send it the clipper's chosen way. No fee, except an extra cash-out's small fee
+  // (kept by the platform from this amount).
   let externalId: string;
   try {
     if (setup.method === 'stripe') {
       const transfer = await stripe().transfers.create(
-        { amount: Math.round(gross * 100), currency: 'usd', destination: creator.stripe_account_id!, transfer_group: `campaign_${sub.campaign_id}`, metadata: { submission_id: sub.id } },
+        { amount: Math.round(sent * 100), currency: 'usd', destination: creator.stripe_account_id!, transfer_group: `campaign_${sub.campaign_id}`, metadata: { submission_id: sub.id, cashout_fee: String(fee) } },
         { idempotencyKey: `payout_${sub.id}_${before}` },
       );
       externalId = transfer.id;
     } else {
       // Unique per payout; PayPal echoes it in webhooks so a returned payout can be undone.
       const senderItemId = `${sub.id}_${Math.round(before * 100)}`;
-      await sendPayPalPayout({ senderItemId, amount: gross, wallet: setup.method === 'venmo' ? 'VENMO' : 'PAYPAL', receiver: setup.handle!, note: `Clip earnings: ${usdCents(gross)}` });
+      await sendPayPalPayout({ senderItemId, amount: sent, wallet: setup.method === 'venmo' ? 'VENMO' : 'PAYPAL', receiver: setup.handle!, note: `Clip earnings: ${usdCents(sent)}` });
       externalId = `paypal:${senderItemId}`;
     }
   } catch (e) {
@@ -78,5 +80,5 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   if (after >= Number((sub.campaigns as unknown as { cpm_cap: number }).cpm_cap)) {
     await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
   }
-  return { ok: true, gross, via: setup.method === 'stripe' ? 'their bank' : PAYOUT_METHOD_LABEL[setup.method], campaignId: sub.campaign_id };
+  return { ok: true, gross: sent, via: setup.method === 'stripe' ? 'their bank' : PAYOUT_METHOD_LABEL[setup.method], campaignId: sub.campaign_id };
 }
