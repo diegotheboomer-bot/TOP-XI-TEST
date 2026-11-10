@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import type { Platform } from '@/lib/types';
 import { cn } from './ui/cn';
-import { PlatformIcon } from './platform-icon';
+import { PlatformTile } from './platform-icon';
 
 const BARS = [3, 4, 3, 5, 4, 6, 5, 4, 5, 6, 8, 11, 14, 16, 15, 13, 10, 7, 6, 5, 4, 5, 4, 3, 4, 5, 6, 5];
 const MOMENT = { from: 10, to: 17 };
@@ -69,9 +69,7 @@ export function HeroFlow() {
         <ul className="divide-y divide-zinc-200/80 border-t border-zinc-200/80">
           {clips.map((c, i) => (
             <li key={c.platform} className="flex items-center gap-3 px-5 py-3.5">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-900">
-                <PlatformIcon platform={c.platform} className="size-4" />
-              </span>
+              <PlatformTile platform={c.platform} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{c.name}</span>
                 <span className="block font-mono text-[11px] tabular-nums text-zinc-500">{views(c.views)}</span>

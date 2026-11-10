@@ -1,7 +1,7 @@
 // Landing page content, shared by the Next app and the standalone demo.
 import { type LinkLike } from './views';
 import { HeroFlow } from './hero-flow';
-import { PlatformIcon } from './platform-icon';
+import { PlatformTile } from './platform-icon';
 import { HowItWorks } from './how-it-works';
 import { Features } from './features';
 import { LogoMark } from './logo';
@@ -46,10 +46,10 @@ export function Landing({
           </div>
           <p className="mt-8 flex items-center gap-3 text-sm text-zinc-500">
             Works with
-            <span className="flex items-center gap-3 text-zinc-700">
-              <PlatformIcon platform="tiktok" />
-              <PlatformIcon platform="youtube" />
-              <PlatformIcon platform="instagram" />
+            <span className="flex items-center gap-2">
+              <PlatformTile platform="tiktok" className="size-7 rounded-lg" iconClassName="size-3.5" />
+              <PlatformTile platform="youtube" className="size-7 rounded-lg" iconClassName="size-3.5" />
+              <PlatformTile platform="instagram" className="size-7 rounded-lg" iconClassName="size-3.5" />
             </span>
           </p>
         </div>

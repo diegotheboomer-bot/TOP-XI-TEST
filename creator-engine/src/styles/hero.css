@@ -47,7 +47,22 @@
 /* Cursor-following glow on the feature grid. */
 .spotlight-glow { background: radial-gradient(260px circle at var(--mx, -999px) var(--my, -999px), rgb(var(--brand-a) / calc(var(--glow, 0.12) * 0.9)), transparent 70%); }
 
+/* Platform tiles: a soft light sweep, staggered so they don't flash together. */
+.platform-tile::after {
+  content: ''; position: absolute; inset: -40%;
+  background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 0.45) 50%, transparent 60%);
+  transform: translateX(-60%); animation: tile-shine 4.5s ease-in-out infinite;
+}
+.platform-tile::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.22), transparent 55%);
+}
+.platform-tile:nth-child(2)::after, li:nth-child(2) .platform-tile::after { animation-delay: 0.4s; }
+.platform-tile:nth-child(3)::after, li:nth-child(3) .platform-tile::after { animation-delay: 0.8s; }
+@keyframes tile-shine { 0%, 55% { transform: translateX(-60%); } 85%, 100% { transform: translateX(60%); } }
+
 @media (prefers-reduced-motion: reduce) {
+  .platform-tile::after { animation: none; opacity: 0; }
   .hero-pulse, .hero-playhead, .hero-flow, .hero-pop { animation: none; }
   .hero-playhead { left: 55%; }
   .hero-draw { animation: none; stroke-dashoffset: 0; }
