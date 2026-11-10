@@ -43,7 +43,7 @@ export function StripePayment({
   if (quote && quote.totalCents !== shownCents) setShownCents(quote.totalCents);
 
   const options = useMemo(
-    () => ({ mode: 'payment' as const, currency: 'usd', amount: shownCents, paymentMethodTypes: bankTransfer ? ['card', 'us_bank_account'] : ['card'], appearance: elementsAppearance(theme), fonts: FONTS }),
+    () => ({ mode: 'payment' as const, currency: 'usd', amount: shownCents, allowedPaymentMethodTypes: bankTransfer ? ['card', 'us_bank_account'] : ['card'], appearance: elementsAppearance(theme), fonts: FONTS }),
     [shownCents, theme, bankTransfer],
   );
 
