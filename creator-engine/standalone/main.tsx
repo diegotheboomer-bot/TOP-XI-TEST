@@ -470,7 +470,7 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
             <SubmissionTable
               rows={submissions}
               cap={c.cpm_cap}
-              autoApproveHours={c.auto_approve_hours}
+             
               actions={(s) => {
                 const kinds = submissionActionKinds(s, ended);
                 if (!kinds.length) return null;
@@ -659,6 +659,7 @@ function NewCampaign({ store }: { store: Store }) {
       <PageHeader title="New campaign" description="Campaigns start as drafts. Fund escrow, then go live." />
       <form onSubmit={submit} noValidate>
         <CampaignFormBody
+          uploadUrl={async () => ({ error: 'Uploads are off in the demo. Add a link instead.' })}
           brandName={brandName}
           footer={
             <div className="space-y-3">
@@ -1030,7 +1031,7 @@ function Offer({ store, id }: { store: Store; id: string }) {
                 </li>
               )}
               <li>
-                Earnings stop at {usd(c.cpm_cap)} per clipper. You keep all of it: there are no fees for clippers.
+                Each clip earns up to {usd(c.cpm_cap)}{Number(c.min_payout) > 0 && <>, and starts paying once it reaches {usd(Number(c.min_payout))}</>}. You keep all of it: there are no fees for clippers.
               </li>
               <li>If {c.brandName} hasn’t reviewed a clean clip after {c.auto_approve_hours} hours, it’s approved automatically.</li>
             </ul>

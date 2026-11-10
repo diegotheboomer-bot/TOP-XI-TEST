@@ -13,7 +13,7 @@ import { CopyField } from '@/components/copy-button';
 import { EarningsEstimator } from '@/components/estimator';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
-import { BudgetMeter, CampaignCover, MomentBoard, NextStep, PlatformChips, RequirementList, StreamerAvatar } from '@/components/views';
+import { BudgetMeter, CampaignCover, MomentBoard, NextStep, PlatformChips, ReferenceList, RequirementList, StreamerAvatar } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,6 +132,12 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
             <h2 className="mb-3 font-semibold tracking-tight">Rules for your clip</h2>
             <RequirementList items={c.requirements} />
           </section>
+          {(c.asset_folder_url || (c.reference_items?.length ?? 0) > 0) && (
+            <section>
+              <h2 className="mb-3 font-semibold tracking-tight">References</h2>
+              <ReferenceList campaign={c} />
+            </section>
+          )}
           <section>
             <h2 className="mb-2 font-semibold tracking-tight">How you get paid</h2>
             <ul className="max-w-prose list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-600">
@@ -142,8 +148,8 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   {usd(c.base_payout)} once your clip is approved, plus {r.rate} {r.unit}.
                 </li>
               )}
-              <li>Earnings stop at {usd(c.cpm_cap)} per clipper. You keep all of it: there are no fees for clippers.</li>
-              <li>If {c.brandName} hasn’t reviewed a clean clip after {c.auto_approve_hours} hours, it’s approved automatically.</li>
+              <li>Each clip earns up to {usd(c.cpm_cap)}{Number(c.min_payout) > 0 && <>, and starts paying once it reaches {usd(Number(c.min_payout))}</>}. You keep all of it: there are no fees for clippers.</li>
+              <li>{c.brandName} reviews and approves every clip. Once approved, you’re paid automatically.</li>
             </ul>
           </section>
         </div>

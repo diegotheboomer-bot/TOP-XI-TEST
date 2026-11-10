@@ -12,7 +12,7 @@ import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
 import { ActionButton } from '@/components/action-button';
 import { CampaignBadge } from '@/components/status';
-import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
+import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, ReferenceList, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
 import { MomentForm } from '@/components/forms/moment-form';
 import { ConnectStoreForm } from '@/components/forms/campaign-forms';
 import { AppAddBudget } from '@/components/checkout/app-checkout';
@@ -82,11 +82,11 @@ export default async function CampaignPage({ params, searchParams }: { params: {
       <div className="grid grid-cols-1 gap-6">
         <div className="order-2 min-w-0 space-y-6">
           <Card>
-            <CardHeader title="Clips" description={`Views sync every 4 hours. Clean clips auto-approve after ${c.auto_approve_hours}h. Approved clips are paid automatically after 3 days; you can flag one until then.`} />
+            <CardHeader title="Clips" description={`Views sync every 4 hours. Approve each clip yourself. Approved clips are paid automatically after 3 days; you can flag one until then.`} />
             {submissions.length === 0 ? (
               <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
             ) : (
-              <SubmissionTable rows={submissions} cap={c.cpm_cap} autoApproveHours={c.auto_approve_hours} actions={(s) => <SubmissionActions s={s} ended={ended} />} />
+              <SubmissionTable rows={submissions} cap={c.cpm_cap} actions={(s) => <SubmissionActions s={s} ended={ended} />} />
             )}
           </Card>
           <Card>
@@ -140,6 +140,12 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             <CardHeader title="Brief" />
             {c.brief && <p className="mb-5 text-sm leading-relaxed text-zinc-600">{c.brief}</p>}
             <RequirementList items={c.requirements} />
+            {(c.asset_folder_url || (c.reference_items?.length ?? 0) > 0) && (
+              <div className="mt-5">
+                <p className="mb-2 text-[13px] font-medium text-zinc-700">References</p>
+                <ReferenceList campaign={c} />
+              </div>
+            )}
           </Card>
         </div>
       </div>

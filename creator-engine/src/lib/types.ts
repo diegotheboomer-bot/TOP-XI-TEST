@@ -18,13 +18,17 @@ export interface Campaign {
   asset_folder_url: string | null;
   status: CampaignStatus;
   created_at: string;
-  /** Uploaded cover image; a designed cover in cover_color is shown when null. */
+  /** Uploaded cover image (older campaigns); a designed cover is shown when null. */
   thumbnail_url: string | null;
   cover_color: string;
   brief: string | null;
   requirements: string[];
-  /** Clean submissions still pending after this many hours are approved automatically. */
-  auto_approve_hours: number;
+  /** Legacy: clips are now always approved by the streamer. */
+  auto_approve_hours?: number;
+  /** Links and uploaded images, videos or files for clippers. */
+  reference_items?: import('./references').Reference[];
+  /** Clips earning less than this aren't paid (Per 1K views). */
+  min_payout?: number;
   /** Where clippers may post for this campaign. */
   platforms: Platform[];
   /** Kinds of video the streamer wants (clipping, faceless, …). */

@@ -83,7 +83,7 @@ export function ClipperPitch({ link: Link = 'a', href }: { link?: React.ElementT
             <p className="text-4xl font-semibold tabular-nums tracking-tight text-brand">${Math.round(earned).toLocaleString('en-US')}</p>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-zinc-500">
-            At ${RATE.toFixed(2)} per 1K views. Each campaign sets its own rate and a cap per clipper, shown before you join.
+            At ${RATE.toFixed(2)} per 1K views. Each campaign sets its own rate and a cap per clip, shown before you join.
           </p>
           <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
             Example only, not a promise. Most clips get far fewer views, and earnings depend on the views your clips actually get.

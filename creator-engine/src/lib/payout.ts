@@ -6,6 +6,8 @@ export interface PayoutTerms {
   cpm_rate: number;
   cpm_cap: number;
   cps_commission_pct: number;
+  /** Below this a clip earns nothing (it counts once it gets there). */
+  min_payout?: number;
 }
 
 /**
@@ -38,6 +40,7 @@ export function calculatePayout(terms: PayoutTerms, views: number, attributedRev
       earned = 0;
       break;
   }
+  if (earned < Number(terms.min_payout ?? 0)) return 0;
   return floorCents(Math.min(earned, terms.cpm_cap));
 }
 

@@ -11,7 +11,7 @@ export const FAQ: [string, string][] = [
   ],
   [
     'How much can I earn?',
-    'Each campaign shows its rate before you join, for example $2 per 1,000 views, and a cap per clipper. A clip with 100,000 views at $2 per 1,000 earns $200. Earnings depend on the views your clips get.',
+    'Each campaign shows its rate before you join, for example $2 per 1,000 views, and a cap per clip. A clip with 100,000 views at $2 per 1,000 earns $200. Earnings depend on the views your clips get.',
   ],
   [
     'Do I need followers?',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { budgetStats } from '@/lib/budget';
-import { hasDisclosure, reviewDueIn, shouldAutoApprove } from '@/lib/compliance';
+import { hasDisclosure } from '@/lib/compliance';
 
 const now = new Date('2026-03-11T00:00:00Z').getTime();
 const tenDaysAgo = new Date(now - 10 * 86_400_000).toISOString();
@@ -31,22 +31,6 @@ describe('hasDisclosure', () => {
   });
 });
 
-describe('auto-approval', () => {
-  const base = { status: 'pending_review', fraud_score: 0, has_disclosure: true };
-  it('counts down from creation', () => {
-    expect(reviewDueIn(new Date(now - 30 * 3_600_000).toISOString(), 48, now)).toBe(18 * 3_600_000);
-  });
-  it('approves clean submissions once due', () => {
-    expect(shouldAutoApprove({ ...base, created_at: new Date(now - 49 * 3_600_000).toISOString() }, 48, now)).toBe(true);
-  });
-  it('waits until due', () => {
-    expect(shouldAutoApprove({ ...base, created_at: new Date(now - 47 * 3_600_000).toISOString() }, 48, now)).toBe(false);
-  });
-  it('never auto-approves with a fraud signal', () => {
-    const due = new Date(now - 72 * 3_600_000).toISOString();
-    expect(shouldAutoApprove({ ...base, created_at: due, fraud_score: 40 }, 48, now)).toBe(false);
-  });
-});
 
 import { hasClipCode } from '@/lib/compliance';
 describe('hasClipCode', () => {

@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, poolShares, type PayoutTerms } from './payout';
 import { detectBotVelocity, detectLowEngagement, hashSimilarity, DUPLICATE_THRESHOLD, LOW_ENGAGEMENT_REASON } from './fraud';
 import { perceptualHashFromUrl } from './phash';
-import { hasDisclosure, shouldAutoApprove } from './compliance';
+import { hasDisclosure } from './compliance';
 import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
 import { getYouTubeVideos } from './platforms/youtube';
 import { getInstagramAccessToken, getTikTokAccessToken } from './tokens';
@@ -11,12 +11,11 @@ import type { Submission } from './types';
 import { payClip } from './pay-clip';
 import { MIN_AUTO_PAYOUT, autoPayoutDue } from './payout-rules';
 
-type SubmissionWithCampaign = Submission & { campaigns: PayoutTerms & { auto_approve_hours: number } };
+type SubmissionWithCampaign = Submission & { campaigns: PayoutTerms };
 
 export interface SyncReport {
   synced: number;
   flagged: number;
-  autoApproved: number;
   /** Clips paid automatically after their hold. */
   paid: number;
   failed: { submissionId: string; error: string }[];
@@ -29,14 +28,14 @@ export interface SyncReport {
 export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncReport> {
   const { data, error } = await admin
     .from('submissions')
-    .select('*, campaigns!inner(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, auto_approve_hours, status)')
+    .select('*, campaigns!inner(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, min_payout, status)')
     .in('status', ['live_tracking', 'pending_review'])
     // Ended (cancelled) campaigns are skipped: their earnings are final.
     .in('campaigns.status', ['active', 'paused'])
     .in('platform', ['tiktok', 'youtube', 'instagram']);
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
-  const report: SyncReport = { synced: 0, flagged: 0, autoApproved: 0, paid: 0, failed: [] };
+  const report: SyncReport = { synced: 0, flagged: 0, paid: 0, failed: [] };
   const all = (data ?? []) as SubmissionWithCampaign[];
   const byCreator = new Map<string, SubmissionWithCampaign[]>();
   const igByCreator = new Map<string, SubmissionWithCampaign[]>();
@@ -59,7 +58,6 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
         const outcome = await applyStats(admin, sub, stats!.get(sub.social_platform_video_id));
         report.synced++;
         if (outcome === 'flagged') report.flagged++;
-        if (outcome === 'auto_approved') report.autoApproved++;
       } catch (e) {
         report.failed.push({ submissionId: sub.id, error: String(e) });
       }
@@ -88,7 +86,6 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
         const outcome = await applyStats(admin, sub, stats.get(sub.social_platform_video_id));
         report.synced++;
         if (outcome === 'flagged') report.flagged++;
-        if (outcome === 'auto_approved') report.autoApproved++;
       } catch (e) {
         report.failed.push({ submissionId: sub.id, error: String(e) });
       }
@@ -150,7 +147,7 @@ async function runAutoPayouts(admin: SupabaseClient, report: SyncReport) {
  * velocity watchdog, auto-approves overdue clean submissions and recalculates
  * earnings for live ones.
  */
-async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v: VideoStats | undefined): Promise<'ok' | 'flagged' | 'auto_approved'> {
+async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v: VideoStats | undefined): Promise<'ok' | 'flagged'> {
   const now = new Date();
 
   if (!v) {
@@ -223,10 +220,10 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
     }
   }
 
+  // Clips are only ever approved by the streamer; until then just keep the numbers fresh.
   if (sub.status === 'pending_review') {
-    const approve = shouldAutoApprove(sub, sub.campaigns.auto_approve_hours, now.getTime());
-    await admin.from('submissions').update({ ...metrics, ...(approve ? { status: 'live_tracking', approved_at: now.toISOString() } : {}) }).eq('id', sub.id);
-    if (!approve) return 'ok';
+    await admin.from('submissions').update(metrics).eq('id', sub.id);
+    return 'ok';
   }
 
   const revenue = sub.campaigns.payout_model === 'cps_performance' ? await attributedRevenue(admin, sub) : 0;
@@ -234,7 +231,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
 
   const { error } = await admin.from('submissions').update({ ...metrics, payout_earned: earned }).eq('id', sub.id);
   if (error) throw error;
-  return sub.status === 'pending_review' ? 'auto_approved' : 'ok';
+  return 'ok';
 }
 
 async function attributedRevenue(admin: SupabaseClient, sub: Submission): Promise<number> {

@@ -1,13 +1,12 @@
 // Presentational building blocks shared by the Next.js pages and the standalone demo.
 // No Next.js imports: callers pass their link component, links and action buttons in.
-import { ArrowUpRight, Check, Clock, Store } from 'lucide-react';
+import { ArrowUpRight, Check, Clock, FileText, Film, Link2, Store } from 'lucide-react';
 import type { CampaignSummary, MarketCampaign, MomentRow, SubmissionRow } from '@/lib/data';
 import type { BudgetStats } from '@/lib/budget';
 import type { Campaign, Enrollment, Platform, Submission } from '@/lib/types';
 import { compact, hoursLabel, percent, rateParts, timeAgo, usd, usdCompact } from '@/lib/format';
 import { trackingLink } from '@/lib/attribution';
 import { contentTypeLabel } from '@/lib/campaign-tags';
-import { reviewDueIn } from '@/lib/compliance';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
@@ -79,7 +78,7 @@ function CoverPattern({ seed }: { seed: string }) {
 
 const ASPECT = { card: 'aspect-[16/9]', banner: 'aspect-[16/9] sm:aspect-[3/1]', thumb: 'aspect-square' } as const;
 
-/** The streamer's uploaded thumbnail, or a designed cover in the campaign colour. */
+/** An older campaign's uploaded thumbnail, or the designed Atlas cover (dark, volt glow). */
 export function CampaignCover({
   campaign,
   brandName,
@@ -102,9 +101,17 @@ export function CampaignCover({
       </div>
     );
   }
-  // Covers are fixed colours with white type, the same in light and dark themes.
+  // One designed cover for every campaign: near-black with a volt glow, white type in both themes.
+  const h = hash(campaign.title);
   return (
-    <div className={base} style={{ backgroundColor: campaign.cover_color, color: '#fff' }}>
+    <div
+      className={base}
+      style={{
+        color: '#fff',
+        backgroundColor: '#0c0f0b',
+        backgroundImage: `radial-gradient(120% 90% at ${70 + (h % 30)}% ${100 + (h % 20)}%, rgb(var(--brand-b) / 0.55), transparent 60%), radial-gradient(80% 70% at ${h % 25}% -10%, rgb(var(--brand-a) / 0.35), transparent 65%)`,
+      }}
+    >
       <CoverPattern seed={campaign.title} />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.32), rgba(0,0,0,0) 65%)' }} />
       {variant === 'thumb' ? (
@@ -145,6 +152,42 @@ export function BudgetMeter({ budget, className }: { budget: BudgetStats; classN
       </div>
       <Progress value={budget.committed} max={budget.deposited} tone={budget.usedShare > 0.85 ? 'amber' : 'brand'} />
     </div>
+  );
+}
+
+// ─── References ───────────────────────────────────────────────────────────
+/** VODs plus the links and files a streamer attached, as tiles that open in a new tab. */
+export function ReferenceList({ campaign }: { campaign: Pick<Campaign, 'asset_folder_url' | 'reference_items'> }) {
+  const items = [
+    ...(campaign.asset_folder_url ? [{ kind: 'link' as const, url: campaign.asset_folder_url, name: 'VODs and source footage' }] : []),
+    ...(campaign.reference_items ?? []),
+  ];
+  if (!items.length) return null;
+  return (
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {items.map((r) => (
+        <li key={r.url}>
+          <a href={r.url} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-zinc-300">
+            <div className="grid aspect-video place-items-center bg-zinc-100">
+              {r.kind === 'image' ? (
+                <img src={r.url} alt="" className="size-full object-cover" />
+              ) : r.kind === 'video' ? (
+                <video src={r.url} muted playsInline preload="metadata" className="size-full object-cover" />
+              ) : r.kind === 'link' ? (
+                <Link2 className="size-6 text-zinc-400" />
+              ) : (
+                <FileText className="size-6 text-zinc-400" />
+              )}
+            </div>
+            <p className="flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium">
+              {r.kind === 'video' && <Film className="size-3.5 shrink-0 text-zinc-400" />}
+              <span className="truncate">{r.name}</span>
+              <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-zinc-400 transition group-hover:text-zinc-700" />
+            </p>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -245,12 +288,11 @@ function Metric({ label, value, className }: { label: string; value: string; cla
 
 // ─── Streamer: submissions ────────────────────────────────────────────────────
 /** One-line state for a submission: review deadline, flag or sync time. */
-export function submissionNote(s: Submission, autoApproveHours: number, now = Date.now()): { text: string; tone: 'muted' | 'warn' | 'bad' } {
+export function submissionNote(s: Submission, now = Date.now()): { text: string; tone: 'muted' | 'warn' | 'bad' } {
   if (s.status === 'flagged') return { text: s.flag_reason ?? 'Flagged', tone: 'bad' };
   if (s.status === 'paid') return { text: 'Paid in full', tone: 'muted' };
   if (s.status === 'pending_review') {
-    const due = reviewDueIn(s.created_at, autoApproveHours, now);
-    return due > 0 ? { text: `Auto-approves in ${hoursLabel(due)}`, tone: 'warn' } : { text: 'Approving on next sync', tone: 'warn' };
+    return { text: 'Waiting for the streamer to review', tone: 'warn' };
   }
   const hold = holdHoursLeft(s.approved_at, now);
   if (hold > 0) return { text: `Pays automatically in ${hoursLabel(hold * 3_600_000)}`, tone: 'muted' };
@@ -263,12 +305,10 @@ const SUB_COLS = 'lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(4.5rem,0.8fr)_minma
 export function SubmissionTable({
   rows,
   cap,
-  autoApproveHours,
   actions,
 }: {
   rows: SubmissionRow[];
   cap: number;
-  autoApproveHours: number;
   actions: (s: SubmissionRow) => React.ReactNode;
 }) {
   return (
@@ -283,7 +323,7 @@ export function SubmissionTable({
       </div>
       <ul className="divide-y divide-zinc-100 border-b border-zinc-100 lg:border-t-0">
         {rows.map((s) => {
-          const note = submissionNote(s, autoApproveHours);
+          const note = submissionNote(s);
           const ratio = s.current_view_count > 0 ? s.current_comment_count / s.current_view_count : 0;
           const act = actions(s);
           return (
@@ -491,7 +531,7 @@ export function EnrollmentCard({
           {submission.status === 'pending_review' && (
             <p className="flex items-center gap-1.5 pt-1 text-xs text-zinc-500">
               <Clock className="size-3.5" />
-              {submissionNote(submission, campaign.auto_approve_hours).text}
+              {submissionNote(submission).text}
             </p>
           )}
           {submission.flag_reason && <p className="pt-1 text-xs text-rose-600">{submission.flag_reason}</p>}
@@ -642,7 +682,7 @@ export function NextStep({
         {stage === 'review' && submission && (
           <>
             <h3 className="font-semibold tracking-tight">Waiting for {brandName} to review</h3>
-            <p className="mt-1 text-sm text-zinc-600">{submissionNote(submission, campaign.auto_approve_hours).text}. Views are already being counted.</p>
+            <p className="mt-1 text-sm text-zinc-600">{submissionNote(submission).text}. Views are already being counted.</p>
           </>
         )}
 

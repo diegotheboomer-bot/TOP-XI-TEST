@@ -11,7 +11,6 @@ import { detectBotVelocity } from './fraud';
 import { parseVideoUrl } from './video-url';
 import { generateDiscountCode, refParam } from './attribution';
 import { budgetStats, type BudgetStats } from './budget';
-import { shouldAutoApprove } from './compliance';
 import { HOLD_HOURS, MIN_AUTO_PAYOUT, autoPayoutDue, streamerCanFlag } from './payout-rules';
 import type { MomentInput } from './schemas';
 import { PAYOUT_METHOD_LABEL, payoutDestination, payoutReady, type PayoutMethod, type PayoutSetup } from './payout-methods';
@@ -561,17 +560,9 @@ export function simulateSync(s: State, campaignId: string): ActionState {
 
   const now = Date.now();
   let flagged = 0;
-  let approved = 0;
   for (const sub of subs) {
     // 4 hours pass for the payout hold too.
     if (sub.approved_at) sub.approved_at = new Date(new Date(sub.approved_at).getTime() - 4 * HOUR).toISOString();
-    if (sub.status === 'pending_review') {
-      sub.created_at = new Date(new Date(sub.created_at).getTime() - 4 * HOUR).toISOString(); // 4 hours pass
-      if (shouldAutoApprove(sub, c.auto_approve_hours, now)) {
-        Object.assign(sub, { status: 'live_tracking', approved_at: new Date(now).toISOString() });
-        approved++;
-      }
-    }
     const growth = 1.04 + Math.random() * 0.22;
     const views = Math.round(sub.current_view_count * growth);
     const comments = Math.round(sub.current_comment_count + (views - sub.current_view_count) * (sub.current_comment_count / Math.max(sub.current_view_count, 1)));
@@ -599,7 +590,7 @@ export function simulateSync(s: State, campaignId: string): ActionState {
     const owed = sub.payout_earned - sub.payout_transferred;
     if (autoPayoutDue({ status: sub.status, approved_at: sub.approved_at, owed, campaignEnded: false }, now) && payOut(s, sub, MIN_AUTO_PAYOUT).paid) paid++;
   }
-  const notes = [flagged && `${flagged} flagged`, approved && `${approved} auto-approved`, paid && `${paid} paid automatically`].filter(Boolean).join(', ');
+  const notes = [flagged && `${flagged} flagged`, paid && `${paid} paid automatically`].filter(Boolean).join(', ');
   return { success: `Synced ${subs.length} ${subs.length === 1 ? 'video' : 'videos'}${notes ? `. ${notes}` : ''}.` };
 }
 

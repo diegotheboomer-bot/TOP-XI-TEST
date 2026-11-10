@@ -12,8 +12,9 @@ import { payClip } from '@/lib/pay-clip';
 import { HOLD_HOURS, streamerCanFlag } from '@/lib/payout-rules';
 import type Stripe from 'stripe';
 import { usdCents } from '@/lib/format';
-import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
+import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
+import { REF_MAX_BYTES } from '@/lib/references';
 import { LOW_ENGAGEMENT_REASON } from '@/lib/fraud';
 import type { ActionState } from './result';
 
@@ -34,38 +35,35 @@ async function requireOwnCampaign(campaignId: string) {
 export async function createCampaign(_prev: ActionState, form: FormData): Promise<ActionState> {
   const parsed = CampaignSchema.safeParse(campaignInput(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const file = form.get('thumbnail');
-  const thumb = file instanceof File && file.size > 0 ? file : null;
-  const thumbError = thumbnailError(thumb);
-  if (thumbError) return { error: thumbError };
-
   const { asset_folder_url, ...rest } = parsed.data;
-  const base = { ...rest, asset_folder_url: asset_folder_url || null };
+  const row = { ...rest, asset_folder_url: asset_folder_url || null, thumbnail_url: null };
 
-  if (isDemo) {
-    // Demo keeps the image in memory as a data URL.
-    const thumbnail_url = thumb ? `data:${thumb.type};base64,${Buffer.from(await thumb.arrayBuffer()).toString('base64')}` : null;
-    redirect(`/streamer/campaigns/${demo.createCampaign({ ...base, thumbnail_url })}`);
-  }
+  if (isDemo) redirect(`/streamer/campaigns/${demo.createCampaign(row)}`);
 
   const brandId = await requireBrand();
-  const admin = createAdminClient();
-  let thumbnail_url: string | null = null;
-  if (thumb) {
-    const ext = thumb.type.split('/')[1].replace('jpeg', 'jpg');
-    const path = `${brandId}/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await admin.storage.from('campaign-thumbnails').upload(path, thumb, { contentType: thumb.type });
-    if (upErr) return { error: `Thumbnail upload failed: ${upErr.message}` };
-    thumbnail_url = admin.storage.from('campaign-thumbnails').getPublicUrl(path).data.publicUrl;
-  }
-
-  const { data, error } = await admin
+  const { data, error } = await createAdminClient()
     .from('campaigns')
-    .insert({ ...base, thumbnail_url, brand_id: brandId })
+    .insert({ ...row, brand_id: brandId })
     .select('id')
     .single();
   if (error) return { error: error.message };
   redirect(`/streamer/campaigns/${data.id}`);
+}
+
+/**
+ * A one-time URL the browser uploads a reference file to directly, so large
+ * videos don't pass through the server. Returns the file's public URL too.
+ */
+export async function referenceUploadUrl(name: string, size: number): Promise<{ error: string } | { uploadUrl: string; publicUrl: string }> {
+  if (isDemo) return { error: 'Uploads are off in the demo. Add a link instead.' };
+  if (size > REF_MAX_BYTES) return { error: `${name} is over 50 MB. Upload it to Drive or YouTube and add the link.` };
+  const brandId = await requireBrand();
+  const ext = (name.split('.').pop() ?? 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'bin';
+  const path = `${brandId}/${crypto.randomUUID()}.${ext}`;
+  const store = createAdminClient().storage.from('campaign-references');
+  const { data, error } = await store.createSignedUploadUrl(path);
+  if (error) return { error: `Upload failed: ${error.message}` };
+  return { uploadUrl: data.signedUrl, publicUrl: store.getPublicUrl(path).data.publicUrl };
 }
 
 export async function setCampaignStatus(campaignId: string, status: 'active' | 'paused' | 'completed'): Promise<ActionState> {

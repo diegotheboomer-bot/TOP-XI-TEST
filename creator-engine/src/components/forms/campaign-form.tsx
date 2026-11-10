@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormState } from 'react-dom';
-import { createCampaign } from '@/actions/brand';
+import { createCampaign, referenceUploadUrl } from '@/actions/brand';
 import { FormMessage } from '../form-message';
 import { SubmitButton } from '../submit-button';
 import { CampaignFormBody } from './campaign-form-body';
@@ -12,6 +12,7 @@ export function CampaignForm({ brandName }: { brandName: string }) {
     <form action={action}>
       <CampaignFormBody
         brandName={brandName}
+        uploadUrl={referenceUploadUrl}
         footer={
           <div className="space-y-3">
             <FormMessage state={state} />

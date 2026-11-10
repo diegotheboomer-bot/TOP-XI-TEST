@@ -13,7 +13,7 @@ const STEP_MS = 5500;
 
 const STEPS: Record<Who, [string, string][]> = {
   streamer: [
-    ['Post a campaign', 'Set a rate per 1,000 views, a cap per clipper and the platforms you want. Fund it once, plus {feeText}.'],
+    ['Post a campaign', 'Set a rate per 1,000 views, a cap per clip and the platforms you want. Fund it once, plus {feeText}.'],
     ['Pin the moments', 'Drop timestamps from your stream. Each moment has a few slots so clippers spread out.'],
     ['Pay for real views', 'Views come straight from TikTok and YouTube. You only pay for what was watched, and clips are paid automatically 3 days after approval.'],
   ],
@@ -135,7 +135,7 @@ function Preview({ who, step, feePercent }: { who: Who; step: number; feePercent
         <p className="mt-1 font-semibold">Ranked grind · season 4</p>
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
           <Field k="Rate" v="$2.00 / 1K" />
-          <Field k="Cap per clipper" v="$500" />
+          <Field k="Cap per clip" v="$500" />
         </div>
         <div className="mt-3 flex gap-1.5">
           {(

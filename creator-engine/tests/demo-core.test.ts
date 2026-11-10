@@ -3,16 +3,12 @@ import * as core from '@/lib/demo-core';
 
 
 describe('demo store', () => {
-  it('auto-approves a clean pending video once its review window passes, but not one missing #ad', () => {
+  it('never approves a clip on its own: the streamer approves every one', () => {
     const s = core.seedDemo(9, '/t/');
     const pending = () => core.campaignDetail(s, 'cmp-ranked')!.submissions.filter((x) => x.status === 'pending_review').map((x) => x.creator_name);
     expect(pending()).toEqual(['@cutroom', '@dailyclips.hq']);
-    // @cutroom was submitted 30h ago with a 48h window: 4 syncs = 16h is not enough, 5 = 20h is.
-    for (let i = 0; i < 4; i++) core.simulateSync(s, 'cmp-ranked');
-    expect(pending()).toContain('@cutroom');
-    const result = core.simulateSync(s, 'cmp-ranked');
-    expect(result?.success).toContain('1 auto-approved');
-    expect(pending()).toEqual(['@dailyclips.hq']);
+    for (let i = 0; i < 10; i++) core.simulateSync(s, 'cmp-ranked');
+    expect(pending()).toEqual(['@cutroom', '@dailyclips.hq']);
   });
 
   it('keeps escrow, payouts and fees consistent through a payout', () => {
