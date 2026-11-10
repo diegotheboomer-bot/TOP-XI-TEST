@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SiteHeader } from '@/components/site-header';
 import { Landing } from '@/components/landing';
-import { platformFeePercent } from '@/lib/stripe';
+import { noServiceFee, platformFeePercent } from '@/lib/stripe';
 import { FAQ } from '@/components/faq';
 
 // Structured data: what Atlas is, and the FAQ, in a form search engines and AI assistants read.
@@ -27,7 +27,7 @@ export default function Home() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <SiteHeader />
-      <Landing link={Link} startHref="/start" clipperHref="/clipper/discover" clipperStartHref="/signup?role=creator" feePercent={platformFeePercent()} legal={{ privacy: '/privacy', terms: '/terms' }} />
+      <Landing link={Link} startHref="/start" clipperHref="/clipper/discover" clipperStartHref="/signup?role=creator" feePercent={noServiceFee() ? 0 : platformFeePercent()} legal={{ privacy: '/privacy', terms: '/terms' }} />
     </>
   );
 }

@@ -13,7 +13,7 @@ const STEP_MS = 5500;
 
 const STEPS: Record<Who, [string, string][]> = {
   streamer: [
-    ['Post a campaign', 'Set a rate per 1,000 views, a cap per clipper and the platforms you want. Fund it once, plus a {fee}% fee.'],
+    ['Post a campaign', 'Set a rate per 1,000 views, a cap per clipper and the platforms you want. Fund it once, plus {feeText}.'],
     ['Pin the moments', 'Drop timestamps from your stream. Each moment has a few slots so clippers spread out.'],
     ['Pay for real views', 'Views come straight from TikTok and YouTube. You only pay for what was watched, and clips are paid automatically 3 days after approval.'],
   ],
@@ -92,7 +92,7 @@ export function HowItWorks({ feePercent }: { feePercent: number }) {
                     <span className="min-w-0">
                       <span className={cn('block font-medium transition', !on && 'text-zinc-500')}>{title}</span>
                       <span className={cn('grid transition-all duration-300', on ? 'mt-1 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
-                        <span className="overflow-hidden text-sm leading-relaxed text-zinc-600">{body.replace('{fee}', String(feePercent))}</span>
+                        <span className="overflow-hidden text-sm leading-relaxed text-zinc-600">{body.replace('{feeText}', feePercent ? `a ${feePercent}% fee` : 'Stripe’s card processing, with no service fee')}</span>
                       </span>
                     </span>
                   </span>
@@ -127,7 +127,8 @@ function Preview({ who, step, feePercent }: { who: Who; step: number; feePercent
   const key = `${who}${step}`;
   if (key === 'streamer0') {
     const budget = 5000;
-    const fee = (budget * feePercent) / 100;
+    // Launch pricing (feePercent 0): only Stripe's card processing, about 3.5% + $0.35.
+    const fee = feePercent ? (budget * feePercent) / 100 : Math.round(budget * 3.5 + 35) / 100;
     return (
       <div className={card}>
         <p className={label}>New campaign</p>
@@ -155,7 +156,7 @@ function Preview({ who, step, feePercent }: { who: Who; step: number; feePercent
         </div>
         <div className="mt-4 space-y-1 border-t border-zinc-200/80 pt-3 font-mono text-xs tabular-nums">
           <Row k="Budget" v={`$${budget.toLocaleString()}`} />
-          <Row k={`Fee ${feePercent}%`} v={`$${fee.toLocaleString()}`} />
+          <Row k={feePercent ? `Fee ${feePercent}%` : 'Card processing'} v={`$${fee.toLocaleString()}`} />
           <Row k="Total" v={`$${(budget + fee).toLocaleString()}`} strong />
         </div>
       </div>

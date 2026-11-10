@@ -8,7 +8,7 @@ import { cn } from './ui/cn';
 const FEATURES: [string, string, () => React.ReactNode][] = [
   ['Verified clippers', 'Every clip is checked against the clipper’s own TikTok, Instagram or YouTube.', CodeArt],
   ['Fake views don’t pay', 'Bot spikes and re-uploads are caught and held before any money moves.', SpikeArt],
-  ['Clippers keep 100%', 'Streamers pay a flat {fee}% on top, shown before they pay.', KeepArt],
+  ['Clippers keep 100%', 'Streamers pay {feeText} on top, shown before they pay.', KeepArt],
 ];
 
 export function Features({ feePercent }: { feePercent: number }) {
@@ -39,7 +39,7 @@ export function Features({ feePercent }: { feePercent: number }) {
                 </div>
               </div>
               <dt className="mt-3 font-semibold tracking-tight sm:mt-4">{title}</dt>
-              <dd className="mt-1.5 text-sm leading-relaxed text-zinc-600">{body.replace('{fee}', String(feePercent))}</dd>
+              <dd className="mt-1.5 text-sm leading-relaxed text-zinc-600">{body.replace('{feeText}', feePercent ? `a flat ${feePercent}%` : 'only Stripe’s card processing')}</dd>
             </div>
           </div>
         ))}

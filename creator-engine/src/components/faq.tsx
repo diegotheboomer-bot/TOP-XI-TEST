@@ -23,7 +23,7 @@ export const FAQ: [string, string][] = [
   ],
   [
     'What do streamers get?',
-    'Streamers fund a campaign, pin the moments worth clipping and only pay for real views on clips posted across TikTok, Shorts and Reels, plus a flat service fee (which covers card processing) shown before paying.',
+    'Streamers fund a campaign, pin the moments worth clipping and only pay for real views on clips posted across TikTok, Shorts and Reels, plus Stripe’s card processing, shown before paying. There’s currently no service fee.',
   ],
 ];
 

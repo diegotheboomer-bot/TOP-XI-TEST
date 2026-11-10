@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal-page';
 import { LEGAL } from '@/lib/legal';
-import { platformFeePercent } from '@/lib/stripe';
+import { noServiceFee, platformFeePercent } from '@/lib/stripe';
 
 export const metadata: Metadata = { title: 'Terms of Service · Atlas Clipping' };
 
@@ -29,7 +29,7 @@ export default function TermsPage() {
       <section>
         <h2>For streamers</h2>
         <ul>
-          <li>You fund a campaign before it goes live. You pay the budget plus a {fee}% service fee, shown before you pay. The fee covers card processing and payouts; the whole budget is for clippers.</li>
+          <li>You fund a campaign before it goes live. {noServiceFee() ? 'You pay the budget plus Stripe’s card processing cost, shown before you pay. There is currently no service fee; the whole budget is for clippers.' : `You pay the budget plus a ${fee}% service fee, shown before you pay. The fee covers card processing and payouts; the whole budget is for clippers.`}</li>
           <li>Clippers are paid for views their clips get, at your rate and up to your cap, from the campaign budget.</li>
           <li>You can review clips. Clean clips are approved automatically after the review window you set.</li>
           <li>You give clippers in your campaign permission to use your stream footage to make clips for that campaign.</li>

@@ -18,8 +18,11 @@ export const achEnabled = () => process.env.STRIPE_ACH_ENABLED?.trim() === 'true
 export const EARLY_PARTNER_FEE = { percent: 3.5, fixed: 0.35 };
 
 /** The fee a streamer pays on deposits: early partners pay only card processing. */
+/** NO_SERVICE_FEE=true: everyone pays only Stripe's card processing (launch pricing). */
+export const noServiceFee = () => process.env.NO_SERVICE_FEE?.trim() === 'true';
+
 export function feeFor(earlyPartner: boolean): { percent: number; fixed: number; early: boolean } {
-  return earlyPartner ? { ...EARLY_PARTNER_FEE, early: true } : { percent: platformFeePercent(), fixed: 0, early: false };
+  return earlyPartner || noServiceFee() ? { ...EARLY_PARTNER_FEE, early: true } : { percent: platformFeePercent(), fixed: 0, early: false };
 }
 
 /** Charged to streamers on top of the budget they fund. Clippers pay no fee. */
