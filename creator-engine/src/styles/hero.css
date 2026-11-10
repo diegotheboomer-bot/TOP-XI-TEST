@@ -61,7 +61,21 @@
 .platform-tile:nth-child(3)::after, li:nth-child(3) .platform-tile::after { animation-delay: 0.8s; }
 @keyframes tile-shine { 0%, 55% { transform: translateX(-60%); } 85%, 100% { transform: translateX(60%); } }
 
+/* Earnings slider: volt fill up to the thumb, a thumb that grows when grabbed. */
+.snap-range { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 999px; cursor: pointer; touch-action: none;
+  background: linear-gradient(90deg, rgb(var(--brand-a)), rgb(var(--brand-b))) 0 / var(--p, 50%) 100% no-repeat, rgb(var(--zinc-100)); }
+.snap-range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 999px; background: #fff;
+  border: 3px solid rgb(var(--brand-b)); box-shadow: 0 4px 14px -2px rgb(var(--brand-b) / 0.6); transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.snap-range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 999px; background: #fff; border: 3px solid rgb(var(--brand-b));
+  box-shadow: 0 4px 14px -2px rgb(var(--brand-b) / 0.6); transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.snap-range:active::-webkit-slider-thumb { transform: scale(1.25); }
+.snap-range:active::-moz-range-thumb { transform: scale(1.25); }
+.snap-range:focus-visible { outline: 2px solid rgb(var(--brand-b)); outline-offset: 4px; }
+.snap-pop { animation: snap-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: right center; }
+@keyframes snap-pop { from { transform: scale(1.12); } }
+
 @media (prefers-reduced-motion: reduce) {
+  .snap-pop { animation: none; }
   .platform-tile::after { animation: none; opacity: 0; }
   .hero-pulse, .hero-playhead, .hero-flow, .hero-pop { animation: none; }
   .hero-playhead { left: 55%; }
