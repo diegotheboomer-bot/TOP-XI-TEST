@@ -157,6 +157,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
     current_like_count: v.likes,
     current_comment_count: v.comments,
     has_disclosure: hasDisclosure(v.caption),
+    ...(v.coverUrl ? { cover_url: v.coverUrl } : {}),
     last_synced_at: now.toISOString(),
   };
 

@@ -65,6 +65,41 @@ export interface CreatorDashboard {
   openCampaigns: MarketCampaign[];
 }
 
+/** Total views across the clipper's clips, one point per day (last 30 days). */
+export async function getCreatorViewHistory(): Promise<{ day: string; views: number }[]> {
+  if (isDemo) return [];
+  const creatorId = await requireRole('creator');
+  const admin = createAdminClient();
+  const { data: subs } = await admin.from('submissions').select('id').eq('creator_id', creatorId);
+  const ids = (subs ?? []).map((s) => s.id as string);
+  if (!ids.length) return [];
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const { data: logs } = await admin
+    .from('social_metrics_logs')
+    .select('submission_id, captured_at, view_count')
+    .in('submission_id', ids)
+    .gte('captured_at', since.toISOString())
+    .order('captured_at');
+  // Latest count per clip per day, carried forward, then summed.
+  const days: string[] = [];
+  for (let d = new Date(since); d <= new Date(); d = new Date(d.getTime() + 86_400_000)) days.push(d.toISOString().slice(0, 10));
+  const perClip = new Map<string, Map<string, number>>();
+  for (const l of logs ?? []) {
+    const m = perClip.get(l.submission_id) ?? new Map<string, number>();
+    m.set(String(l.captured_at).slice(0, 10), l.view_count);
+    perClip.set(l.submission_id, m);
+  }
+  return days.map((day) => {
+    let total = 0;
+    for (const m of perClip.values()) {
+      let last = 0;
+      for (const [d, v] of m) if (d <= day) last = v;
+      total += last;
+    }
+    return { day, views: total };
+  });
+}
+
 export interface CreatorCampaignDetail {
   campaign: MarketCampaign;
   shopDomain: string | null;

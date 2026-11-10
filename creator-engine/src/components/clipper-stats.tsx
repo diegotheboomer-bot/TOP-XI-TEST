@@ -27,22 +27,42 @@ const TABS: { key: string; label: string; match: (s: SubmissionStatus) => boolea
   { key: 'flagged', label: 'Flagged', match: (s) => s === 'flagged' },
 ];
 
-export function ClipsView({ d, tab }: { d: CreatorDashboard; tab: string }) {
+export function ClipsView({ d, tab, history }: { d: CreatorDashboard; tab: string; history: { day: string; views: number }[] }) {
   const rows = rowsOf(d);
   const active = TABS.find((t) => t.key === tab) ?? TABS[0];
   const shown = rows.filter((r) => active.match(r.sub.status));
   const views = rows.reduce((n, r) => n + r.sub.current_view_count, 0);
   const likes = rows.reduce((n, r) => n + r.sub.current_like_count, 0);
+  const earned = rows.reduce((n, r) => n + r.sub.payout_earned, 0);
+  const weekAgo = history.length > 7 ? history[history.length - 8].views : 0;
+  const week = history.length > 7 ? Math.max(0, views - weekAgo) : null;
   return (
     <div className="space-y-6">
-      <StatGrid
-        items={[
-          { label: 'Total views', value: compact(views), hint: 'across all your clips' },
-          { label: 'Clips', value: String(rows.length), hint: `${rows.filter((r) => r.sub.status === 'live_tracking').length} live` },
-          { label: 'Likes', value: compact(likes) },
-          { label: 'Earned', value: usd(rows.reduce((n, r) => n + r.sub.payout_earned, 0)) },
-        ]}
-      />
+      {/* Views over time */}
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
+        <div className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-brand opacity-[0.08] blur-3xl" />
+        <div className="relative p-5 sm:p-6">
+          <p className="text-sm text-zinc-500">Total views</p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+            <p className="text-5xl font-semibold tabular-nums tracking-tight">{compact(views)}</p>
+            {week != null && week > 0 && <span className="rounded-full bg-brand px-2 py-0.5 font-mono text-[11px] font-semibold text-brand-ink">+{compact(week)} this week</span>}
+          </div>
+        </div>
+        <Spark points={history.map((h) => h.views)} />
+        <div className="grid grid-cols-3 divide-x divide-zinc-200/80 border-t border-zinc-200/80">
+          {[
+            ['Clips', String(rows.length)],
+            ['Likes', compact(likes)],
+            ['Earned', usd(earned)],
+          ].map(([k, v]) => (
+            <div key={k} className="px-4 py-3.5 sm:px-6">
+              <p className="text-xs text-zinc-500">{k}</p>
+              <p className={cn('mt-0.5 text-lg font-semibold tabular-nums tracking-tight', k === 'Earned' && 'text-brand')}>{v}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1" aria-label="Filter clips">
         {TABS.map((t) => {
           const count = rows.filter((r) => t.match(r.sub.status)).length;
@@ -58,25 +78,38 @@ export function ClipsView({ d, tab }: { d: CreatorDashboard; tab: string }) {
           );
         })}
       </nav>
+
       {shown.length ? (
-        <ul className="divide-y divide-zinc-200/80 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
-          {shown.map(({ sub, campaignTitle, brandName, campaignId }) => (
-            <li key={sub.id} className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
-              <PlatformTile platform={sub.platform} />
-              <div className="min-w-0 flex-1">
-                <Link href={`/clipper/campaigns/${campaignId}`} className="block truncate text-sm font-medium hover:underline">
-                  {campaignTitle}
-                </Link>
-                <p className="truncate text-xs text-zinc-500">
-                  {brandName} · <span className="tabular-nums">{compact(sub.current_view_count)} views</span>
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className="text-sm font-semibold tabular-nums">{usdCents(sub.payout_earned)}</span>
-                <SubmissionBadge status={sub.status} />
-              </div>
-              <a href={sub.video_url} target="_blank" rel="noreferrer" aria-label="Open clip" className="hidden size-8 shrink-0 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 sm:grid">
-                <ArrowUpRight className="size-4" />
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {shown.map(({ sub, campaignTitle, brandName }) => (
+            <li key={sub.id}>
+              <a href={sub.video_url} target="_blank" rel="noreferrer" className="group block">
+                <div className="relative aspect-[9/16] overflow-hidden rounded-2xl bg-zinc-100">
+                  {coverOf(sub) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={coverOf(sub)!} alt="" loading="lazy" referrerPolicy="no-referrer" className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+                  ) : (
+                    <div className="hero-grid absolute inset-0" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgb(0_0_0/0.75)] via-transparent to-[rgb(0_0_0/0.25)]" />
+                  <div className="absolute left-2 top-2">
+                    <PlatformTile platform={sub.platform} className="size-7 rounded-lg" iconClassName="size-3.5" />
+                  </div>
+                  <div className="absolute right-2 top-2">
+                    <SubmissionBadge status={sub.status} />
+                  </div>
+                  <div className="absolute inset-x-3 bottom-3 text-[#fff]">
+                    <p className="text-xl font-semibold tabular-nums tracking-tight">{compact(sub.current_view_count)}</p>
+                    <p className="text-[11px] text-[rgb(255_255_255/0.75)]">views</p>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-start justify-between gap-2 px-0.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{campaignTitle}</p>
+                    <p className="truncate text-xs text-zinc-500">{brandName}</p>
+                  </div>
+                  <p className="shrink-0 text-sm font-semibold tabular-nums text-brand">{usdCents(sub.payout_earned)}</p>
+                </div>
               </a>
             </li>
           ))}
@@ -88,6 +121,41 @@ export function ClipsView({ d, tab }: { d: CreatorDashboard; tab: string }) {
         />
       )}
     </div>
+  );
+}
+
+/** The clip's cover: saved by the sync, or YouTube's own thumbnail. */
+function coverOf(sub: Submission): string | null {
+  if (sub.cover_url) return sub.cover_url;
+  if (sub.platform === 'youtube') return `https://i.ytimg.com/vi/${sub.social_platform_video_id}/hqdefault.jpg`;
+  return null;
+}
+
+/** Area chart of daily total views, edge to edge. */
+function Spark({ points }: { points: number[] }) {
+  if (points.length < 2 || Math.max(...points) === 0) return <div className="h-4" />;
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const span = max - min || 1;
+  const w = 100;
+  const h = 40;
+  const xy = points.map((p, i) => [(i / (points.length - 1)) * w, h - ((p - min) / span) * (h - 6) - 3]);
+  const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="block h-24 w-full" aria-hidden>
+      <defs>
+        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style={{ stopColor: 'rgb(var(--brand-b))', stopOpacity: 0.35 }} />
+          <stop offset="1" style={{ stopColor: 'rgb(var(--brand-b))', stopOpacity: 0 }} />
+        </linearGradient>
+        <linearGradient id="spark-line" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" style={{ stopColor: 'rgb(var(--brand-a))' }} />
+          <stop offset="1" style={{ stopColor: 'rgb(var(--brand-b))' }} />
+        </linearGradient>
+      </defs>
+      <path d={`${line} L${w} ${h} L0 ${h}Z`} fill="url(#spark-fill)" />
+      <path d={line} fill="none" stroke="url(#spark-line)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+    </svg>
   );
 }
 

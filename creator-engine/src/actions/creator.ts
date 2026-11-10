@@ -160,6 +160,7 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
       current_like_count: stats.likes,
       current_comment_count: stats.comments,
       has_disclosure: hasDisclosure(stats.caption),
+      cover_url: stats.coverUrl,
       last_synced_at: new Date().toISOString(),
     })
     .select('id')

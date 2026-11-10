@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0008 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0009 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -438,5 +438,11 @@ alter table submissions add column engagement_cleared boolean not null default f
 -- with no token: the channel is proven by a code in its description.
 alter table social_accounts alter column access_token_enc drop not null;
 alter table social_accounts alter column access_expires_at drop not null;
+
+
+-- ═════ 0009_submission_cover.sql ═════
+-- 0009: the clip's cover image, shown on the clipper's Clips page. Platform
+-- cover links can expire, so the sync refreshes it.
+alter table submissions add column cover_url text;
 
 commit;

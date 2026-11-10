@@ -58,6 +58,8 @@ export interface Submission {
   fraud_score: number;
   /** The streamer approved it after a low-engagement hold; don't hold it again. */
   engagement_cleared: boolean;
+  /** Cover image of the clip, refreshed by the sync. */
+  cover_url?: string | null;
   flag_reason: string | null;
   phash: string | null;
   /** Caption carries an ad disclosure (#ad, #sponsored, …). */
