@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Clapperboard, Eye, FileText, Film, Image as ImageIcon, Link2, Loader2, PieChart, Plus, ShieldCheck, Upload, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, Clapperboard, Dumbbell, Eye, FileText, Film, GalleryHorizontal, Gamepad2, GraduationCap, Image as ImageIcon, Laugh, Link2, ListChecks, Loader2, MapPin, MessageCircle, Music, Paperclip, PieChart, Plus, Repeat2, Scissors, ShieldCheck, Sparkles, Trophy, Upload, Webcam, X } from 'lucide-react';
 import { Field, Input } from '../ui/field';
 import { Card } from '../ui/card';
 import { MarketCard } from '../views';
@@ -23,6 +23,19 @@ const PLATFORMS: [Platform, string][] = [
   ['youtube', 'YouTube Shorts'],
   ['instagram', 'Instagram Reels'],
 ];
+
+const TYPE_ICON: Record<string, React.ElementType> = { clipping: Scissors, facecam: Webcam, faceless: Gamepad2, meme: Laugh, slideshow: GalleryHorizontal, reposting: Repeat2 };
+const CATEGORY_ICON: Record<string, React.ElementType> = {
+  Gaming: Gamepad2,
+  IRL: MapPin,
+  'Just Chatting': MessageCircle,
+  Esports: Trophy,
+  Music: Music,
+  Sports: Dumbbell,
+  Comedy: Laugh,
+  Education: GraduationCap,
+  Other: Sparkles,
+};
 
 const REF_ICON = { link: Link2, image: ImageIcon, video: Film, file: FileText } as const;
 
@@ -76,6 +89,7 @@ export type UploadUrl = (name: string, size: number) => Promise<{ error: string 
 
 export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: string; footer: React.ReactNode; uploadUrl: UploadUrl }) {
   const [model, setModel] = useState<PayoutModel>('pure_cpm');
+  const [asking, setAsking] = useState(true);
   const [title, setTitle] = useState('');
   const [base, setBase] = useState('20');
   const [cpm, setCpm] = useState('3');
@@ -168,6 +182,14 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="space-y-6">
+        {asking && (
+          <ModelPopup
+            onPick={(m) => {
+              setModel(m);
+              setAsking(false);
+            }}
+          />
+        )}
         {/* Hidden fields the server expects. */}
         <input type="hidden" name="code_prefix" value={prefix} />
         <input type="hidden" name="cps_commission_pct" value="0" />
@@ -181,31 +203,193 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
         {model === 'pool' && <input type="hidden" name="cpm_cap" value="1000000" />}
 
         <Step n={1} title="The campaign" sub="A clear title gets more clippers.">
-          <Field label="Title">
-            <Input id="title" name="title" required minLength={3} maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ranked Grind Highlights" />
-          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+            <Field label="Title">
+              <Input id="title" name="title" required minLength={3} maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ranked Grind Highlights" />
+            </Field>
+            <Field label="Category">
+              <CategoryPicker value={category} onChange={setCategory} />
+            </Field>
+          </div>
+        </Step>
+
+        <Step n={2} title="What and where" sub="So the right clippers find you.">
+          <fieldset>
+            <legend className="mb-2 text-[13px] font-medium text-zinc-700">Kind of videos</legend>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {CONTENT_TYPES.map(([id, label, hint]) => {
+                const on = types.includes(id);
+                return (
+                  <label
+                    key={id}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition focus-within:ring-2 focus-within:ring-accent-500',
+                      on ? 'border-brand-b/60 bg-brand-a/10' : 'border-zinc-200 bg-white hover:border-zinc-300',
+                    )}
+                  >
+                    <input type="checkbox" name="content_types" value={id} checked={on} onChange={() => setTypes((t) => (on ? t.filter((x) => x !== id) : [...t, id]))} className="sr-only" />
+                    <span className={cn('relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl transition [&>svg]:relative [&>svg]:size-[18px]', on ? 'platform-tile bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-500')}>
+                      {(() => {
+                        const Icon = TYPE_ICON[id];
+                        return <Icon />;
+                      })()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium">{label}</span>
+                      <span className="block text-xs text-zinc-500">{hint}</span>
+                    </span>
+                    <Tick on={on} />
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
           <fieldset className="mt-5">
-            <legend className="mb-2 text-[13px] font-medium text-zinc-700">Category</legend>
-            <input type="hidden" name="category" value={category} />
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCategory(c)}
-                  className={cn(
-                    'rounded-full border px-3.5 py-1.5 text-sm transition',
-                    category === c ? 'border-transparent bg-brand font-medium text-brand-ink' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300',
-                  )}
-                >
-                  {c}
-                </button>
-              ))}
+            <legend className="mb-2 text-[13px] font-medium text-zinc-700">Platforms</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {PLATFORMS.map(([value, label]) => {
+                const on = platforms.includes(value);
+                return (
+                  <label
+                    key={value}
+                    className={cn(
+                      'flex cursor-pointer flex-col items-center gap-2 rounded-xl border px-2 py-3 text-center text-xs font-medium transition focus-within:ring-2 focus-within:ring-accent-500 sm:text-sm',
+                      on ? 'border-brand-b/60 bg-brand-a/10 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300',
+                    )}
+                  >
+                    <input type="checkbox" name="platforms" value={value} checked={on} onChange={() => setPlatforms((p) => (on ? p.filter((x) => x !== value) : [...p, value]))} className="sr-only" />
+                    <span className={cn('relative grid size-9 place-items-center overflow-hidden rounded-xl transition', on ? 'platform-tile bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-400')}>
+                      <PlatformIcon platform={value} className="relative size-[18px]" />
+                    </span>
+                    {label}
+                  </label>
+                );
+              })}
             </div>
           </fieldset>
         </Step>
 
-        <Step n={2} title="How clippers get paid" sub="You approve every clip. Payouts after that are automatic.">
+        <Step n={3} title="Instructions" sub="What to make, the rules, and anything that helps.">
+          <Field label="What you want">
+            <textarea
+              id="brief"
+              name="brief"
+              rows={4}
+              maxLength={4000}
+              className={textarea}
+              placeholder="Cut the clutches, the rage and the comebacks from my ranked streams. Hook in the first second, keep it under 45 seconds."
+            />
+          </Field>
+          <div className="mt-5">
+            <p className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-zinc-700"><ListChecks className="size-4 text-zinc-400" /> Rules</p>
+            <ul className="space-y-2">
+              {rules.map((r, i) => (
+                <li key={i} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm">
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand text-brand-ink">
+                    <Check className="size-3" strokeWidth={3.5} />
+                  </span>
+                  <span className="min-w-0 flex-1">{r}</span>
+                  <button type="button" onClick={() => setRules((x) => x.filter((_, j) => j !== i))} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700" aria-label={`Remove ${r}`}>
+                    <X className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {rules.length < 12 && (
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={rule}
+                  maxLength={120}
+                  onChange={(e) => setRule(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addRule();
+                    }
+                  }}
+                  placeholder="Add a rule, e.g. No swearing in the first 3 seconds"
+                />
+                <button type="button" onClick={addRule} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
+                  <Plus className="size-4" /> Add
+                </button>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-zinc-500">Clippers tick these off before they submit. You check them when you approve.</p>
+          </div>
+          <div className="mt-6 border-t border-zinc-200/80 pt-5">
+            <p className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-zinc-700">
+              <Paperclip className="size-4 text-zinc-400" /> References <span className="font-normal text-zinc-400">· optional</span>
+            </p>
+          <Field label="VODs or source footage" hint="A Twitch, YouTube or Drive link clippers can cut from.">
+            <Input id="asset_folder_url" name="asset_folder_url" type="url" placeholder="https://twitch.tv/you/videos" />
+          </Field>
+          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="flex gap-2">
+              <Input
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addLink();
+                  }
+                }}
+                placeholder="Paste a link: an example clip, a sound, a doc"
+              />
+              <button type="button" onClick={addLink} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
+                <Link2 className="size-4" /> Add
+              </button>
+            </div>
+            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-ink transition hover:brightness-110 focus-within:ring-2 focus-within:ring-accent-500">
+              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              {uploading ? 'Uploading…' : 'Upload files'}
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*,application/pdf,.zip,.txt,.doc,.docx"
+                className="sr-only"
+                onChange={(e) => {
+                  void upload(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">Images, videos, PDFs or docs, up to 50 MB each and {REF_MAX} in total.</p>
+          {refError && <p className="mt-2 text-sm text-rose-600">{refError}</p>}
+          {refs.length > 0 && (
+            <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {refs.map((r, i) => {
+                const Icon = REF_ICON[r.kind];
+                return (
+                  <li key={r.url} className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                    <div className="grid aspect-video place-items-center bg-zinc-100">
+                      {r.kind === 'image' ? (
+                        <img src={r.url} alt="" className="size-full object-cover" />
+                      ) : r.kind === 'video' ? (
+                        <video src={r.url} muted playsInline preload="metadata" className="size-full object-cover" />
+                      ) : (
+                        <Icon className="size-6 text-zinc-400" />
+                      )}
+                    </div>
+                    <p className="truncate px-2.5 py-2 text-xs font-medium">{r.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => setRefs((x) => x.filter((_, j) => j !== i))}
+                      className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+                      aria-label={`Remove ${r.name}`}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          </div>
+        </Step>
+
+        <Step n={4} title="Pay clippers" sub="You approve every clip. Payouts after that are automatic.">
           <div role="radiogroup" aria-label="Payment model" className="grid grid-cols-3 gap-2 sm:gap-3">
             {MODELS.map((m) => {
               const on = model === m.id;
@@ -289,174 +473,6 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
           </p>
         </Step>
 
-        <Step n={3} title="Where and what" sub="So the right clippers find you.">
-          <fieldset>
-            <legend className="mb-2 text-[13px] font-medium text-zinc-700">Platforms</legend>
-            <div className="grid grid-cols-3 gap-2">
-              {PLATFORMS.map(([value, label]) => {
-                const on = platforms.includes(value);
-                return (
-                  <label
-                    key={value}
-                    className={cn(
-                      'flex cursor-pointer flex-col items-center gap-2 rounded-xl border px-2 py-3 text-center text-xs font-medium transition focus-within:ring-2 focus-within:ring-accent-500 sm:text-sm',
-                      on ? 'border-brand-b/60 bg-brand-a/10 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300',
-                    )}
-                  >
-                    <input type="checkbox" name="platforms" value={value} checked={on} onChange={() => setPlatforms((p) => (on ? p.filter((x) => x !== value) : [...p, value]))} className="sr-only" />
-                    <span className={cn('relative grid size-9 place-items-center overflow-hidden rounded-xl transition', on ? 'platform-tile bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-400')}>
-                      <PlatformIcon platform={value} className="relative size-[18px]" />
-                    </span>
-                    {label}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-          <fieldset className="mt-5">
-            <legend className="mb-2 text-[13px] font-medium text-zinc-700">Kind of videos</legend>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {CONTENT_TYPES.map(([id, label, hint]) => {
-                const on = types.includes(id);
-                return (
-                  <label
-                    key={id}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition focus-within:ring-2 focus-within:ring-accent-500',
-                      on ? 'border-brand-b/60 bg-brand-a/10' : 'border-zinc-200 bg-white hover:border-zinc-300',
-                    )}
-                  >
-                    <input type="checkbox" name="content_types" value={id} checked={on} onChange={() => setTypes((t) => (on ? t.filter((x) => x !== id) : [...t, id]))} className="sr-only" />
-                    <Tick on={on} />
-                    <span>
-                      <span className="block text-sm font-medium">{label}</span>
-                      <span className="block text-xs text-zinc-500">{hint}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        </Step>
-
-        <Step n={4} title="Instructions" sub="What clippers should make, and the rules every clip follows.">
-          <Field label="What you want">
-            <textarea
-              id="brief"
-              name="brief"
-              rows={4}
-              maxLength={4000}
-              className={textarea}
-              placeholder="Cut the clutches, the rage and the comebacks from my ranked streams. Hook in the first second, keep it under 45 seconds."
-            />
-          </Field>
-          <div className="mt-5">
-            <p className="mb-2 text-[13px] font-medium text-zinc-700">Rules</p>
-            <ul className="space-y-2">
-              {rules.map((r, i) => (
-                <li key={i} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm">
-                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand text-brand-ink">
-                    <Check className="size-3" strokeWidth={3.5} />
-                  </span>
-                  <span className="min-w-0 flex-1">{r}</span>
-                  <button type="button" onClick={() => setRules((x) => x.filter((_, j) => j !== i))} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700" aria-label={`Remove ${r}`}>
-                    <X className="size-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {rules.length < 12 && (
-              <div className="mt-2 flex gap-2">
-                <Input
-                  value={rule}
-                  maxLength={120}
-                  onChange={(e) => setRule(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addRule();
-                    }
-                  }}
-                  placeholder="Add a rule, e.g. No swearing in the first 3 seconds"
-                />
-                <button type="button" onClick={addRule} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
-                  <Plus className="size-4" /> Add
-                </button>
-              </div>
-            )}
-            <p className="mt-2 text-xs text-zinc-500">Clippers tick these off before they submit. You check them when you approve.</p>
-          </div>
-        </Step>
-
-        <Step n={5} title="References" sub="VODs, example clips, images, logos or anything that helps.">
-          <Field label="VODs or source footage" hint="A Twitch, YouTube or Drive link clippers can cut from.">
-            <Input id="asset_folder_url" name="asset_folder_url" type="url" placeholder="https://twitch.tv/you/videos" />
-          </Field>
-          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="flex gap-2">
-              <Input
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addLink();
-                  }
-                }}
-                placeholder="Paste a link: an example clip, a sound, a doc"
-              />
-              <button type="button" onClick={addLink} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
-                <Link2 className="size-4" /> Add
-              </button>
-            </div>
-            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-ink transition hover:brightness-110 focus-within:ring-2 focus-within:ring-accent-500">
-              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              {uploading ? 'Uploading…' : 'Upload files'}
-              <input
-                type="file"
-                multiple
-                accept="image/*,video/*,application/pdf,.zip,.txt,.doc,.docx"
-                className="sr-only"
-                onChange={(e) => {
-                  void upload(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-          </div>
-          <p className="mt-2 text-xs text-zinc-500">Images, videos, PDFs or docs, up to 50 MB each and {REF_MAX} in total.</p>
-          {refError && <p className="mt-2 text-sm text-rose-600">{refError}</p>}
-          {refs.length > 0 && (
-            <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {refs.map((r, i) => {
-                const Icon = REF_ICON[r.kind];
-                return (
-                  <li key={r.url} className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white">
-                    <div className="grid aspect-video place-items-center bg-zinc-100">
-                      {r.kind === 'image' ? (
-                        <img src={r.url} alt="" className="size-full object-cover" />
-                      ) : r.kind === 'video' ? (
-                        <video src={r.url} muted playsInline preload="metadata" className="size-full object-cover" />
-                      ) : (
-                        <Icon className="size-6 text-zinc-400" />
-                      )}
-                    </div>
-                    <p className="truncate px-2.5 py-2 text-xs font-medium">{r.name}</p>
-                    <button
-                      type="button"
-                      onClick={() => setRefs((x) => x.filter((_, j) => j !== i))}
-                      className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-                      aria-label={`Remove ${r.name}`}
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Step>
-
         {footer}
       </div>
 
@@ -464,6 +480,102 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
         <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-zinc-400">Clippers will see</p>
         <div className="pointer-events-none">
           <MarketCard c={preview} href="#" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A dropdown of niches, each with its icon. */
+function CategoryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [open]);
+  const Icon = CATEGORY_ICON[value] ?? Sparkles;
+  return (
+    <div ref={ref} className="relative">
+      <input type="hidden" name="category" value={value} />
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-10 w-full items-center gap-2.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm transition hover:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-900/5"
+      >
+        <Icon className="size-4 text-[rgb(var(--brand-ta))]" />
+        <span className="flex-1 text-left font-medium">{value}</span>
+        <ChevronDown className={cn('size-4 text-zinc-400 transition', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <ul role="listbox" className="absolute z-20 mt-1.5 max-h-72 w-full overflow-auto rounded-xl border border-zinc-200 bg-white p-1 shadow-lg">
+          {CATEGORIES.map((c) => {
+            const I = CATEGORY_ICON[c] ?? Sparkles;
+            const on = c === value;
+            return (
+              <li key={c}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  onClick={() => {
+                    onChange(c);
+                    setOpen(false);
+                  }}
+                  className={cn('flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition', on ? 'bg-brand-a/10 font-medium' : 'hover:bg-zinc-100')}
+                >
+                  <I className={cn('size-4', on ? 'text-[rgb(var(--brand-ta))]' : 'text-zinc-400')} />
+                  <span className="flex-1">{c}</span>
+                  {on && <Check className="size-4 text-[rgb(var(--brand-ta))]" />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** The first thing a streamer sees: one tap to choose how clippers are paid. */
+function ModelPopup({ onPick }: { onPick: (m: PayoutModel) => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-end bg-black/60 p-0 backdrop-blur-sm sm:place-items-center sm:p-4" role="dialog" aria-modal aria-labelledby="model-q">
+      <div className="w-full max-w-lg rounded-t-3xl border border-zinc-200 bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6">
+        <p className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">New campaign</p>
+        <h2 id="model-q" className="mt-1 text-xl font-semibold tracking-tight">How do you want to pay clippers?</h2>
+        <p className="mt-1 text-sm text-zinc-500">You can change it later in step 4.</p>
+        <div className="mt-5 space-y-2">
+          {MODELS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onPick(m.id)}
+              className="group flex w-full items-center gap-3.5 rounded-2xl border border-zinc-200 bg-white p-3.5 text-left transition hover:border-brand-b/60 hover:bg-brand-a/10"
+            >
+              <span className="platform-tile relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand text-brand-ink [&>svg]:relative [&>svg]:size-5">
+                <m.icon />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2 font-semibold tracking-tight">
+                  {m.title}
+                  {m.id === 'pure_cpm' && <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-ink">Recommended</span>}
+                </span>
+                <span className="block text-sm text-zinc-500">{m.body}</span>
+              </span>
+              <ChevronDown className="size-4 -rotate-90 text-zinc-400 transition group-hover:translate-x-0.5" />
+            </button>
+          ))}
         </div>
       </div>
     </div>
