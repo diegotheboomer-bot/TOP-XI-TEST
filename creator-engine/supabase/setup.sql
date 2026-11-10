@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0005 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0006 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -408,5 +408,21 @@ alter table submissions add column approved_at timestamptz;
 update submissions
 set approved_at = coalesce(last_synced_at, created_at)
 where status in ('live_tracking', 'paid') and approved_at is null;
+
+
+-- ═════ 0006_login_handoff.sql ═════
+-- 0006: sign-in handoff. The page that asked for an email link waits on a row
+-- here; pressing Continue on the emailed link stores the one-time token so that
+-- waiting page can finish signing in, whichever browser or device opened the email.
+-- Server only (service role): RLS on, no policies.
+create table login_handoffs (
+  id uuid primary key,
+  token_hash text,
+  otp_type text,
+  approved_at timestamptz,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table login_handoffs enable row level security;
 
 commit;

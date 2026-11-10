@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFormState } from 'react-dom';
-import { Megaphone, Video } from 'lucide-react';
-import { createProfile, sendMagicLink } from '@/actions/account';
+import { MailCheck, Megaphone, Video } from 'lucide-react';
+import { checkHandoff, createProfile, sendMagicLink } from '@/actions/account';
 import { FormMessage } from '../form-message';
 import { SubmitButton } from '../submit-button';
 import { Field, Input } from '../ui/field';
@@ -11,6 +12,7 @@ import { cn } from '../ui/cn';
 
 export function LoginForm() {
   const [state, action] = useFormState(sendMagicLink, undefined);
+  if (state?.success) return <WaitingForEmail />;
   return (
     <form action={action} className="space-y-4">
       <Field label="Work email">
@@ -19,6 +21,37 @@ export function LoginForm() {
       <FormMessage state={state} />
       <SubmitButton className="w-full" pendingText="Sending…">Email me a sign-in link</SubmitButton>
     </form>
+  );
+}
+
+/** After the link is sent: waits here and signs in once the emailed link is confirmed, from any device. */
+function WaitingForEmail() {
+  const router = useRouter();
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let stop = false;
+    const tick = async () => {
+      if (stop) return;
+      const { status } = await checkHandoff().catch(() => ({ status: 'waiting' as const }));
+      if (status === 'signed_in') return router.push('/onboarding');
+      if (status === 'failed') return setFailed(true);
+      setTimeout(tick, 2500);
+    };
+    const first = setTimeout(tick, 2500);
+    return () => {
+      stop = true;
+      clearTimeout(first);
+    };
+  }, [router]);
+  return (
+    <div className="text-center">
+      <MailCheck className="mx-auto size-9 text-[rgb(var(--brand-ta))]" />
+      <p className="mt-3 font-medium">Check your inbox</p>
+      <p className="mt-1 text-sm text-zinc-500">
+        {failed ? 'This page stopped waiting. Open the link from the email to sign in.' : 'Open the link on any device and press Continue. This page signs you in automatically.'}
+      </p>
+      {!failed && <span className="mx-auto mt-4 block size-4 animate-spin rounded-full border-2 border-zinc-300 border-r-transparent" aria-label="Waiting" />}
+    </div>
   );
 }
 
