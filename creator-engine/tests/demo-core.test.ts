@@ -53,12 +53,12 @@ describe('demo store', () => {
     expect(core.claimMoment(s, 'cr-vodvault', full.id)?.error).toBeTruthy();
   });
 
-  it('accepts Shorts and Reels by clip code, and rejects platforms a campaign does not allow', () => {
+  it('accepts Shorts from a verified channel, and rejects platforms a campaign does not allow', () => {
     const s = core.seedDemo(9, '/t/');
     // shortsmith has no TikTok connected: Shorts still works, TikTok doesn't.
     core.joinCampaign(s, 'cr-shortsmith', 'cmp-charity');
     expect(core.submitVideo(s, 'cr-shortsmith', 'cmp-charity', 'https://www.instagram.com/reel/Cabc12345/')?.error).toContain('doesn’t accept');
     expect(core.submitVideo(s, 'cr-shortsmith', 'cmp-charity', 'https://www.tiktok.com/@s/video/7399999999999999999')?.error).toContain('Connect your TikTok');
-    expect(core.submitVideo(s, 'cr-shortsmith', 'cmp-charity', 'https://youtube.com/shorts/dQw4w9WgXcQ')?.success).toContain('Clip code');
+    expect(core.submitVideo(s, 'cr-shortsmith', 'cmp-charity', 'https://youtube.com/shorts/dQw4w9WgXcQ')?.success).toContain('verified channel');
   });
 });

@@ -78,6 +78,8 @@ export interface VideoStats {
   caption: string | null;
   /** When it was posted, if the platform says. */
   publishedAt?: string | null;
+  /** YouTube only: the channel it's on. */
+  channelId?: string | null;
 }
 
 /**

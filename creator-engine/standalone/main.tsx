@@ -751,7 +751,7 @@ function CreatorHome({ store }: { store: Store }) {
   const firstOpen = d.enrollments.find((e) => !e.submission);
   return (
     <div className="space-y-8">
-      <PageHeader title={`Hi, ${d.name}`} description="Your campaigns, clip codes and earnings." actions={<ViewAs store={store} />} />
+      <PageHeader title={`Hi, ${d.name}`} description="Your campaigns, clips and earnings." actions={<ViewAs store={store} />} />
 
       <Checklist
         title="How to start earning"
@@ -863,8 +863,8 @@ function CreatorHome({ store }: { store: Store }) {
             icon={<PlatformIcon platform="youtube" />}
             title="YouTube Shorts"
             connected
-            status="Ready"
-            detail="No login needed. Put your clip code in the title or description."
+            status="Verified"
+            detail={d.youtube?.channel ?? 'Channel verified'}
             action={null}
           />
           <ConnectionCard

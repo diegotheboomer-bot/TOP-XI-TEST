@@ -1,5 +1,6 @@
 import { payoutReady, type PayoutSetup } from './payout-methods';
 import { redirect } from 'next/navigation';
+import { youtubeVerifyCode } from './youtube-verify';
 import { isDemo } from './env';
 import { getViewer } from './session';
 import { createClient } from './supabase/server';
@@ -53,6 +54,9 @@ export interface CreatorEnrollment {
 export interface CreatorDashboard {
   name: string;
   tiktok: { username: string | null; followers: number | null } | null;
+  /** Verified YouTube channel, and the code to verify one. */
+  youtube: { channel: string | null } | null;
+  youtubeCode: string;
   /** Ready to be paid by the chosen method. */
   payoutsEnabled: boolean;
   payout: PayoutSetup;
@@ -202,7 +206,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const db = createClient();
   const [{ data: creator }, { data: account }, { data: enrollments }, { data: open }, { data: subs }] = await Promise.all([
     db.from('creators').select('display_name, payouts_enabled').eq('id', creatorId).single(),
-    createAdminClient().from('social_accounts').select('username, follower_count').eq('creator_id', creatorId).eq('platform', 'tiktok').maybeSingle(),
+    createAdminClient().from('social_accounts').select('platform, username, follower_count').eq('creator_id', creatorId),
     db.from('campaign_creators').select('*, campaigns(*, brands(name), conversion_pixels(shop_domain))').eq('creator_id', creatorId),
     db.from('campaigns').select('*, brands(name)').eq('status', 'active').order('created_at', { ascending: false }),
     db.from('submissions').select('*').eq('creator_id', creatorId),
@@ -213,9 +217,13 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     .map(({ brands, ...c }) => ({ ...num(c as Campaign, CAMPAIGN_NUMS), brandName: (brands as { name: string } | null)?.name ?? '' }));
   const budgets = await loadBudgets(openList);
   const payout = await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false);
+  const tiktok = (account ?? []).find((a) => a.platform === 'tiktok');
+  const youtube = (account ?? []).find((a) => a.platform === 'youtube');
   return {
     name: creator?.display_name ?? '',
-    tiktok: account ? { username: account.username, followers: account.follower_count } : null,
+    tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count } : null,
+    youtube: youtube ? { channel: youtube.username } : null,
+    youtubeCode: youtubeVerifyCode(creatorId),
     payoutsEnabled: payoutReady(payout),
     payout,
     enrollments: (enrollments ?? []).map(({ campaigns, ...e }) => {

@@ -7,7 +7,7 @@ import { cn } from './ui/cn';
 
 const FEATURES: [string, string, () => React.ReactNode][] = [
   ['Moment board', 'Streamers pin the moments worth clipping. Limited slots per moment keep feeds from filling with the same clip.', SlotsArt],
-  ['Clip codes', 'Every clipper gets a code. Put it in the caption and the clip is yours on TikTok, Shorts or Reels. No account linking needed.', CodeArt],
+  ['Verified accounts', 'Clippers connect TikTok or verify their YouTube channel once. Every clip they post from it is matched to them automatically.', CodeArt],
   ['Budget forecast', 'Each campaign shows how much is left and about how many days it will last at the current pace.', BudgetArt],
   ['Review window', 'Streamers pick a review deadline. Clean clips with #ad are approved automatically when it passes.', ReviewArt],
   ['No fees for clippers', 'Clippers keep 100% of what they earn. Streamers pay a flat {fee}% on top of their budget, shown before they pay.', KeepArt],
@@ -62,7 +62,14 @@ function SlotsArt() {
 }
 
 function CodeArt() {
-  return <span className="rounded-md border border-dashed border-brand-b/60 px-2 py-1 font-mono text-xs font-semibold text-brand">RANK7K2Q</span>;
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border border-brand-b/50 px-2.5 py-1 text-xs font-medium">
+      @clipsbyrae
+      <span className="grid size-3.5 place-items-center rounded-full bg-brand text-brand-ink">
+        <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth={2.2}><path d="M2.5 6.2 5 8.5l4.5-5" /></svg>
+      </span>
+    </span>
+  );
 }
 
 function BudgetArt() {

@@ -116,7 +116,7 @@ export function seedDemo(feePercent: number, assetBase: string): State {
   ];
 
   const photo = (name: string) => `${assetBase}${name}.jpg`;
-  const STANDARD = ['Your clip code in the caption', 'Include #ad in the caption'];
+  const STANDARD = ['Include #ad in the caption', 'Credit my channel on screen'];
   const campaign = (x: Partial<DemoCampaign> & Pick<Campaign, 'id' | 'brand_id' | 'title' | 'payout_model' | 'cpm_cap' | 'code_prefix'>): DemoCampaign => ({
     escrow_balance: 0,
     base_payout: 0,
@@ -413,6 +413,8 @@ export function creatorDashboard(s: State, viewer: string): CreatorDashboard {
   return {
     name: me.displayName,
     tiktok: me.tiktokConnected ? { username: me.handle, followers: me.followers } : null,
+    youtube: { channel: `@${me.handle}` },
+    youtubeCode: 'ATLAS-7K2Q9M',
     payoutsEnabled: payoutReady(payoutSetupOf(me)),
     payout: payoutSetupOf(me),
     enrollments: mine.map((e) => {
@@ -648,7 +650,7 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
   }
   const platform = parsed.video.platform;
   if (!camp.platforms.includes(platform)) return { error: `This campaign doesn’t accept ${PLATFORM_NAME[platform]}.` };
-  // TikTok ownership comes from the clipper's login; Shorts and Reels from the clip code in the caption.
+  // TikTok ownership comes from the clipper's login; Shorts from their verified channel (assumed in the demo).
   if (platform === 'tiktok' && !me.tiktokConnected) return { error: 'Connect your TikTok account to submit TikTok clips.' };
   if (s.submissions.some((x) => x.creator_id === me.id && x.campaign_id === campaignId)) return { error: 'You already have a submission in this campaign.' };
   if (s.submissions.some((x) => x.campaign_id === campaignId && x.social_platform_video_id === parsed.video.videoId)) {
@@ -683,7 +685,7 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
     created_at: new Date(now).toISOString(),
     prevSample: { at: now, views, comments },
   });
-  const proof = platform === 'tiktok' ? 'Verified through your TikTok login' : `Clip code ${enrollment.discount_code} found in the caption`;
+  const proof = platform === 'tiktok' ? 'Verified through your TikTok login' : 'Posted from your verified channel';
   return { success: `Submitted. ${proof}, #ad present. Auto-approves in ${camp.auto_approve_hours}h if the streamer doesn't review it first.` };
 }
 

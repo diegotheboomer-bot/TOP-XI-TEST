@@ -10,8 +10,9 @@ import { parseVideoUrlResolving } from '@/lib/video-url';
 import { getTikTokAccessToken } from '@/lib/tokens';
 import { queryTikTokVideos } from '@/lib/platforms/tiktok';
 import { checkDuplicate } from '@/lib/sync';
-import { hasClipCode, hasDisclosure } from '@/lib/compliance';
-import { getYouTubeVideos } from '@/lib/platforms/youtube';
+import { hasDisclosure } from '@/lib/compliance';
+import { getYouTubeChannel, getYouTubeVideos, parseChannelInput } from '@/lib/platforms/youtube';
+import { youtubeVerifyCode } from '@/lib/youtube-verify';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
 import { stripe } from '@/lib/stripe';
 import { paypalConfigured } from '@/lib/paypal';
@@ -114,7 +115,9 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
     pass('Video found');
     pass('It’s your video', 'On your connected TikTok');
   } else {
-    // YouTube: public stats; ownership is proven by the clip code in the title or description.
+    // YouTube: public stats; ownership comes from the clipper's verified channel.
+    const { data: channel } = await admin.from('social_accounts').select('platform_user_id, username').eq('creator_id', creatorId).eq('platform', 'youtube').maybeSingle();
+    if (!channel) return fail('It’s your video', 'Verify your YouTube channel first: Accounts on your dashboard.');
     try {
       [stats] = await getYouTubeVideos([videoId]);
     } catch {
@@ -122,10 +125,10 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
     }
     if (!stats) return fail('Video found', 'That YouTube video is private or doesn’t exist.');
     pass('Video found');
-    if (!hasClipCode(stats.caption, enrollment.discount_code)) {
-      return fail('It’s your video', `Add your clip code ${enrollment.discount_code} to the title or description, then try again.`);
+    if (stats.channelId !== channel.platform_user_id) {
+      return fail('It’s your video', `This Short isn’t on your verified channel${channel.username ? ` (${channel.username})` : ''}.`);
     }
-    pass('It’s your video', `Clip code ${enrollment.discount_code} found`);
+    pass('It’s your video', `On your verified channel${channel.username ? `, ${channel.username}` : ''}`);
   }
 
   // Only clips made for this campaign: posted after joining it.
@@ -196,6 +199,35 @@ function timeAgo(iso: string): string {
   if (mins < 60) return `${mins} min ago`;
   const hours = Math.round(mins / 60);
   return hours < 48 ? `${hours}h ago` : `${Math.round(hours / 24)} days ago`;
+}
+
+/**
+ * Verify a YouTube channel: the clipper's code must be in its description.
+ * Once verified, any Short from that channel counts as theirs; the code can be removed.
+ */
+export async function verifyYouTubeChannel(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { success: 'Verified.' };
+  const creatorId = await requireCreator();
+  const ref = parseChannelInput(String(form.get('channel') ?? ''));
+  if (!ref) return { error: 'Paste your channel link, like youtube.com/@yourname.' };
+  let channel;
+  try {
+    channel = await getYouTubeChannel(ref);
+  } catch {
+    return { error: 'YouTube couldn’t be reached. Try again shortly.' };
+  }
+  if (!channel) return { error: 'No YouTube channel found at that link.' };
+  const code = youtubeVerifyCode(creatorId);
+  if (!channel.description.toUpperCase().includes(code)) {
+    return { error: `${code} isn’t in ${channel.title}’s description yet. Saved changes can take a minute to show.` };
+  }
+  const { error } = await createAdminClient()
+    .from('social_accounts')
+    .upsert({ creator_id: creatorId, platform: 'youtube', platform_user_id: channel.id, username: channel.title, updated_at: new Date().toISOString() }, { onConflict: 'creator_id,platform' });
+  if (error?.code === '23505') return { error: 'That channel is already verified on another account.' };
+  if (error) return { error: 'Couldn’t save. Try again.' };
+  revalidatePath('/clipper');
+  return { success: `${channel.title} is verified. You can remove the code from your description now.` };
 }
 
 /**

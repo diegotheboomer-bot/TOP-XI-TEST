@@ -19,7 +19,7 @@ const STEPS: Record<Who, [string, string][]> = {
   ],
   clipper: [
     ['Pick a campaign', 'See the rate, the budget left and what you would take home before you join.'],
-    ['Claim and cut', 'Claim a moment, cut it your way, add your clip code and #ad to the caption.'],
+    ['Claim and cut', 'Claim a moment, cut it your way and post it with #ad from your connected TikTok or verified YouTube channel.'],
     ['Get paid automatically', 'Earnings update every few hours. Approved clips are paid out 3 days later, straight to your bank, PayPal or Venmo. You keep 100%.'],
   ],
 };
@@ -247,11 +247,10 @@ function Preview({ who, step, feePercent }: { who: Who; step: number; feePercent
         </div>
         <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-zinc-500">Caption</p>
         <p className="mt-1.5 rounded-lg border border-zinc-200/80 bg-zinc-50 px-3 py-3 text-sm leading-relaxed">
-          he did NOT see that coming <span className="rounded bg-zinc-200 px-1 font-mono text-xs">#ad</span>{' '}
-          <span className="rounded bg-brand px-1 font-mono text-xs font-semibold text-brand-ink">RANK7K2Q</span>
+          he did NOT see that coming <span className="rounded bg-brand px-1 font-mono text-xs font-semibold text-brand-ink">#ad</span>
           <span className="step-caret ml-0.5 inline-block h-4 w-px translate-y-0.5 bg-zinc-900" />
         </p>
-        <p className="mt-3 text-xs text-zinc-500">The code links the clip to you on any platform.</p>
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-zinc-500"><Check className="size-3.5 text-[rgb(var(--brand-ta))]" /> Posting from your verified channel @clipsbyrae</p>
       </div>
     );
   }

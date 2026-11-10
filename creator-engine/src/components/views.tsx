@@ -459,16 +459,12 @@ export function EnrollmentCard({
         {submission && <SubmissionBadge status={submission.status} />}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <CopyField label="Clip code (put it in every caption)" value={enrollment.discount_code} />
-        {linkUrl ? (
+      {linkUrl && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <CopyField label="Merch discount code" value={enrollment.discount_code} />
           <CopyField label="Merch link" value={linkUrl} />
-        ) : (
-          <div className="rounded-lg border border-dashed border-zinc-200 px-3 py-2 text-xs leading-relaxed text-zinc-500">
-            Your code proves the clip is yours on TikTok, Shorts and Reels.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {submission ? (
         <div className="space-y-2 rounded-lg bg-zinc-50 p-4">
@@ -598,7 +594,7 @@ export function NextStep({
       <div className="mt-5">
         {stage === 'join' && (
           <>
-            <h3 className="font-semibold tracking-tight">Join to get your clip code</h3>
+            <h3 className="font-semibold tracking-tight">Join this campaign</h3>
             <p className="mt-1 text-sm text-zinc-600">It’s free. Then clip any moment from {brandName}’s streams and post it on {where}.</p>
             <div className="mt-4">{join}</div>
           </>
@@ -619,7 +615,7 @@ export function NextStep({
               <li className="flex gap-2.5">
                 <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">3</span>
                 <span>
-                  Put <span className="font-mono font-medium">{enrollment.discount_code}</span> and <span className="font-medium">#ad</span> in the caption.
+                  Put <span className="font-medium">#ad</span> in the caption. Post from your connected TikTok or verified YouTube channel.
                 </span>
               </li>
               <li className="flex gap-2.5">
@@ -627,9 +623,6 @@ export function NextStep({
                 <span>Paste the link below.</span>
               </li>
             </ol>
-            <div className="mt-4">
-              <CopyField label="Your clip code" value={enrollment.discount_code} />
-            </div>
             {tiktokPrompt && <div className="mt-3">{tiktokPrompt}</div>}
             <div className="mt-4">{submitForm}</div>
           </>

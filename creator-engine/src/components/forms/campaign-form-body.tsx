@@ -22,7 +22,7 @@ const PLATFORMS: [Platform, string][] = [
   ['instagram', 'Instagram Reels'],
 ];
 export const COVER_COLORS = ['#0e2a47', '#16403a', '#2a1f4a', '#9a3412', '#4a2a1c', '#3d3320', '#7f1d1d', '#18181b'];
-const DEFAULT_REQUIREMENTS = 'Your clip code in the caption\nInclude #ad in the caption\nCredit my channel on screen';
+const DEFAULT_REQUIREMENTS = 'Include #ad in the caption\nCredit my channel on screen';
 
 const textarea =
   'w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-900/5';
@@ -89,7 +89,7 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
             <Field label="VODs and source footage" hint="Link to your VODs or a Drive folder.">
               <Input id="asset_folder_url" name="asset_folder_url" type="url" placeholder="https://…" />
             </Field>
-            <Field label="Clip code prefix" hint="Each clipper gets the prefix plus 4 characters. Also works as a merch discount code.">
+            <Field label="Merch code prefix" hint="Only used if you connect a merch store: each clipper gets it plus 4 characters as their discount code.">
               <Input id="code_prefix" name="code_prefix" required pattern="[A-Za-z0-9]{2,12}" placeholder="RANK" className="uppercase" />
             </Field>
           </div>

@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0007 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0008 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -431,5 +431,12 @@ alter table login_handoffs enable row level security;
 -- than normal (a sign of paid promotion) are held for the streamer to check.
 -- Set once the streamer approves such a clip, so it isn't held again.
 alter table submissions add column engagement_cleared boolean not null default false;
+
+
+-- ═════ 0008_youtube_channels.sql ═════
+-- 0008: verified YouTube channels live in social_accounts (platform 'youtube')
+-- with no token: the channel is proven by a code in its description.
+alter table social_accounts alter column access_token_enc drop not null;
+alter table social_accounts alter column access_expires_at drop not null;
 
 commit;

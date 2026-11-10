@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Compass, Wallet } from 'lucide-react';
 import { PlatformIcon } from '@/components/platform-icon';
+import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { getCreatorDashboard } from '@/lib/data';
 import { compact, usd } from '@/lib/format';
 import { payoutDestination } from '@/lib/payout-methods';
@@ -41,7 +42,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
     <div className="space-y-8">
       <PageHeader
         title={`Hi, ${d.name}`}
-        description="Your campaigns, clip codes and earnings."
+        description="Your campaigns, clips and earnings."
         actions={isDemo ? <CreatorSwitcher creators={demoCreators()} current={currentCreatorId()} /> : undefined}
       />
 
@@ -133,10 +134,10 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
           <ConnectionCard
             icon={<PlatformIcon platform="youtube" />}
             title="YouTube Shorts"
-            connected
-            status="Ready"
-            detail="No login needed. Put your clip code in the title or description."
-            action={null}
+            connected={!!d.youtube}
+            status="Verified"
+            detail={d.youtube ? (d.youtube.channel ?? 'Channel verified') : 'Verify your channel once to submit Shorts'}
+            action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} />}
           />
           <ConnectionCard
             icon={<Wallet />}
