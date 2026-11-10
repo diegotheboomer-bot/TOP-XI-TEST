@@ -4,7 +4,7 @@ import { ArrowLeft, Users } from 'lucide-react';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
-import { platformFeePercent } from '@/lib/stripe';
+import { achEnabled, platformFeePercent } from '@/lib/stripe';
 import { cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
@@ -111,6 +111,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
               ) : (
                 <>
                   <AppAddBudget
+                    bankTransfer={achEnabled()}
                     campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate, status: c.status }}
                     feePercent={feePercent}
                     publishableKey={publishableKey}

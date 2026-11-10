@@ -27,8 +27,11 @@ export function StripePayment({
   campaignId,
   createIntent,
   onPaid,
+  bankTransfer = false,
 }: {
   publishableKey: string;
+  /** Offer US bank account (ACH); only when it's turned on in Stripe, or the form won't load. */
+  bankTransfer?: boolean;
   quote: Quote | null;
   campaignId: string;
   createIntent: (campaignId: string, amount: number) => Promise<DepositIntentResult>;
@@ -40,8 +43,8 @@ export function StripePayment({
   if (quote && quote.totalCents !== shownCents) setShownCents(quote.totalCents);
 
   const options = useMemo(
-    () => ({ mode: 'payment' as const, currency: 'usd', amount: shownCents, paymentMethodTypes: ['card', 'us_bank_account'], appearance: elementsAppearance(theme), fonts: FONTS }),
-    [shownCents, theme],
+    () => ({ mode: 'payment' as const, currency: 'usd', amount: shownCents, paymentMethodTypes: bankTransfer ? ['card', 'us_bank_account'] : ['card'], appearance: elementsAppearance(theme), fonts: FONTS }),
+    [shownCents, theme, bankTransfer],
   );
 
   return (

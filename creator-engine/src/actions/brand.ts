@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { isDemo } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { stripe, platformFeePercent } from '@/lib/stripe';
+import { stripe, platformFeePercent, achEnabled } from '@/lib/stripe';
 import { streamerCharge } from '@/lib/payout';
 import { planRefunds } from '@/lib/refunds';
 import { payClip } from '@/lib/pay-clip';
@@ -100,7 +100,7 @@ export async function createDepositIntent(campaignId: string, amount: number): P
       amount: cents(charge.total),
       currency: 'usd',
       // Card (Apple Pay and Google Pay are card wallets) or US bank account (ACH: about 0.8%, capped at $5).
-      allowed_payment_method_types: ['card', 'us_bank_account'],
+      allowed_payment_method_types: achEnabled() ? ['card', 'us_bank_account'] : ['card'],
       description: `Clipper budget ${usdCents(charge.budget)} + ${fee}% service fee: ${campaign.title}`,
       metadata: { kind: 'campaign_deposit', campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
       transfer_group: `campaign_${campaignId}`,

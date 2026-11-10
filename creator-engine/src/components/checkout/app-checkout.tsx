@@ -14,7 +14,9 @@ export function AppAddBudget({
   publishableKey,
   createIntent,
   payDemo,
+  bankTransfer = false,
 }: {
+  bankTransfer?: boolean;
   campaign: CheckoutCampaign;
   feePercent: number;
   /** null in demo mode. */
@@ -33,7 +35,7 @@ export function AppAddBudget({
       note={publishableKey ? 'Payments are processed by Stripe. Card details never touch our servers.' : 'Demo mode: mock money only.'}
       payment={(quote, onPaid) =>
         publishableKey ? (
-          <StripePayment publishableKey={publishableKey} quote={quote} campaignId={campaign.id} createIntent={createIntent} onPaid={onPaid} />
+          <StripePayment publishableKey={publishableKey} quote={quote} campaignId={campaign.id} createIntent={createIntent} onPaid={onPaid} bankTransfer={bankTransfer} />
         ) : (
           <MockPayment quote={quote} onPay={(amount) => payDemo(campaign.id, amount)} onPaid={onPaid} />
         )
