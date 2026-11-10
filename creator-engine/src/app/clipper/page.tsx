@@ -143,8 +143,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             icon={<PlatformIcon platform="youtube" />}
             title="YouTube Shorts"
             connected={!!d.youtube}
-            status="Verified"
-            detail={d.youtube ? (d.youtube.channel ?? 'Channel verified') : 'Verify your channel once to submit Shorts'}
+            detail={d.youtube ? (d.youtube.channel ?? 'Channel connected') : 'Connect your channel once to submit Shorts'}
             action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} />}
           />
           <ConnectionCard

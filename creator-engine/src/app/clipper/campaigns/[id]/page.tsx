@@ -68,7 +68,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                     )}
                     {c.platforms.includes('youtube') && !d.youtubeVerified && (
                       <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
-                        <span>Posting Shorts? Verify your YouTube channel first.</span>
+                        <span>Posting Shorts? Connect your YouTube channel first.</span>
                         <YouTubeVerify code={d.youtubeCode} verified={false} />
                       </div>
                     )}

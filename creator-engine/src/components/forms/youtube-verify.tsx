@@ -18,9 +18,9 @@ export function YouTubeVerify({ code, verified }: { code: string; verified: bool
   return (
     <>
       <Button size="sm" variant={verified ? 'ghost' : 'secondary'} onClick={() => setOpen(true)}>
-        {verified ? 'Change' : 'Verify'}
+        {verified ? 'Reconnect' : 'Connect'}
       </Button>
-      <Dialog open={open} onClose={() => setOpen(false)} title="Verify your YouTube channel" description="One time. Then any Short from that channel counts as yours." className="sm:max-w-md">
+      <Dialog open={open} onClose={() => setOpen(false)} title="Connect your YouTube channel" description="One time. Then any Short from that channel counts as yours." className="sm:max-w-md">
         {state?.success ? (
           <div className="step-in text-center">
             <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand text-brand-ink">

@@ -863,8 +863,7 @@ function CreatorHome({ store }: { store: Store }) {
             icon={<PlatformIcon platform="youtube" />}
             title="YouTube Shorts"
             connected
-            status="Verified"
-            detail={d.youtube?.channel ?? 'Channel verified'}
+            detail={d.youtube?.channel ?? 'Channel connected'}
             action={null}
           />
           <ConnectionCard
