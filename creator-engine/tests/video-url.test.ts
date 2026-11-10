@@ -69,3 +69,27 @@ describe('parseVideoUrlResolving', () => {
     expect(r).toMatchObject({ ok: false, reason: 'unsupported_host' });
   });
 });
+
+describe('share-sheet links', () => {
+  it('reads a link with text around it', () => {
+    const r = parseVideoUrl(`Check this out! https://www.tiktok.com/@maya/video/${id}?is_from_webapp=1 #fyp`);
+    expect(r.ok && r.video.videoId).toBe(id);
+  });
+  it('reads a TikTok link without a username', () => {
+    expect(parseVideoUrl(`https://www.tiktok.com/@/video/${id}`).ok).toBe(true);
+  });
+  it('reads a TikTok photo post', () => {
+    expect(parseVideoUrl(`https://www.tiktok.com/@maya/photo/${id}`).ok).toBe(true);
+  });
+  it('follows an Instagram share link', async () => {
+    const f = (async () => new Response(null, { status: 302, headers: { location: 'https://www.instagram.com/reel/DAbc123xyz/' } })) as unknown as typeof fetch;
+    const r = await parseVideoUrlResolving('https://www.instagram.com/share/reel/BAxyz12345/', f);
+    expect(r.ok && r.video.videoId).toBe('DAbc123xyz');
+  });
+  it('falls back to GET when HEAD has no redirect', async () => {
+    const f = (async (_u: string, init?: RequestInit) =>
+      init?.method === 'GET' ? new Response(null, { status: 301, headers: { location: `https://www.tiktok.com/@maya/video/${id}` } }) : new Response(null, { status: 200 })) as unknown as typeof fetch;
+    const r = await parseVideoUrlResolving('https://vm.tiktok.com/ZMabc123/', f);
+    expect(r.ok && r.video.videoId).toBe(id);
+  });
+});

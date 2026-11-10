@@ -96,7 +96,7 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
   if (!parsed.ok) {
     return fail(
       'Link recognised',
-      parsed.reason === 'unsupported_host' ? 'Only TikTok, Instagram Reels and YouTube Shorts links work.' : 'That link doesn’t point to a single video.',
+      parsed.reason === 'unsupported_host' ? 'Only TikTok, Instagram Reels and YouTube Shorts links work.' : 'We couldn’t find a video in that link. Open the video itself, tap Share → Copy link, and paste that.',
     );
   }
   const { platform, videoId, canonicalUrl } = parsed.video;
