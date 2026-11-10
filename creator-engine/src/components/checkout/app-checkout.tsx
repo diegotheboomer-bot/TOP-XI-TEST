@@ -17,7 +17,9 @@ export function AppAddBudget({
   createIntent,
   payDemo,
   bankTransfer = false,
+  initialAmount,
 }: {
+  initialAmount?: number;
   bankTransfer?: boolean;
   campaign: CheckoutCampaign;
   feePercent: number;
@@ -36,6 +38,7 @@ export function AppAddBudget({
       feeFixed={feeFixed}
       early={early}
       className="w-full"
+      initialAmount={initialAmount}
       // Stripe confirms the deposit by webhook, so the balance can lag a moment behind.
       onDone={() => router.refresh()}
       note={publishableKey ? 'Payments are processed by Stripe. Card details never touch our servers.' : 'Demo mode: mock money only.'}

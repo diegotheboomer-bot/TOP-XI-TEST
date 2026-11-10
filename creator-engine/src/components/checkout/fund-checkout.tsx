@@ -39,7 +39,10 @@ export function AddBudget({
   note,
   onDone,
   className,
+  initialAmount,
 }: {
+  /** Pre-fills the amount and opens the dialog straight away (after campaign setup). */
+  initialAmount?: number;
   campaign: CheckoutCampaign;
   feePercent: number;
   /** Flat part of the fee, in dollars (early partners). */
@@ -52,7 +55,7 @@ export function AddBudget({
   onDone?: () => void;
   className?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!initialAmount);
   const [paid, setPaid] = useState<Quote | null>(null);
   const [pending, setPending] = useState(false);
   const close = () => {
@@ -83,6 +86,7 @@ export function AddBudget({
             early={early}
             payment={payment}
             note={note}
+            initialAmount={initialAmount}
             onPaid={(q, isPending) => {
               setPending(!!isPending);
               setPaid(q);
@@ -102,7 +106,9 @@ function Checkout({
   payment,
   note,
   onPaid,
+  initialAmount,
 }: {
+  initialAmount?: number;
   campaign: CheckoutCampaign;
   feePercent: number;
   feeFixed: number;
@@ -111,7 +117,7 @@ function Checkout({
   note: React.ReactNode;
   onPaid: (quote: Quote, pending?: boolean) => void;
 }) {
-  const [value, setValue] = useState('1000');
+  const [value, setValue] = useState(String(initialAmount ?? 1000));
   const parsed = DepositSchema.safeParse(value);
   const quote: Quote | null = parsed.success ? toQuote(parsed.data, feePercent, feeFixed) : null;
   const error = value.trim() && !parsed.success ? parsed.error.issues[0].message : undefined;

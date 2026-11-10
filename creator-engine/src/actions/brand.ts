@@ -12,7 +12,7 @@ import { payClip } from '@/lib/pay-clip';
 import { HOLD_HOURS, streamerCanFlag } from '@/lib/payout-rules';
 import type Stripe from 'stripe';
 import { usdCents } from '@/lib/format';
-import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput } from '@/lib/schemas';
+import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import { REF_MAX_BYTES } from '@/lib/references';
 import { LOW_ENGAGEMENT_REASON } from '@/lib/fraud';
@@ -35,19 +35,38 @@ async function requireOwnCampaign(campaignId: string) {
 export async function createCampaign(_prev: ActionState, form: FormData): Promise<ActionState> {
   const parsed = CampaignSchema.safeParse(campaignInput(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const { asset_folder_url, ...rest } = parsed.data;
-  const row = { ...rest, asset_folder_url: asset_folder_url || null, thumbnail_url: null };
+  const file = form.get('thumbnail');
+  const thumb = file instanceof File && file.size > 0 ? file : null;
+  if (!thumb) return { error: 'Add a thumbnail for your campaign.' };
+  const thumbError = thumbnailError(thumb);
+  if (thumbError) return { error: thumbError };
+  // The budget picked in setup pre-fills the payment screen; it isn't charged here.
+  const budget = Math.round(Number(form.get('budget')) || 0);
+  const fund = budget >= 50 ? `?fund=${Math.min(budget, 1_000_000)}` : '';
 
-  if (isDemo) redirect(`/streamer/campaigns/${demo.createCampaign(row)}`);
+  const { asset_folder_url, ...rest } = parsed.data;
+  const row = { ...rest, asset_folder_url: asset_folder_url || null };
+
+  if (isDemo) {
+    const thumbnail_url = `data:${thumb.type};base64,${Buffer.from(await thumb.arrayBuffer()).toString('base64')}`;
+    redirect(`/streamer/campaigns/${demo.createCampaign({ ...row, thumbnail_url })}${fund}`);
+  }
 
   const brandId = await requireBrand();
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient();
+  const ext = thumb.type.split('/')[1].replace('jpeg', 'jpg');
+  const path = `${brandId}/${crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await admin.storage.from('campaign-thumbnails').upload(path, thumb, { contentType: thumb.type });
+  if (upErr) return { error: `Thumbnail upload failed: ${upErr.message}` };
+  const thumbnail_url = admin.storage.from('campaign-thumbnails').getPublicUrl(path).data.publicUrl;
+
+  const { data, error } = await admin
     .from('campaigns')
-    .insert({ ...row, brand_id: brandId })
+    .insert({ ...row, thumbnail_url, brand_id: brandId })
     .select('id')
     .single();
   if (error) return { error: error.message };
-  redirect(`/streamer/campaigns/${data.id}`);
+  redirect(`/streamer/campaigns/${data.id}${fund}`);
 }
 
 /**

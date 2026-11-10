@@ -11,6 +11,7 @@ import type { PayoutModel, Platform } from '@/lib/types';
 import type { MarketCampaign } from '@/lib/data';
 import { CATEGORIES, CONTENT_TYPES } from '@/lib/campaign-tags';
 import { REF_MAX, REF_MAX_BYTES, kindOf, linkName, type Reference } from '@/lib/references';
+import { THUMBNAIL_TYPES, thumbnailError } from '@/lib/schemas';
 
 const MODELS: { id: PayoutModel; title: string; body: string; icon: React.ElementType }[] = [
   { id: 'pure_cpm', title: 'Per 1K views', body: 'Pay a rate for every 1,000 real views.', icon: Eye },
@@ -90,6 +91,9 @@ export type UploadUrl = (name: string, size: number) => Promise<{ error: string 
 export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: string; footer: React.ReactNode; uploadUrl: UploadUrl }) {
   const [model, setModel] = useState<PayoutModel>('pure_cpm');
   const [asking, setAsking] = useState(true);
+  const [thumb, setThumb] = useState<string | null>(null);
+  const [thumbError, setThumbError] = useState('');
+  const [budget, setBudget] = useState('1000');
   const [title, setTitle] = useState('');
   const [base, setBase] = useState('20');
   const [cpm, setCpm] = useState('3');
@@ -167,7 +171,7 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
     asset_folder_url: null,
     status: 'draft',
     created_at: new Date().toISOString(),
-    thumbnail_url: null,
+    thumbnail_url: thumb,
     cover_color: '#0c0f0b',
     brief: null,
     requirements: [],
@@ -202,7 +206,46 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
         {model === 'per_post' && <input type="hidden" name="cpm_cap" value={base || '0'} />}
         {model === 'pool' && <input type="hidden" name="cpm_cap" value="1000000" />}
 
-        <Step n={1} title="The campaign" sub="A clear title gets more clippers.">
+        <Step n={1} title="The campaign" sub="A clear title and a strong thumbnail get more clippers.">
+          <label
+            className={cn(
+              'group relative mb-5 grid aspect-[16/9] cursor-pointer place-items-center overflow-hidden rounded-2xl border-2 border-dashed transition focus-within:ring-4 focus-within:ring-brand-a/20',
+              thumb ? 'border-transparent' : 'border-zinc-300 bg-zinc-50 hover:border-brand-b/60 hover:bg-brand-a/5',
+            )}
+          >
+            <input
+              type="file"
+              name="thumbnail"
+              required
+              accept={THUMBNAIL_TYPES.join(',')}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                const err = thumbnailError(f);
+                setThumbError(err ?? '');
+                if (thumb) URL.revokeObjectURL(thumb);
+                setThumb(f && !err ? URL.createObjectURL(f) : null);
+                if (err) e.target.value = '';
+              }}
+            />
+            {thumb ? (
+              <>
+                <img src={thumb} alt="" className="absolute inset-0 size-full object-cover" />
+                <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
+                  <ImageIcon className="size-3.5" /> Change
+                </span>
+              </>
+            ) : (
+              <span className="pointer-events-none flex flex-col items-center gap-2 px-4 text-center">
+                <span className="platform-tile relative grid size-12 place-items-center overflow-hidden rounded-2xl bg-brand text-brand-ink">
+                  <ImageIcon className="relative size-6" />
+                </span>
+                <span className="text-sm font-semibold">Add a thumbnail</span>
+                <span className="text-xs text-zinc-500">16:9 · JPG, PNG or WebP · up to 2 MB</span>
+              </span>
+            )}
+          </label>
+          {thumbError && <p className="-mt-3 mb-4 text-sm text-rose-600">{thumbError}</p>}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
             <Field label="Title">
               <Input id="title" name="title" required minLength={3} maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ranked Grind Highlights" />
@@ -470,6 +513,44 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
           </div>
           <p className="mt-3 flex items-center gap-1.5 text-xs text-zinc-500">
             <ShieldCheck className="size-3.5 text-[rgb(var(--brand-ta))]" /> Only views TikTok, YouTube and Instagram report count. Fake views are held.
+          </p>
+        </Step>
+
+        <Step n={5} title="Budget" sub="What clippers can earn in total. You pay on the next screen and can change it there.">
+          <input type="hidden" name="budget" value={budget} />
+          <div className="flex items-center rounded-2xl border border-zinc-200 bg-white px-4 transition focus-within:border-zinc-400 focus-within:ring-4 focus-within:ring-zinc-900/5">
+            <span className="text-2xl font-medium text-zinc-400">$</span>
+            <input
+              aria-label="Budget"
+              inputMode="decimal"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value.replace(/[^0-9.]/g, ''))}
+              className="h-14 w-full min-w-0 bg-transparent pl-1.5 text-2xl font-semibold tabular-nums tracking-tight focus:outline-none"
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[500, 1000, 2500, 5000, 10000].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setBudget(String(n))}
+                className={cn(
+                  'h-8 rounded-full border px-3.5 text-[13px] font-medium tabular-nums transition',
+                  Number(budget) === n ? 'border-transparent bg-brand text-brand-ink' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300',
+                )}
+              >
+                {money(n)}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-zinc-600">
+            {(() => {
+              const b = Number(budget) || 0;
+              if (b < 50) return 'Minimum $50.';
+              if (model === 'pure_cpm' && rate > 0) return <>Pays for about <strong className="font-semibold text-zinc-900">{views((b / rate) * 1000)} views</strong> at {money(rate)} per 1K.</>;
+              if (model === 'per_post' && Number(base) > 0) return <>Pays for about <strong className="font-semibold text-zinc-900">{Math.floor(b / Number(base))} clips</strong> at {money(Number(base))} each.</>;
+              return <>The whole <strong className="font-semibold text-zinc-900">{money(b)}</strong> is split between clippers when the campaign ends.</>;
+            })()}
           </p>
         </Step>
 

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Users } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Store, Users, Wallet } from 'lucide-react';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
-import { compact, payoutModelLabel, rateParts, usd, usdCompact } from '@/lib/format';
+import { compact, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { achEnabled, feeFor } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -12,7 +12,7 @@ import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
 import { ActionButton } from '@/components/action-button';
 import { CampaignBadge } from '@/components/status';
-import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, ReferenceList, RequirementList, StorefrontStatus, SubmissionTable, submissionActionKinds } from '@/components/views';
+import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, ReferenceList, RequirementList, StorefrontStatus, StreamerAvatar, SubmissionTable, submissionActionKinds } from '@/components/views';
 import { MomentForm } from '@/components/forms/moment-form';
 import { ConnectStoreForm } from '@/components/forms/campaign-forms';
 import { AppAddBudget } from '@/components/checkout/app-checkout';
@@ -21,7 +21,7 @@ import type { Campaign } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CampaignPage({ params, searchParams }: { params: { id: string }; searchParams: { funded?: string } }) {
+export default async function CampaignPage({ params, searchParams }: { params: { id: string }; searchParams: { funded?: string; fund?: string } }) {
   const detail = await getCampaignDetail(params.id);
   if (!detail) notFound();
   const { campaign: c, submissions, shopDomain, deposited, refunded, paidOut, fees, budget } = detail;
@@ -39,27 +39,39 @@ export default async function CampaignPage({ params, searchParams }: { params: {
   };
   const publishableKey = isDemo ? null : (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? '');
 
+  const views = submissions.reduce((a, s) => a + s.current_view_count, 0);
+  const pending = submissions.filter((s) => s.status === 'pending_review').length;
+  const fund = Number(searchParams.fund);
+  const top = topClippers(submissions).slice(0, 5);
+
   return (
     <div className="space-y-6">
       <Link href="/streamer" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
         <ArrowLeft className="size-4" /> Campaigns
       </Link>
 
-      <div className="grid grid-cols-1 items-center gap-5 sm:grid-cols-[13rem_minmax(0,1fr)]">
-        <CampaignCover campaign={c} brandName="" variant="card" showTitle={false} className="rounded-xl" />
-        <div className="min-w-0">
-          <CampaignBadge status={c.status} />
+      {/* Header: cover, title, terms and the one action that matters next. */}
+      <section className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <CampaignCover campaign={c} brandName="" variant="card" showTitle={false} className="w-full shrink-0 rounded-2xl shadow-card sm:w-60" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <CampaignBadge status={c.status} />
+            {c.category && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-ink">{c.category}</span>}
+          </div>
           <h1 className="balance mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            {payoutModelLabel[c.payout_model]} · {r.rate} {r.unit} · {r.terms}
+            <span className="font-medium text-zinc-900">
+              {r.rate} {r.unit}
+            </span>{' '}
+            · {r.terms}
           </p>
-          <PlatformChips platforms={c.platforms} className="mt-2" />
-          <div className="mt-4 flex flex-wrap gap-2">
-            <StatusActions campaign={c} />
-            {c.status !== 'draft' || c.escrow_balance > 0 ? <CancelCampaign summary={cancel} ended={ended} onConfirm={cancelCampaign.bind(null, c.id)} /> : null}
-          </div>
+          <PlatformChips platforms={c.platforms} className="mt-3" />
         </div>
-      </div>
+        <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch [&>*]:flex-1 sm:[&>*]:flex-none">
+          <StatusActions campaign={c} />
+          {c.status !== 'draft' || c.escrow_balance > 0 ? <CancelCampaign summary={cancel} ended={ended} onConfirm={cancelCampaign.bind(null, c.id)} /> : null}
+        </div>
+      </section>
 
       {isDemo && !ended && (
         <DemoBar>
@@ -68,21 +80,29 @@ export default async function CampaignPage({ params, searchParams }: { params: {
         </DemoBar>
       )}
 
-      {searchParams.funded && <p className="rounded-lg bg-accent-50 px-4 py-3 text-sm text-accent-700">Payment received. Escrow updates as soon as Stripe confirms it.</p>}
+      {searchParams.funded && <p className="rounded-xl bg-brand-a/10 px-4 py-3 text-sm ring-1 ring-inset ring-brand-a/30">Payment received. Your budget updates as soon as Stripe confirms it.</p>}
+      {c.status === 'draft' && c.escrow_balance <= 0 && !searchParams.funded && (
+        <p className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600">
+          <Wallet className="size-4 shrink-0 text-[rgb(var(--brand-ta))]" /> Add a budget to go live. Clippers can only join funded campaigns.
+        </p>
+      )}
 
       <StatGrid
         items={[
-          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(deposited + refunded)} added, ${usdCompact(fees)} fee${refunded > 0 ? `, ${usdCompact(refunded)} refunded` : ''}` },
+          { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(budget.available)} free to earn` },
+          { label: 'Views', value: compact(views), hint: 'Verified by the platforms' },
+          { label: 'Clips', value: String(submissions.length), hint: pending ? `${pending} waiting for you` : 'All reviewed' },
           { label: 'Paid to clippers', value: usd(paidOut), hint: 'Clippers keep 100%' },
-          { label: 'Verified views', value: compact(submissions.reduce((a, s) => a + s.current_view_count, 0)) },
-          { label: 'Merch orders', value: compact(submissions.reduce((a, s) => a + s.current_conversions, 0)) },
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-6">
-        <div className="order-2 min-w-0 space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <div className="order-2 min-w-0 space-y-6 lg:order-1">
           <Card>
-            <CardHeader title="Clips" description={`Views sync every 4 hours. Approve each clip yourself. Approved clips are paid automatically after 3 days; you can flag one until then.`} />
+            <CardHeader
+              title={pending ? `Clips · ${pending} to review` : 'Clips'}
+              description="You approve every clip. Approved clips are paid automatically after 3 days; you can flag one until then."
+            />
             {submissions.length === 0 ? (
               <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
             ) : (
@@ -90,7 +110,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             )}
           </Card>
           <Card>
-            <CardHeader title="Moments to clip" description="Pin timestamps from your stream. Slots stop everyone cutting the same moment." />
+            <CardHeader title="Moments to clip" description="Pin timestamps from your stream so clippers know what to cut." />
             <MomentBoard moments={detail.moments} showClaimers empty="No moments pinned yet." />
             {!ended && (
               <div className="mt-5 border-t border-zinc-100 pt-5">
@@ -100,11 +120,14 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           </Card>
         </div>
 
-        <div className="order-1 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
+        <div className="order-1 space-y-6 lg:order-2">
           <Card>
-            <CardHeader title="Budget" description={ended ? 'Campaign ended' : `${usd(budget.available)} free to earn`} />
-            <BudgetMeter budget={budget} />
-            <div className="mt-5 border-t border-zinc-100 pt-5">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-semibold tracking-tight">Budget</h2>
+              <span className="text-xs text-zinc-500">{usdCompact(deposited + refunded)} added</span>
+            </div>
+            <BudgetMeter budget={budget} className="mt-3" />
+            <div className="mt-5">
               {ended ? (
                 <p className="text-sm text-zinc-500">
                   {refunded > 0 ? `${usd(refunded)} refunded to your card. ` : ''}What’s left pays clippers for clips they’ve already earned on.
@@ -122,23 +145,45 @@ export default async function CampaignPage({ params, searchParams }: { params: {
                     publishableKey={publishableKey}
                     createIntent={createDepositIntent}
                     payDemo={payDemoDeposit}
+                    initialAmount={fund >= 50 && !searchParams.funded ? fund : undefined}
                   />
                   <p className="mt-2 text-xs text-zinc-500">
-                    {plan.early
-                      ? 'Early partner: no service fee, only Stripe’s card processing. Cancel anytime: unspent budget is refunded.'
-                      : `${feePercent}% service fee on top (covers card processing). Cancel anytime: unspent budget is refunded, the fee isn’t.`}
+                    {plan.early ? 'No service fee, only Stripe’s card processing. Unspent budget is refunded if you cancel.' : `${feePercent}% service fee on top. Unspent budget is refunded if you cancel; the fee isn’t.`}
                   </p>
                 </>
               )}
             </div>
           </Card>
+
+          {top.length > 0 && (
+            <Card>
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="font-semibold tracking-tight">Top clippers</h2>
+                <Link href="/streamer/creators" className="text-xs font-medium text-zinc-500 hover:text-zinc-900">
+                  See all
+                </Link>
+              </div>
+              <ol className="space-y-3">
+                {top.map((t, i) => (
+                  <li key={t.name} className="flex items-center gap-3">
+                    <span className="w-4 text-center font-mono text-xs text-zinc-400">{i + 1}</span>
+                    <StreamerAvatar name={t.name} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{t.name}</p>
+                      <p className="text-xs text-zinc-500">
+                        {compact(t.views)} views · {t.clips} {t.clips === 1 ? 'clip' : 'clips'}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums">{usdCompact(t.earned)}</span>
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
+
           <Card>
-            <CardHeader title="Merch store" description="Optional. Orders using a clipper’s code are credited to them." />
-            {shopDomain ? <StorefrontStatus shopDomain={shopDomain} /> : <ConnectStoreForm campaignId={c.id} />}
-          </Card>
-          <Card>
-            <CardHeader title="Brief" />
-            {c.brief && <p className="mb-5 text-sm leading-relaxed text-zinc-600">{c.brief}</p>}
+            <h2 className="mb-3 font-semibold tracking-tight">Brief</h2>
+            {c.brief && <p className="mb-4 text-sm leading-relaxed text-zinc-600">{c.brief}</p>}
             <RequirementList items={c.requirements} />
             {(c.asset_folder_url || (c.reference_items?.length ?? 0) > 0) && (
               <div className="mt-5">
@@ -147,10 +192,37 @@ export default async function CampaignPage({ params, searchParams }: { params: {
               </div>
             )}
           </Card>
+
+          <details className="group rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 shadow-card">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-2">
+                <Store className="size-4 text-zinc-400" /> Merch store <span className="font-normal text-zinc-400">· optional</span>
+              </span>
+              <ChevronDown className="size-4 text-zinc-400 transition group-open:rotate-180" />
+            </summary>
+            <div className="mt-4">
+              <p className="mb-3 text-xs text-zinc-500">Orders using a clipper’s code are credited to them.</p>
+              {shopDomain ? <StorefrontStatus shopDomain={shopDomain} /> : <ConnectStoreForm campaignId={c.id} />}
+            </div>
+          </details>
         </div>
       </div>
     </div>
   );
+}
+
+/** Clippers on this campaign ranked by views, with what they've earned. */
+function topClippers(rows: SubmissionRow[]) {
+  const by = new Map<string, { name: string; views: number; earned: number; clips: number }>();
+  for (const s of rows) {
+    if (s.status === 'flagged') continue;
+    const t = by.get(s.creator_name) ?? { name: s.creator_name, views: 0, earned: 0, clips: 0 };
+    t.views += s.current_view_count;
+    t.earned += s.payout_earned;
+    t.clips++;
+    by.set(s.creator_name, t);
+  }
+  return [...by.values()].sort((a, b) => b.views - a.views);
 }
 
 function StatusActions({ campaign }: { campaign: Campaign }) {
@@ -159,7 +231,7 @@ function StatusActions({ campaign }: { campaign: Campaign }) {
     <>
       {campaign.status !== 'active' && (
         <ActionButton variant="primary" action={setCampaignStatus.bind(null, campaign.id, 'active')}>
-          Go live
+          {campaign.status === 'paused' ? 'Resume' : 'Go live'}
         </ActionButton>
       )}
       {campaign.status === 'active' && <ActionButton action={setCampaignStatus.bind(null, campaign.id, 'paused')}>Pause</ActionButton>}

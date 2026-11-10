@@ -46,7 +46,7 @@ const AVATAR_COLORS = ['#0e2a47', '#16403a', '#4c1d4a', '#7f1d1d', '#3d3320', '#
 
 /** Initials avatar for a streamer (no photos of real people). */
 export function StreamerAvatar({ name, size = 'sm' }: { name: string; size?: 'sm' | 'md' }) {
-  const initials = name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  const initials = name.replace(/[^\p{L}\p{N}\s._-]/gu, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
   return (
     <span
       className={cn('grid shrink-0 place-items-center rounded-full font-semibold', size === 'sm' ? 'size-6 text-[10px]' : 'size-9 text-xs')}
@@ -300,8 +300,7 @@ export function submissionNote(s: Submission, now = Date.now()): { text: string;
 }
 
 const NOTE_TONE = { muted: 'text-zinc-500', warn: 'text-amber-700', bad: 'text-rose-600' } as const;
-const SUB_COLS = 'lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(4.5rem,0.8fr)_minmax(4.5rem,0.8fr)_minmax(3.5rem,0.6fr)_minmax(6rem,1fr)_auto] lg:items-center lg:gap-4';
-
+/** Clips as compact rows that fit any column width: who and what, the numbers, then the actions. */
 export function SubmissionTable({
   rows,
   cap,
@@ -312,52 +311,52 @@ export function SubmissionTable({
   actions: (s: SubmissionRow) => React.ReactNode;
 }) {
   return (
-    <div className="-mx-5 sm:-mx-6">
-      <div className={cn('hidden border-y border-zinc-100 bg-zinc-50 px-5 py-2 text-xs font-medium text-zinc-500 sm:px-6', SUB_COLS)}>
-        <span>Clipper</span>
-        <span>Views</span>
-        <span>Comments</span>
-        <span>Orders</span>
-        <span>Earned</span>
-        <span className="w-[11.5rem] text-right">Actions</span>
-      </div>
-      <ul className="divide-y divide-zinc-100 border-b border-zinc-100 lg:border-t-0">
-        {rows.map((s) => {
-          const note = submissionNote(s);
-          const ratio = s.current_view_count > 0 ? s.current_comment_count / s.current_view_count : 0;
-          const act = actions(s);
-          return (
-            <li key={s.id} className={cn('px-5 py-4 sm:px-6', SUB_COLS)}>
-              <div className="flex min-w-0 items-start justify-between gap-3 lg:block">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <a href={s.video_url} target="_blank" rel="noreferrer" className="truncate font-medium hover:underline">
-                      {s.creator_name}
-                    </a>
-                    <SubmissionBadge status={s.status} />
-                    {s.fraud_score > 0 && <FraudBadge score={s.fraud_score} />}
-                  </div>
-                  <p className={cn('mt-1 text-xs', NOTE_TONE[note.tone])}>
-                    <span className="font-medium text-zinc-600">{PLATFORM_LABEL[s.platform]}</span> · {note.text}
-                  </p>
+    <ul className="-mx-5 divide-y divide-zinc-100 border-t border-zinc-100 sm:-mx-6">
+      {rows.map((s) => {
+        const note = submissionNote(s);
+        const ratio = s.current_view_count > 0 ? s.current_comment_count / s.current_view_count : 0;
+        const act = actions(s);
+        return (
+          <li key={s.id} className="flex flex-col gap-3 px-5 py-4 sm:px-6 md:flex-row md:items-center md:gap-5">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <StreamerAvatar name={s.creator_name} size="md" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <a href={s.video_url} target="_blank" rel="noreferrer" className="truncate font-medium hover:underline">
+                    {s.creator_name}
+                  </a>
+                  <SubmissionBadge status={s.status} />
+                  {s.fraud_score > 0 && <FraudBadge score={s.fraud_score} />}
                 </div>
+                <p className={cn('mt-0.5 line-clamp-2 text-xs', NOTE_TONE[note.tone])}>
+                  <span className="inline-flex items-center gap-1 font-medium text-zinc-600">
+                    <PlatformIcon platform={s.platform} className="size-3" />
+                    {PLATFORM_LABEL[s.platform]}
+                  </span>{' '}
+                  · {note.text}
+                </p>
               </div>
-              <dl className="mt-3 grid grid-cols-4 gap-3 lg:contents">
-                <Cell label="Views" value={compact(s.current_view_count)} />
-                <Cell label="Comments" value={percent(ratio)} />
-                <Cell label="Orders" value={String(s.current_conversions)} />
-                <div className="min-w-0">
-                  <dt className="text-xs text-zinc-500 lg:sr-only">Earned</dt>
-                  <dd className="mt-0.5 text-sm font-medium tabular-nums lg:mt-0">{usd(s.payout_earned)}</dd>
-                  <Progress value={s.payout_earned} max={cap} className="mt-1.5 hidden lg:block" />
-                </div>
-              </dl>
-              <div className={cn('flex flex-wrap justify-end gap-2 lg:w-[11.5rem]', act ? 'mt-3 lg:mt-0' : 'hidden lg:flex')}>{act}</div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+            </div>
+            <dl className="flex shrink-0 items-center gap-5 text-sm">
+              <div>
+                <dt className="text-[11px] text-zinc-500">Views</dt>
+                <dd className="font-semibold tabular-nums">{compact(s.current_view_count)}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-zinc-500">Engagement</dt>
+                <dd className="tabular-nums">{percent(ratio)}</dd>
+              </div>
+              <div className="w-20">
+                <dt className="text-[11px] text-zinc-500">Earned</dt>
+                <dd className="font-semibold tabular-nums">{usd(s.payout_earned)}</dd>
+                <Progress value={s.payout_earned} max={cap} className="mt-1" />
+              </div>
+            </dl>
+            {act && <div className="flex shrink-0 flex-wrap gap-2 md:justify-end [&>*]:flex-1 md:[&>*]:flex-none">{act}</div>}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

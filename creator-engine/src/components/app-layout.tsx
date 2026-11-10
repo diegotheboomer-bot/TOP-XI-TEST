@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn } from 'lucide-react';
+import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn, Users } from 'lucide-react';
 import { isDemo } from '@/lib/env';
 import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
@@ -12,8 +12,9 @@ const SECTIONS: Record<Role, NavSection> = {
   streamer: {
     title: 'Streamer',
     items: [
-      { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
       { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus />, primary: true },
+      { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
+      { href: '/streamer/creators', label: 'Creators', icon: <Users /> },
       { href: '/streamer/stats', label: 'Stats', icon: <ChartColumn /> },
     ],
   },

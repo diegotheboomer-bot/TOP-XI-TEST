@@ -143,6 +143,61 @@ export async function getStreamerStats(platform?: string): Promise<StreamerStats
   };
 }
 
+export interface StreamerCreator {
+  id: string;
+  name: string;
+  handles: { platform: string; username: string | null }[];
+  views: number;
+  earned: number;
+  paid: number;
+  clips: number;
+  campaigns: number;
+  lastClipAt: string;
+}
+
+/** Everyone who has clipped this streamer's campaigns, ranked by views. */
+export async function getStreamerCreators(): Promise<StreamerCreator[]> {
+  if (isDemo) return [];
+  const brandId = await requireRole('brand');
+  const admin = createAdminClient();
+  const { data: camps } = await admin.from('campaigns').select('id').eq('brand_id', brandId);
+  if (!camps?.length) return [];
+  const { data: subs } = await admin
+    .from('submissions')
+    .select('creator_id, campaign_id, status, current_view_count, payout_earned, payout_transferred, created_at, creators(display_name)')
+    .in('campaign_id', camps.map((c) => c.id))
+    .neq('status', 'flagged');
+  if (!subs?.length) return [];
+  const ids = [...new Set(subs.map((s) => s.creator_id as string))];
+  const { data: socials } = await admin.from('social_accounts').select('creator_id, platform, username').in('creator_id', ids);
+  const by = new Map<string, StreamerCreator & { _camps: Set<string> }>();
+  for (const s of subs) {
+    const id = s.creator_id as string;
+    const row =
+      by.get(id) ??
+      {
+        id,
+        name: (s.creators as unknown as { display_name: string } | null)?.display_name ?? 'Clipper',
+        handles: (socials ?? []).filter((x) => x.creator_id === id).map((x) => ({ platform: x.platform as string, username: x.username as string | null })),
+        views: 0,
+        earned: 0,
+        paid: 0,
+        clips: 0,
+        campaigns: 0,
+        lastClipAt: s.created_at as string,
+        _camps: new Set<string>(),
+      };
+    row.views += Number(s.current_view_count);
+    row.earned += Number(s.payout_earned);
+    row.paid += Number(s.payout_transferred);
+    row.clips++;
+    row._camps.add(s.campaign_id as string);
+    if ((s.created_at as string) > row.lastClipAt) row.lastClipAt = s.created_at as string;
+    by.set(id, row);
+  }
+  return [...by.values()].map(({ _camps, ...r }) => ({ ...r, campaigns: _camps.size })).sort((a, b) => b.views - a.views);
+}
+
 export interface CreatorCampaignDetail {
   campaign: MarketCampaign;
   shopDomain: string | null;

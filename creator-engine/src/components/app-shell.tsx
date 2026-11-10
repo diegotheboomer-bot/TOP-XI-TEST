@@ -18,6 +18,15 @@ export interface NavSection {
   items: NavItem[];
 }
 
+/** Phone tab bar order: the primary action sits in the middle, the rest keep their order. */
+function middlePrimary(items: NavItem[]): NavItem[] {
+  const primary = items.find((i) => i.primary);
+  if (!primary) return items;
+  const rest = items.filter((i) => i !== primary);
+  const mid = Math.ceil(rest.length / 2);
+  return [...rest.slice(0, mid), primary, ...rest.slice(mid)];
+}
+
 /** Picks the nav item whose href (or alias) is the longest prefix of the current path. */
 export function activeHref(sections: NavSection[], path: string): string | null {
   let best: { href: string; len: number } | null = null;
@@ -155,7 +164,7 @@ export function AppShell({
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200/80 bg-white/90 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur-xl lg:hidden"
       >
-        <div className="mx-auto flex max-w-md items-end px-2">{items.map(tab)}</div>
+        <div className="mx-auto flex max-w-md items-end px-2">{middlePrimary(items).map(tab)}</div>
       </nav>
 
       <main className="gutter mx-auto w-full max-w-6xl pb-28 pt-6 lg:px-10 lg:py-10">{children}</main>
