@@ -131,6 +131,14 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             }
           />
           <ConnectionCard
+            icon={<PlatformIcon platform="youtube" />}
+            title="YouTube Shorts"
+            connected
+            status="Ready"
+            detail="No login needed. Put your clip code in the title or description."
+            action={null}
+          />
+          <ConnectionCard
             icon={<Wallet />}
             title="Payouts"
             connected={d.payoutsEnabled}

@@ -394,7 +394,7 @@ export function Checklist({ steps, title = 'Get started' }: { steps: ChecklistSt
   );
 }
 
-export function ConnectionCard({ icon, title, connected, detail, action }: { icon: React.ReactNode; title: string; connected: boolean; detail: string; action: React.ReactNode }) {
+export function ConnectionCard({ icon, title, connected, detail, action, status = 'Connected' }: { icon: React.ReactNode; title: string; connected: boolean; detail: string; action: React.ReactNode; status?: string }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
       <span
@@ -412,7 +412,7 @@ export function ConnectionCard({ icon, title, connected, detail, action }: { ico
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">
-          {title} {connected && <span className="ml-1 text-xs font-normal text-[rgb(var(--brand-ta))]">Connected</span>}
+          {title} {connected && <span className="ml-1 text-xs font-normal text-[rgb(var(--brand-ta))]">{status}</span>}
         </p>
         <p className="truncate text-xs text-zinc-500">{detail}</p>
       </div>
