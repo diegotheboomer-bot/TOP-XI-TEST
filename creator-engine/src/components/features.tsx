@@ -32,16 +32,16 @@ export function Features({ feePercent }: { feePercent: number }) {
       <h2 className="balance mt-1 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">Made for clipping, not adapted from ad tools</h2>
       <dl ref={ref} onPointerMove={move} className="group/grid relative mt-8 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-200/80 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map(([title, body, Art], i) => (
-          <div key={title} className="group relative bg-white p-6">
+          <div key={title} className="group relative bg-white p-5 sm:p-6">
             <div className="spotlight-glow pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/grid:opacity-100" />
             <div className="relative">
-              <div className="flex h-12 items-center justify-between">
+              <div className="flex h-8 items-center justify-between sm:h-12">
                 <span className="font-mono text-[11px] text-zinc-400">{String(i + 1).padStart(2, '0')}</span>
                 <div className="transition-transform duration-300 group-hover:-translate-y-0.5">
                   <Art />
                 </div>
               </div>
-              <dt className="mt-4 font-semibold tracking-tight">{title}</dt>
+              <dt className="mt-3 font-semibold tracking-tight sm:mt-4">{title}</dt>
               <dd className="mt-1.5 text-sm leading-relaxed text-zinc-600">{body.replace('{fee}', String(feePercent))}</dd>
             </div>
           </div>

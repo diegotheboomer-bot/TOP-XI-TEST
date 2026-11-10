@@ -283,7 +283,7 @@ function LandingHeader() {
         <a href="#home" aria-label="Atlas Clips home">
           <Logo />
         </a>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm">
           <ThemeToggle labelled={false} />
           <a href="#start" className={buttonClass('primary', 'sm')}>
             Get started

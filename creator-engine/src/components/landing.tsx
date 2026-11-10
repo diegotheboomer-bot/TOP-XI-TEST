@@ -1,6 +1,7 @@
 // Landing page content, shared by the Next app and the standalone demo.
 import { type LinkLike } from './views';
 import { HeroFlow, WordTicker } from './hero-flow';
+import { PlatformIcon } from './platform-icon';
 import { HowItWorks } from './how-it-works';
 import { Features } from './features';
 import { LogoMark } from './logo';
@@ -44,11 +45,20 @@ export function Landing({
             </Link>
           </div>
           <dl className="mt-10 grid max-w-md grid-cols-[auto_auto_1fr] gap-x-6 border-t border-zinc-200/80 pt-5 font-mono sm:gap-x-10">
-            {[
-              ['Paid on', 'real views'],
-              ['Clippers keep', '100%'],
-              ['Platforms', 'TikTok · YT · IG'],
-            ].map(([label, value]) => (
+            {(
+              [
+                ['Paid on', 'real views'],
+                ['Clippers keep', '100%'],
+                [
+                  'Platforms',
+                  <span key="p" className="flex items-center gap-2.5 pt-0.5 text-zinc-700">
+                    <PlatformIcon platform="tiktok" />
+                    <PlatformIcon platform="youtube" />
+                    <PlatformIcon platform="instagram" />
+                  </span>,
+                ],
+              ] as const
+            ).map(([label, value]) => (
               <div key={label} className="min-w-0">
                 <dt className="text-[10px] uppercase tracking-wider text-zinc-500">{label}</dt>
                 <dd className="mt-1 text-sm font-medium text-zinc-900">{value}</dd>

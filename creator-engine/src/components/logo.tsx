@@ -34,8 +34,8 @@ const MOVE = `translate(${f(SLIDE / norm)} ${f((-SLIDE * K) / norm)})`;
 
 export function Logo({ className = '' }: { className?: string }) {
   return (
-    <span className={`flex items-center gap-3 text-lg font-semibold tracking-tight ${className}`}>
-      <LogoMark />
+    <span className={`flex items-center gap-2.5 whitespace-nowrap text-base font-semibold tracking-tight sm:gap-3 sm:text-lg ${className}`}>
+      <LogoMark className="size-8 sm:size-9" />
       <span>Atlas Clips</span>
     </span>
   );
