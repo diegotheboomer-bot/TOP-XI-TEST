@@ -10,6 +10,8 @@ export interface NavItem {
   /** Extra path prefixes that should highlight this item. */
   also?: string[];
   count?: number;
+  /** The main action (e.g. New campaign): a volt button, raised in the phone tab bar. */
+  primary?: boolean;
 }
 export interface NavSection {
   title: string;
@@ -36,8 +38,8 @@ function Logo({ link: Link, href }: { link: LinkLike; href: string }) {
 }
 
 /**
- * App frame: a sidebar on wide screens, a top bar with scrolling tabs on phones.
- * `footer` sits at the bottom of the sidebar (and at the end of the tab row on phones).
+ * App frame: a sidebar on wide screens; on phones a slim top bar and an app-style tab bar at the bottom.
+ * `footer` sits at the bottom of the sidebar (and as icons in the phone top bar).
  */
 export function AppShell({
   sections,
@@ -58,21 +60,61 @@ export function AppShell({
 }) {
   const Link = link;
   const items = sections.flatMap((s) => s.items);
-  const navLink = (item: NavItem, mobile: boolean) => {
+  const navLink = (item: NavItem) => {
     const on = item.href === current;
+    if (item.primary) {
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          className="platform-tile relative flex items-center gap-2.5 overflow-hidden rounded-lg bg-brand px-2.5 py-2 text-sm font-semibold text-brand-ink shadow-[0_6px_20px_-8px_rgb(var(--brand-b)/0.8)] transition hover:brightness-110 [&>svg]:relative [&>svg]:size-4"
+        >
+          {item.icon}
+          <span className="relative">{item.label}</span>
+        </Link>
+      );
+    }
     return (
       <Link
         key={item.href}
         href={item.href}
         className={cn(
-          'flex items-center gap-2.5 rounded-md text-sm transition-colors [&>svg]:size-4 [&>svg]:shrink-0',
-          mobile ? 'shrink-0 px-3 py-1.5' : 'px-2.5 py-2',
+          'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors [&>svg]:size-4 [&>svg]:shrink-0',
           on ? 'bg-brand-a/15 font-medium text-zinc-900 ring-1 ring-inset ring-brand-a/30' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900',
         )}
       >
         {item.icon}
         <span className="truncate">{item.label}</span>
         {!!item.count && <span className={cn('ml-auto rounded px-1.5 text-xs tabular-nums', on ? 'bg-brand-a/25' : 'bg-amber-50 text-amber-700')}>{item.count}</span>}
+      </Link>
+    );
+  };
+
+  /** Phone tab bar item: icon over a short label; the primary one is a raised volt circle. */
+  const tab = (item: NavItem) => {
+    const on = item.href === current;
+    const label = item.label.replace('New campaign', 'New');
+    if (item.primary) {
+      return (
+        <Link key={item.href} href={item.href} aria-label={item.label} className="flex flex-1 flex-col items-center gap-1 text-[10.5px] font-medium text-zinc-600">
+          <span className="platform-tile relative -mt-6 grid size-14 place-items-center overflow-hidden rounded-2xl bg-brand text-brand-ink shadow-[0_10px_28px_-8px_rgb(var(--brand-b)/0.9)] ring-4 ring-white transition active:scale-95 [&>svg]:relative [&>svg]:size-6">
+            {item.icon}
+          </span>
+          {label}
+        </Link>
+      );
+    }
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={on ? 'page' : undefined}
+        className={cn('relative flex flex-1 flex-col items-center gap-1 pt-2 text-[10.5px] font-medium transition-colors [&>svg]:size-[22px]', on ? 'text-zinc-900' : 'text-zinc-400')}
+      >
+        {on && <span className="absolute top-0 h-[3px] w-8 rounded-full bg-brand" />}
+        <span className={cn('grid h-8 w-12 place-items-center rounded-full transition [&>svg]:size-[20px]', on && 'bg-brand-a/15 text-[rgb(var(--brand-ta))]')}>{item.icon}</span>
+        {label}
+        {!!item.count && <span className="absolute right-[22%] top-1 grid min-w-4 place-items-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">{item.count}</span>}
       </Link>
     );
   };
@@ -92,25 +134,31 @@ export function AppShell({
           {sections.map((s) => (
             <div key={s.title}>
               <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">{s.title}</p>
-              <div className="space-y-0.5">{s.items.map((i) => navLink(i, false))}</div>
+              <div className="space-y-1">{s.items.map((i) => navLink(i))}</div>
             </div>
           ))}
         </nav>
         {footer && <div className="border-t border-zinc-100 px-1 pt-3">{footer}</div>}
       </aside>
 
-      <header className="site-header sticky top-0 z-20 border-b border-zinc-200/80 bg-white/90 backdrop-blur lg:hidden">
+      <header className="site-header sticky top-0 z-20 border-b border-zinc-200/80 bg-white/85 backdrop-blur-xl lg:hidden">
         <div className="gutter flex h-14 items-center justify-between gap-3">
           <Logo link={Link} href={homeHref} />
-          {demo && <Badge tone="amber">Demo</Badge>}
+          <div className="flex items-center gap-1">
+            {demo && <Badge tone="amber">Demo</Badge>}
+            {footer}
+          </div>
         </div>
-        <nav className="gutter flex gap-1 overflow-x-auto pb-2.5 [scrollbar-width:none]">
-          {items.map((i) => navLink(i, true))}
-          {footer && <div className="ml-auto shrink-0">{footer}</div>}
-        </nav>
       </header>
 
-      <main className="gutter mx-auto w-full max-w-6xl py-8 lg:px-10 lg:py-10">{children}</main>
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200/80 bg-white/90 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur-xl lg:hidden"
+      >
+        <div className="mx-auto flex max-w-md items-end px-2">{items.map(tab)}</div>
+      </nav>
+
+      <main className="gutter mx-auto w-full max-w-6xl pb-28 pt-6 lg:px-10 lg:py-10">{children}</main>
     </div>
   );
 }

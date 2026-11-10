@@ -547,35 +547,125 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
   );
 }
 
+const PITCH: Record<string, { tag: string; best: string }> = {
+  pure_cpm: { tag: 'e.g. $3 per 1K views', best: 'Best for reach: you only pay for real views' },
+  per_post: { tag: 'e.g. $20 per clip', best: 'Best for volume: lots of clips, fast' },
+  pool: { tag: 'e.g. $1,000 split', best: 'Best for a fixed budget: clippers compete' },
+};
+
+/** A small moving picture of each pay type. */
+function ModelViz({ id }: { id: PayoutModel }) {
+  if (id === 'pure_cpm') {
+    return (
+      <span className="flex h-full items-end justify-center gap-[3px] px-2.5 pb-2.5" aria-hidden>
+        {[0.35, 0.5, 0.45, 0.7, 0.85, 1].map((h, i) => (
+          <span key={i} className="viz-bar w-[7px] rounded-[3px] bg-brand-ink/80" style={{ height: `${h * 70}%`, animationDelay: `${i * 0.12}s` }} />
+        ))}
+      </span>
+    );
+  }
+  if (id === 'per_post') {
+    return (
+      <span className="relative block h-full" aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="viz-float absolute grid h-[60%] w-[38%] place-items-center rounded-md font-mono text-[10px] font-bold shadow-md"
+            style={{ left: `${12 + i * 19}%`, top: `${24 - i * 5}%`, rotate: `${(i - 1) * 9}deg`, animationDelay: `${i * 0.3}s`, zIndex: i, backgroundColor: 'rgb(26 46 5)', color: '#d9f99d' }}
+          >
+            {i === 2 ? '$20' : ''}
+          </span>
+        ))}
+      </span>
+    );
+  }
+  return (
+    <span className="grid h-full place-items-center" aria-hidden>
+      <svg viewBox="0 0 36 36" className="viz-spin size-[62%]">
+        {[
+          [45, 0],
+          [30, 45],
+          [25, 75],
+        ].map(([len, off], i) => (
+          <circle key={i} cx="18" cy="18" r="14" fill="none" strokeWidth="6" pathLength={100} strokeDasharray={`${len - 2} ${102 - len}`} strokeDashoffset={-off} className="stroke-brand-ink" style={{ opacity: 0.85 - i * 0.25 }} />
+        ))}
+      </svg>
+    </span>
+  );
+}
+
 /** The first thing a streamer sees: one tap to choose how clippers are paid. */
 function ModelPopup({ onPick }: { onPick: (m: PayoutModel) => void }) {
+  const [picked, setPicked] = useState<PayoutModel | null>(null);
+  const pick = (m: PayoutModel) => {
+    if (picked) return;
+    setPicked(m);
+    setTimeout(() => onPick(m), 420);
+  };
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => void (document.body.style.overflow = prev);
+  }, []);
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-black/60 p-0 backdrop-blur-sm sm:place-items-center sm:p-4" role="dialog" aria-modal aria-labelledby="model-q">
-      <div className="w-full max-w-lg rounded-t-3xl border border-zinc-200 bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">New campaign</p>
-        <h2 id="model-q" className="mt-1 text-xl font-semibold tracking-tight">How do you want to pay clippers?</h2>
-        <p className="mt-1 text-sm text-zinc-500">You can change it later in step 4.</p>
-        <div className="mt-5 space-y-2">
-          {MODELS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => onPick(m.id)}
-              className="group flex w-full items-center gap-3.5 rounded-2xl border border-zinc-200 bg-white p-3.5 text-left transition hover:border-brand-b/60 hover:bg-brand-a/10"
-            >
-              <span className="platform-tile relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand text-brand-ink [&>svg]:relative [&>svg]:size-5">
-                <m.icon />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2 font-semibold tracking-tight">
-                  {m.title}
-                  {m.id === 'pure_cpm' && <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-ink">Recommended</span>}
-                </span>
-                <span className="block text-sm text-zinc-500">{m.body}</span>
-              </span>
-              <ChevronDown className="size-4 -rotate-90 text-zinc-400 transition group-hover:translate-x-0.5" />
-            </button>
-          ))}
+    <div className={cn('sheet-backdrop fixed inset-0 z-50 grid place-items-end bg-black/70 backdrop-blur-md sm:place-items-center sm:p-4', picked && 'sheet-out')} role="dialog" aria-modal aria-labelledby="model-q">
+      <div className="sheet-up relative w-full max-w-lg overflow-hidden rounded-t-[28px] border border-zinc-200 bg-white shadow-2xl sm:rounded-[28px]">
+        {/* Volt glow behind the heading. */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-48"
+          style={{ background: 'radial-gradient(70% 100% at 20% 0%, rgb(var(--brand-a) / 0.28), transparent 70%), radial-gradient(60% 90% at 90% 0%, rgb(var(--brand-b) / 0.22), transparent 70%)' }}
+        />
+        <div className="relative px-5 pb-6 pt-3 sm:px-7 sm:pb-7 sm:pt-7">
+          <span className="mx-auto mb-4 block h-1 w-10 rounded-full bg-zinc-300 sm:hidden" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-b/40 bg-brand-a/10 px-2.5 py-1 text-[11px] font-medium text-zinc-700">
+            <Sparkles className="size-3.5 text-[rgb(var(--brand-ta))]" /> New campaign
+          </span>
+          <h2 id="model-q" className="balance mt-3 text-2xl font-semibold leading-tight tracking-tight sm:text-[28px]">
+            How do you want to <span className="text-brand">pay clippers?</span>
+          </h2>
+          <p className="mt-1.5 text-sm text-zinc-500">Pick one to start. You can switch any time before you launch.</p>
+
+          <div className="mt-6 space-y-2.5">
+            {MODELS.map((m, i) => {
+              const on = picked === m.id;
+              const rec = m.id === 'pure_cpm';
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => pick(m.id)}
+                  style={{ animationDelay: `${0.12 + i * 0.07}s` }}
+                  className={cn(
+                    'sheet-item group flex w-full items-center gap-4 rounded-2xl border bg-white p-3 text-left transition duration-200 active:scale-[0.98]',
+                    rec ? 'glow-border border-transparent' : 'border-zinc-200 hover:border-zinc-300',
+                    on ? 'bg-brand-a/15 ring-4 ring-brand-a/20' : 'hover:-translate-y-0.5 hover:shadow-card',
+                    picked && !on && 'opacity-40',
+                  )}
+                >
+                  <span className="platform-tile relative h-[72px] w-[84px] shrink-0 overflow-hidden rounded-xl bg-brand">
+                    <ModelViz id={m.id} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="flex items-center gap-1.5 font-semibold tracking-tight">
+                        <m.icon className="size-4 text-[rgb(var(--brand-ta))]" />
+                        {m.title}
+                      </span>
+                      {rec && <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-ink">Recommended</span>}
+                    </span>
+                    <span className="mt-0.5 block text-[13px] leading-snug text-zinc-600">{PITCH[m.id].best}</span>
+                    <span className="mt-1.5 inline-block rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10.5px] text-zinc-500">{PITCH[m.id].tag}</span>
+                  </span>
+                  <span className={cn('grid size-7 shrink-0 place-items-center rounded-full transition', on ? 'pick-pop bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-400 group-hover:bg-brand group-hover:text-brand-ink')}>
+                    {on ? <Check className="size-4" strokeWidth={3} /> : <ChevronDown className="size-4 -rotate-90" />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-zinc-500">
+            <ShieldCheck className="size-3.5 text-[rgb(var(--brand-ta))]" /> You approve every clip. Only real views count.
+          </p>
         </div>
       </div>
     </div>

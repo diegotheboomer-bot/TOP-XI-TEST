@@ -186,7 +186,7 @@ const SECTIONS: Record<Role, NavSection> = {
     title: 'Streamer',
     items: [
       { href: '#brand', label: 'Campaigns', icon: <LayoutList /> },
-      { href: '#new-campaign', label: 'New campaign', icon: <Plus /> },
+      { href: '#new-campaign', label: 'New campaign', icon: <Plus />, primary: true },
     ],
   },
   clipper: {
@@ -220,7 +220,7 @@ const CURRENT: Record<Exclude<Route['name'], 'home' | 'start'>, string> = {
   payouts: '#payouts',
 };
 
-const footerItem = 'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 [&>svg]:size-4';
+const footerItem = 'flex items-center gap-2 rounded-lg p-2 text-sm lg:w-full lg:px-2.5 lg:py-2 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 [&>svg]:size-4';
 
 function App() {
   const store = useStore();
@@ -251,14 +251,12 @@ function App() {
         demo
         footer={
           <div className="flex gap-1 lg:block lg:space-y-0.5">
-            <ThemeToggle className="w-full" labelClassName="hidden lg:inline" />
+            <ThemeToggle className="lg:w-full" labelClassName="hidden lg:inline" />
             <a href={other === 'streamer' ? '#brand' : '#creator'} className={footerItem}>
               <ArrowLeftRight /> <span className="hidden lg:inline">Switch to {other} view</span>
-              <span className="lg:hidden">{other === 'streamer' ? 'Streamer' : 'Clipper'}</span>
             </a>
             <button type="button" onClick={store.reset} className={footerItem}>
               <RotateCcw /> <span className="hidden lg:inline">Reset demo</span>
-              <span className="lg:hidden">Reset</span>
             </button>
           </div>
         }
