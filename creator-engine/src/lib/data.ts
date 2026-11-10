@@ -70,6 +70,8 @@ export interface CreatorCampaignDetail {
   enrollment: Enrollment | null;
   submission: Submission | null;
   tiktokConnected: boolean;
+  youtubeVerified: boolean;
+  youtubeCode: string;
   payoutsEnabled: boolean;
   moments: MomentRow[];
 }
@@ -253,7 +255,7 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     db.from('campaign_creators').select('*').eq('campaign_id', id).eq('creator_id', creatorId).maybeSingle(),
     db.from('submissions').select('*').eq('campaign_id', id).eq('creator_id', creatorId).maybeSingle(),
     db.from('creators').select('payouts_enabled').eq('id', creatorId).single(),
-    createAdminClient().from('social_accounts').select('id').eq('creator_id', creatorId).eq('platform', 'tiktok').maybeSingle(),
+    createAdminClient().from('social_accounts').select('platform').eq('creator_id', creatorId),
   ]);
   if (!campaign) return null;
   const { brands, conversion_pixels, ...rest } = campaign;
@@ -264,7 +266,9 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     shopDomain: (conversion_pixels as { shop_domain: string | null } | null)?.shop_domain ?? null,
     enrollment: (enrollment as Enrollment | null) ?? null,
     submission: sub ? num(sub as Submission, SUB_NUMS) : null,
-    tiktokConnected: !!account,
+    tiktokConnected: !!account?.some((a) => a.platform === 'tiktok'),
+    youtubeVerified: !!account?.some((a) => a.platform === 'youtube'),
+    youtubeCode: youtubeVerifyCode(creatorId),
     payoutsEnabled: payoutReady(await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false)),
     moments: await loadMoments(c.id, creatorId),
   };

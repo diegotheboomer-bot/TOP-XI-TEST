@@ -12,11 +12,11 @@ import { cn } from '../ui/cn';
 
 const STEP_MS = 420;
 // Shown while the server works, before the real results arrive.
-const PLACEHOLDER = ['Link recognised', 'Video found', 'It’s your video', 'Posted after you joined', 'Original clip', '#ad in caption'];
+const PLACEHOLDER = ['Link recognised', 'Video found', 'It’s your video', 'Posted after you joined', 'Original clip'];
 
 /**
  * Submit a clip link. Opens a stepper that ticks through each check the
- * server ran (link, video found, ownership, posted after joining, duplicates, #ad).
+ * server ran (link, video found, ownership, posted after joining, duplicates).
  */
 export function SubmitVideoForm({ campaignId }: { campaignId: string }) {
   const [open, setOpen] = useState(false);

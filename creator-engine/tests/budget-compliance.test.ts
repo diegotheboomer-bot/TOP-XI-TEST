@@ -42,9 +42,8 @@ describe('auto-approval', () => {
   it('waits until due', () => {
     expect(shouldAutoApprove({ ...base, created_at: new Date(now - 47 * 3_600_000).toISOString() }, 48, now)).toBe(false);
   });
-  it('never auto-approves without disclosure or with a fraud signal', () => {
+  it('never auto-approves with a fraud signal', () => {
     const due = new Date(now - 72 * 3_600_000).toISOString();
-    expect(shouldAutoApprove({ ...base, created_at: due, has_disclosure: false }, 48, now)).toBe(false);
     expect(shouldAutoApprove({ ...base, created_at: due, fraud_score: 40 }, 48, now)).toBe(false);
   });
 });

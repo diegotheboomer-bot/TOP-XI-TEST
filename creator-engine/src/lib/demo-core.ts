@@ -116,7 +116,7 @@ export function seedDemo(feePercent: number, assetBase: string): State {
   ];
 
   const photo = (name: string) => `${assetBase}${name}.jpg`;
-  const STANDARD = ['Include #ad in the caption', 'Credit my channel on screen'];
+  const STANDARD = ['Credit my channel on screen'];
   const campaign = (x: Partial<DemoCampaign> & Pick<Campaign, 'id' | 'brand_id' | 'title' | 'payout_model' | 'cpm_cap' | 'code_prefix'>): DemoCampaign => ({
     escrow_balance: 0,
     base_payout: 0,
@@ -249,8 +249,8 @@ export function seedDemo(feePercent: number, assetBase: string): State {
   submit('cr-clipfarm247', 'cmp-ranked', 'tiktok', 486_000, 0.00008, {
     status: 'flagged', fraud_score: 90, flag_reason: 'Bot farm activity: 3,120 views/min, 0.008% comment ratio',
   });
-  // Overdue but not auto-approved: the caption is missing #ad.
-  submit('cr-dailyclipshq', 'cmp-ranked', 'youtube', 41_800, 0.009, { status: 'pending_review', created_at: iso(52), has_disclosure: false });
+  // Still inside the streamer's review window.
+  submit('cr-dailyclipshq', 'cmp-ranked', 'youtube', 41_800, 0.009, { status: 'pending_review', created_at: iso(20) });
 
   // Charity Marathon: base fee + views
   enroll(e.id, 'cmp-charity', 'CHARH5DN');
@@ -439,6 +439,8 @@ export function creatorCampaign(s: State, viewer: string, id: string): CreatorCa
     enrollment,
     submission: sub ? stripSub(sub) : null,
     tiktokConnected: me.tiktokConnected,
+    youtubeVerified: true,
+    youtubeCode: 'ATLAS-7K2Q9M',
     payoutsEnabled: payoutReady(payoutSetupOf(me)),
     moments: momentRows(s, id, me.id),
   };
@@ -679,14 +681,14 @@ export function submitVideo(s: State, viewer: string, campaignId: string, url: s
     engagement_cleared: false,
     flag_reason: null,
     phash: null,
-    has_disclosure: true, // mock caption includes #ad
+    has_disclosure: true,
     last_synced_at: new Date(now).toISOString(),
     approved_at: null,
     created_at: new Date(now).toISOString(),
     prevSample: { at: now, views, comments },
   });
   const proof = platform === 'tiktok' ? 'Verified through your TikTok login' : 'Posted from your verified channel';
-  return { success: `Submitted. ${proof}, #ad present. Auto-approves in ${camp.auto_approve_hours}h if the streamer doesn't review it first.` };
+  return { success: `Submitted. ${proof}. Auto-approves in ${camp.auto_approve_hours}h if the streamer doesn't review it first.` };
 }
 
 export function claimMoment(s: State, viewer: string, momentId: string): ActionState {

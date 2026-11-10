@@ -13,7 +13,7 @@ interface YouTubeVideo {
 
 /**
  * Fetches stats for up to 50 videos per request. `channelId` is checked against
- * the clipper's verified channel. `caption` is title + description, for the #ad check.
+ * the clipper's verified channel. `caption` is title + description.
  */
 export async function getYouTubeVideos(ids: string[]): Promise<VideoStats[]> {
   const out: VideoStats[] = [];

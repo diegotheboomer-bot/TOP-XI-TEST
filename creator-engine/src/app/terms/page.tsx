@@ -31,7 +31,7 @@ export default function TermsPage() {
         <ul>
           <li>You fund a campaign before it goes live. You pay the budget plus a {fee}% platform fee, shown before you pay. The whole budget is for clippers.</li>
           <li>Clippers are paid for views their clips get, at your rate and up to your cap, from the campaign budget.</li>
-          <li>You can review clips. Clean clips that carry #ad are approved automatically after the review window you set.</li>
+          <li>You can review clips. Clean clips are approved automatically after the review window you set.</li>
           <li>You give clippers in your campaign permission to use your stream footage to make clips for that campaign.</li>
           <li>Leftover budget when a campaign ends: [describe your refund policy].</li>
         </ul>
@@ -41,7 +41,7 @@ export default function TermsPage() {
         <h2>For clippers</h2>
         <ul>
           <li>Post your own edits, follow each campaign’s rules, and only submit clips from accounts you control.</li>
-          <li>Mark sponsored clips clearly, for example with #ad, as advertising law requires.</li>
+          <li>You’re responsible for following advertising law and each platform’s rules on disclosing paid content (for example TikTok’s content disclosure setting).</li>
           <li>Earnings are based on views reported by TikTok or YouTube. Screenshots and self-reported numbers aren’t accepted. Approved clips are paid out automatically 3 days after approval (amounts under $10 wait until the campaign ends), and the streamer can’t withdraw money you’ve earned.</li>
           <li>We don’t charge clippers a fee. Payouts go to a bank account or debit card through Stripe, or to PayPal or Venmo through PayPal; that provider’s own terms apply to your account there. Keep your payout details correct: a payout PayPal can’t deliver, or that isn’t claimed within 30 days, comes back to the campaign until you update them.</li>
           <li>You’re responsible for taxes on what you earn.</li>

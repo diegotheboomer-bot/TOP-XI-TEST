@@ -188,7 +188,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
   }
 
   if (sub.status === 'pending_review') {
-    const approve = shouldAutoApprove({ ...sub, has_disclosure: metrics.has_disclosure }, sub.campaigns.auto_approve_hours, now.getTime());
+    const approve = shouldAutoApprove(sub, sub.campaigns.auto_approve_hours, now.getTime());
     await admin.from('submissions').update({ ...metrics, ...(approve ? { status: 'live_tracking', approved_at: now.toISOString() } : {}) }).eq('id', sub.id);
     if (!approve) return 'ok';
   }

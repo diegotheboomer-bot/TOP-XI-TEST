@@ -64,7 +64,6 @@ export async function testShort(_prev: TestResult, form: FormData): Promise<Test
         ? { label: 'On the tested channel', status: 'pass' }
         : { label: 'On the tested channel', status: 'fail', detail: `It’s on ${video.channelId}` },
   );
-  checks.push(/#ad\b/i.test(video.caption ?? '') ? { label: '#ad in caption', status: 'pass' } : { label: '#ad in caption', status: 'warn', detail: 'Not found' });
   return { checks };
 }
 
@@ -91,6 +90,5 @@ export async function testTikTok(_prev: TestResult, form: FormData): Promise<Tes
   checks.push({ label: 'Video on your account', status: 'pass' });
   checks.push({ label: 'Stats', status: 'pass', detail: `${video.views.toLocaleString('en-US')} views · ${video.likes.toLocaleString('en-US')} likes · ${video.comments.toLocaleString('en-US')} comments` });
   checks.push({ label: 'Posted', status: 'pass', detail: video.publishedAt ?? 'unknown' });
-  checks.push(/#ad\b/i.test(video.caption ?? '') ? { label: '#ad in caption', status: 'pass' } : { label: '#ad in caption', status: 'warn', detail: 'Not found' });
   return { checks };
 }

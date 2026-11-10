@@ -235,16 +235,14 @@ function Metric({ label, value, className }: { label: string; value: string; cla
 }
 
 // ─── Streamer: submissions ────────────────────────────────────────────────────
-/** One-line state for a submission: review deadline, disclosure, flag or sync time. */
+/** One-line state for a submission: review deadline, flag or sync time. */
 export function submissionNote(s: Submission, autoApproveHours: number, now = Date.now()): { text: string; tone: 'muted' | 'warn' | 'bad' } {
   if (s.status === 'flagged') return { text: s.flag_reason ?? 'Flagged', tone: 'bad' };
   if (s.status === 'paid') return { text: 'Paid in full', tone: 'muted' };
   if (s.status === 'pending_review') {
-    if (!s.has_disclosure) return { text: 'Caption missing #ad. Can’t auto-approve.', tone: 'warn' };
     const due = reviewDueIn(s.created_at, autoApproveHours, now);
     return due > 0 ? { text: `Auto-approves in ${hoursLabel(due)}`, tone: 'warn' } : { text: 'Approving on next sync', tone: 'warn' };
   }
-  if (!s.has_disclosure) return { text: 'Caption no longer has #ad', tone: 'warn' };
   const hold = holdHoursLeft(s.approved_at, now);
   if (hold > 0) return { text: `Pays automatically in ${hoursLabel(hold * 3_600_000)}`, tone: 'muted' };
   return { text: `Locked. Paid automatically · synced ${timeAgo(s.last_synced_at)}`, tone: 'muted' };
@@ -615,7 +613,7 @@ export function NextStep({
               <li className="flex gap-2.5">
                 <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">3</span>
                 <span>
-                  Put <span className="font-medium">#ad</span> in the caption. Post from your connected TikTok or verified YouTube channel.
+                  Post from your connected TikTok or verified YouTube channel.
                 </span>
               </li>
               <li className="flex gap-2.5">
@@ -631,11 +629,7 @@ export function NextStep({
         {stage === 'review' && submission && (
           <>
             <h3 className="font-semibold tracking-tight">Waiting for {brandName} to review</h3>
-            <p className={cn('mt-1 text-sm', submission.has_disclosure ? 'text-zinc-600' : 'text-amber-700')}>
-              {submission.has_disclosure
-                ? `${submissionNote(submission, campaign.auto_approve_hours).text}. Views are already being counted.`
-                : 'Add #ad to your caption. Clips without it can’t be approved.'}
-            </p>
+            <p className="mt-1 text-sm text-zinc-600">{submissionNote(submission, campaign.auto_approve_hours).text}. Views are already being counted.</p>
           </>
         )}
 

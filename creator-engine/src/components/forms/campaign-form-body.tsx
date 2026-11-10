@@ -22,7 +22,7 @@ const PLATFORMS: [Platform, string][] = [
   ['instagram', 'Instagram Reels'],
 ];
 export const COVER_COLORS = ['#0e2a47', '#16403a', '#2a1f4a', '#9a3412', '#4a2a1c', '#3d3320', '#7f1d1d', '#18181b'];
-const DEFAULT_REQUIREMENTS = 'Include #ad in the caption\nCredit my channel on screen';
+const DEFAULT_REQUIREMENTS = 'Credit my channel on screen';
 
 const textarea =
   'w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-900/5';
@@ -123,7 +123,7 @@ export function CampaignFormBody({ brandName, footer }: { brandName: string; foo
             <Field label="Cap per clipper ($)" hint="The most one clipper can earn.">
               <Input id="cpm_cap" name="cpm_cap" type="number" inputMode="decimal" min="1" step="0.01" required value={cap} onChange={(e) => setCap(e.target.value)} />
             </Field>
-            <Field label="Auto-approve after" hint="Clean clips with #ad are approved if you haven’t reviewed them by then.">
+            <Field label="Auto-approve after" hint="Clean clips are approved if you haven’t reviewed them by then.">
               <Select id="auto_approve_hours" name="auto_approve_hours" defaultValue="48">
                 <option value="24">24 hours</option>
                 <option value="48">48 hours</option>

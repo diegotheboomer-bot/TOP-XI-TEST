@@ -186,11 +186,6 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
     return { error: 'Submitted, but held: it matches another clip in this campaign.', checks };
   }
   pass('Original clip', 'No copies found in this campaign');
-  if (!hasDisclosure(stats.caption)) {
-    checks.push({ label: '#ad in caption', status: 'warn', detail: 'Add #ad to your caption so it can be approved.' });
-    return { success: 'Submitted. Add #ad to your caption so it can be approved.', checks };
-  }
-  pass('#ad in caption');
   return { success: 'Submitted. The streamer will review it shortly.', checks };
 }
 

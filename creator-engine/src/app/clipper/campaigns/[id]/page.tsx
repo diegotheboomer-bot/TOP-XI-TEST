@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/components/action-button';
 import { CopyField } from '@/components/copy-button';
 import { EarningsEstimator } from '@/components/estimator';
+import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
 import { BudgetMeter, CampaignCover, MomentBoard, NextStep, PlatformChips, RequirementList, StreamerAvatar } from '@/components/views';
 
@@ -47,13 +48,23 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
               }
               submitForm={<SubmitVideoForm campaignId={c.id} />}
               tiktokPrompt={
-                c.platforms.includes('tiktok') && !d.tiktokConnected ? (
-                  <form action={connectTikTok} className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
-                    <span>Posting on TikTok? Connect it first so we can read your views.</span>
-                    <Button size="sm" variant="secondary">
-                      Connect
-                    </Button>
-                  </form>
+                (c.platforms.includes('tiktok') && !d.tiktokConnected) || (c.platforms.includes('youtube') && !d.youtubeVerified) ? (
+                  <div className="space-y-2">
+                    {c.platforms.includes('tiktok') && !d.tiktokConnected && (
+                      <form action={connectTikTok} className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+                        <span>Posting on TikTok? Connect it first so we know the clips are yours.</span>
+                        <Button size="sm" variant="secondary">
+                          Connect
+                        </Button>
+                      </form>
+                    )}
+                    {c.platforms.includes('youtube') && !d.youtubeVerified && (
+                      <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+                        <span>Posting Shorts? Verify your YouTube channel first.</span>
+                        <YouTubeVerify code={d.youtubeCode} verified={false} />
+                      </div>
+                    )}
+                  </div>
                 ) : undefined
               }
             />
@@ -124,7 +135,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                 </li>
               )}
               <li>Earnings stop at {usd(c.cpm_cap)} per clipper. You keep all of it: there are no fees for clippers.</li>
-              <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
+              <li>If {c.brandName} hasn’t reviewed a clean clip after {c.auto_approve_hours} hours, it’s approved automatically.</li>
             </ul>
           </section>
         </div>

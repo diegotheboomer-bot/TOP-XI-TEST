@@ -463,7 +463,7 @@ function CampaignPage({ store, id }: { store: Store; id: string }) {
       <div className="grid grid-cols-1 gap-6">
         <div className="order-2 min-w-0 space-y-6">
         <Card>
-          <CardHeader title="Clips" description={`Views sync every 4 hours. Clean clips with #ad auto-approve after ${c.auto_approve_hours}h. Approved clips are paid automatically after 3 days; you can flag one until then.`} />
+          <CardHeader title="Clips" description={`Views sync every 4 hours. Clean clips auto-approve after ${c.auto_approve_hours}h. Approved clips are paid automatically after 3 days; you can flag one until then.`} />
           {submissions.length === 0 ? (
             <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
           ) : (
@@ -1026,7 +1026,7 @@ function Offer({ store, id }: { store: Store; id: string }) {
               <li>
                 Earnings stop at {usd(c.cpm_cap)} per clipper. You keep all of it: there are no fees for clippers.
               </li>
-              <li>If {c.brandName} hasn’t reviewed a clean clip with #ad after {c.auto_approve_hours} hours, it’s approved automatically.</li>
+              <li>If {c.brandName} hasn’t reviewed a clean clip after {c.auto_approve_hours} hours, it’s approved automatically.</li>
             </ul>
           </section>
         </div>

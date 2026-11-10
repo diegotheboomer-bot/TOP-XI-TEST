@@ -17,8 +17,8 @@ export function reviewDueIn(createdAt: string, autoApproveHours: number, now = D
  * passed, but only if nothing about it needs a human: no fraud signal and a
  * disclosed caption.
  */
-export function shouldAutoApprove(s: { status: string; created_at: string; fraud_score: number; has_disclosure: boolean }, autoApproveHours: number, now = Date.now()): boolean {
-  return s.status === 'pending_review' && s.fraud_score < 30 && s.has_disclosure && reviewDueIn(s.created_at, autoApproveHours, now) <= 0;
+export function shouldAutoApprove(s: { status: string; created_at: string; fraud_score: number }, autoApproveHours: number, now = Date.now()): boolean {
+  return s.status === 'pending_review' && s.fraud_score < 30 && reviewDueIn(s.created_at, autoApproveHours, now) <= 0;
 }
 
 /** True when the caption contains the clipper's code as a whole word (any case). Proves who posted the video. */
