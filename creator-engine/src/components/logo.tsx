@@ -1,5 +1,5 @@
 // Atlas Clips logo: a sharp A (no point-top crossbar gap) cut through its crossbar,
-// the top piece slid along the cut, with a ghost copy of the whole mark behind it.
+// the top piece slid along the cut, with a ghost copy of the whole mark behind it. No tile: just the A.
 // Clean geometry: parallel legs of even thickness, one straight cut with an even gap.
 import { useId } from 'react';
 
@@ -61,7 +61,6 @@ export function LogoMark({ className = 'size-9' }: { className?: string }) {
           <polygon points={HIGH} />
         </clipPath>
       </defs>
-      <rect width="28" height="28" rx="7.5" fill="#0b0b10" />
       {/* Ghost copy of the whole mark, a little to the left */}
       <g transform="translate(-1.3 0)">
         <path d={A.body} {...ghost} clipPath={lowClip} />
