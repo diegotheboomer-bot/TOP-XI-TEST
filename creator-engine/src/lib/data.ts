@@ -164,11 +164,12 @@ export async function getStreamerCreators(): Promise<StreamerCreator[]> {
   if (!camps?.length) return [];
   const { data: subs } = await admin
     .from('submissions')
-    .select('creator_id, campaign_id, status, current_view_count, payout_earned, payout_transferred, created_at, creators(display_name)')
+    .select('creator_id, campaign_id, status, current_view_count, payout_earned, payout_transferred, created_at')
     .in('campaign_id', camps.map((c) => c.id))
     .neq('status', 'flagged');
   if (!subs?.length) return [];
   const ids = [...new Set(subs.map((s) => s.creator_id as string))];
+  const names = await creatorNames(ids);
   const { data: socials } = await admin.from('social_accounts').select('creator_id, platform, username').in('creator_id', ids);
   const by = new Map<string, StreamerCreator & { _camps: Set<string> }>();
   for (const s of subs) {
@@ -177,7 +178,7 @@ export async function getStreamerCreators(): Promise<StreamerCreator[]> {
       by.get(id) ??
       {
         id,
-        name: (s.creators as unknown as { display_name: string } | null)?.display_name ?? 'Clipper',
+        name: names.get(id) ?? 'Clipper',
         handles: (socials ?? []).filter((x) => x.creator_id === id).map((x) => ({ platform: x.platform as string, username: x.username as string | null })),
         views: 0,
         earned: 0,
@@ -209,6 +210,17 @@ export interface CreatorCampaignDetail {
   youtubeCode: string;
   payoutsEnabled: boolean;
   moments: MomentRow[];
+}
+
+/**
+ * Clipper display names by id. Looked up separately: submissions reference
+ * campaign_creators, not creators, so PostgREST can't embed creators directly.
+ */
+async function creatorNames(ids: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return new Map();
+  const { data } = await createAdminClient().from('creators').select('id, display_name').in('id', unique);
+  return new Map((data ?? []).map((c) => [c.id as string, c.display_name as string]));
 }
 
 async function requireRole(role: 'brand' | 'creator') {
@@ -306,16 +318,17 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
   const db = createClient();
   const [{ data: campaign }, { data: subs }, { data: ledger }] = await Promise.all([
     db.from('campaigns').select('*, conversion_pixels(shop_domain)').eq('id', id).maybeSingle(),
-    db.from('submissions').select('*, creators(display_name)').eq('campaign_id', id).order('current_view_count', { ascending: false }),
+    db.from('submissions').select('*').eq('campaign_id', id).order('current_view_count', { ascending: false }),
     db.from('escrow_ledger').select('entry_type, amount').eq('campaign_id', id),
   ]);
   if (!campaign) return null;
   const sum = (type: string) => (ledger ?? []).filter((l) => l.entry_type === type).reduce((a, l) => a + Number(l.amount), 0);
   const { conversion_pixels, ...rest } = campaign;
   const c = num(rest as Campaign, CAMPAIGN_NUMS);
-  const rows = (subs ?? []).map(({ creators, ...s }) => ({
+  const names = await creatorNames((subs ?? []).map((s) => s.creator_id as string));
+  const rows = (subs ?? []).map((s) => ({
     ...num(s as Submission, SUB_NUMS),
-    creator_name: (creators as { display_name: string } | null)?.display_name ?? 'Creator',
+    creator_name: names.get(s.creator_id as string) ?? 'Clipper',
   }));
   const owed = rows.filter((s) => s.status === 'live_tracking').reduce((a, s) => a + s.payout_earned - s.payout_transferred, 0);
   return {

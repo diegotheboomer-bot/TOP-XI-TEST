@@ -15,12 +15,14 @@ export type PayResult = { ok: true; gross: number; via: string; campaignId: stri
 export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 1, fee = 0): Promise<PayResult> {
   const { data: sub } = await admin
     .from('submissions')
-    .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, creators(stripe_account_id, payouts_enabled), campaigns(cpm_cap, payout_model, status)')
+    .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, campaigns(cpm_cap, payout_model, status)')
     .eq('id', submissionId)
     .single();
   if (!sub) return { ok: false, error: 'Submission not found.' };
 
-  const creator = sub.creators as unknown as { stripe_account_id: string | null; payouts_enabled: boolean };
+  // Looked up on its own: submissions reference campaign_creators, so creators can't be embedded.
+  const { data: creatorRow } = await admin.from('creators').select('stripe_account_id, payouts_enabled').eq('id', sub.creator_id).maybeSingle();
+  const creator = { stripe_account_id: (creatorRow?.stripe_account_id as string | null) ?? null, payouts_enabled: !!creatorRow?.payouts_enabled };
   if (sub.status !== 'live_tracking') return { ok: false, error: 'Only approved, unflagged submissions can be paid.' };
   const camp = sub.campaigns as unknown as { cpm_cap: number; payout_model: string; status: string };
   if (camp.payout_model === 'pool' && camp.status !== 'completed') return { ok: false, error: 'Pool campaigns are paid when they end.' };
