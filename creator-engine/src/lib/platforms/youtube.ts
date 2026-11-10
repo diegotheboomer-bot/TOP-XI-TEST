@@ -67,16 +67,19 @@ export interface YouTubeChannel {
   id: string;
   title: string;
   description: string;
+  subscribers: number | null;
 }
 
 export async function getYouTubeChannel(ref: ChannelRef): Promise<YouTubeChannel | null> {
-  const params = new URLSearchParams({ part: 'snippet', key: requireEnv('YOUTUBE_API_KEY') });
+  const params = new URLSearchParams({ part: 'snippet,statistics', key: requireEnv('YOUTUBE_API_KEY') });
   if ('id' in ref) params.set('id', ref.id);
   else if ('handle' in ref) params.set('forHandle', ref.handle);
   else params.set('forUsername', ref.username);
   const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?${params}`);
   const json = await res.json();
   if (!res.ok) throw new Error(`YouTube API: ${json.error?.message ?? res.status}`);
-  const c = json.items?.[0] as { id: string; snippet?: { title?: string; description?: string } } | undefined;
-  return c ? { id: c.id, title: c.snippet?.title ?? '', description: c.snippet?.description ?? '' } : null;
+  const c = json.items?.[0] as { id: string; snippet?: { title?: string; description?: string }; statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean } } | undefined;
+  if (!c) return null;
+  const subs = c.statistics?.hiddenSubscriberCount ? null : Number(c.statistics?.subscriberCount ?? NaN);
+  return { id: c.id, title: c.snippet?.title ?? '', description: c.snippet?.description ?? '', subscribers: Number.isFinite(subs) ? subs : null };
 }

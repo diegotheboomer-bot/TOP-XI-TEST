@@ -143,14 +143,14 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             icon={<PlatformIcon platform="youtube" />}
             title="YouTube Shorts"
             connected={!!d.youtube}
-            detail={d.youtube ? (d.youtube.channel ?? 'Channel connected') : 'Connect your channel once to submit Shorts'}
+            detail={d.youtube ? `${d.youtube.channel ?? 'Channel'}${d.youtube.subscribers != null ? ` · ${compact(d.youtube.subscribers)} subscribers` : ''}` : 'Connect your channel once to submit Shorts'}
             action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} />}
           />
           <ConnectionCard
             icon={<PlatformIcon platform="instagram" />}
             title="Instagram Reels"
             connected={!!d.instagram}
-            detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : 'Needs a Professional (Creator or Business) account'}
+            detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : 'Creator or Business account'}
             action={
               <form action={connectInstagram}>
                 <Button size="sm" variant={d.instagram ? 'ghost' : 'secondary'}>

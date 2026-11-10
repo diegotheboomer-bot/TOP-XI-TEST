@@ -55,7 +55,7 @@ export interface CreatorDashboard {
   name: string;
   tiktok: { username: string | null; followers: number | null } | null;
   /** Verified YouTube channel, and the code to verify one. */
-  youtube: { channel: string | null } | null;
+  youtube: { channel: string | null; subscribers: number | null } | null;
   instagram: { username: string | null; followers: number | null } | null;
   youtubeCode: string;
   /** Ready to be paid by the chosen method. */
@@ -227,7 +227,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   return {
     name: creator?.display_name ?? '',
     tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count } : null,
-    youtube: youtube ? { channel: youtube.username } : null,
+    youtube: youtube ? { channel: youtube.username, subscribers: youtube.follower_count } : null,
     instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
     youtubeCode: youtubeVerifyCode(creatorId),
     payoutsEnabled: payoutReady(payout),

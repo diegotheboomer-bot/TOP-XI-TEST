@@ -863,14 +863,14 @@ function CreatorHome({ store }: { store: Store }) {
             icon={<PlatformIcon platform="youtube" />}
             title="YouTube Shorts"
             connected
-            detail={d.youtube?.channel ?? 'Channel connected'}
+            detail={`${d.youtube?.channel ?? 'Channel'} · ${compact(d.youtube?.subscribers ?? 0)} subscribers`}
             action={null}
           />
           <ConnectionCard
             icon={<PlatformIcon platform="instagram" />}
             title="Instagram Reels"
             connected
-            detail={`@${d.instagram?.username ?? 'connected'}`}
+            detail={`@${d.instagram?.username ?? 'connected'} · ${compact(d.instagram?.followers ?? 0)} followers`}
             action={null}
           />
           <ConnectionCard

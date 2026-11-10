@@ -412,10 +412,11 @@ export function ConnectionCard({ icon, title, connected, detail, action, status 
         )}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">
-          {title} {connected && <span className="ml-1 text-xs font-normal text-[rgb(var(--brand-ta))]">{status}</span>}
+        <p className="truncate text-sm font-medium">{title}</p>
+        <p className="truncate text-xs text-zinc-500">
+          {connected && <span className="text-[rgb(var(--brand-ta))]">{status} · </span>}
+          {detail}
         </p>
-        <p className="truncate text-xs text-zinc-500">{detail}</p>
       </div>
       <div className="shrink-0">{action}</div>
     </div>

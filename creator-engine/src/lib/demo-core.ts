@@ -413,7 +413,7 @@ export function creatorDashboard(s: State, viewer: string): CreatorDashboard {
   return {
     name: me.displayName,
     tiktok: me.tiktokConnected ? { username: me.handle, followers: me.followers } : null,
-    youtube: { channel: `@${me.handle}` },
+    youtube: { channel: `@${me.handle}`, subscribers: me.followers },
     instagram: { username: me.handle, followers: me.followers },
     youtubeCode: 'ATLAS-7K2Q9M',
     payoutsEnabled: payoutReady(payoutSetupOf(me)),

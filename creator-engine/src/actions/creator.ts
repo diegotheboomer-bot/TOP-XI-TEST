@@ -229,7 +229,7 @@ export async function verifyYouTubeChannel(_prev: ActionState, form: FormData): 
   }
   const { error } = await createAdminClient()
     .from('social_accounts')
-    .upsert({ creator_id: creatorId, platform: 'youtube', platform_user_id: channel.id, username: channel.title, updated_at: new Date().toISOString() }, { onConflict: 'creator_id,platform' });
+    .upsert({ creator_id: creatorId, platform: 'youtube', platform_user_id: channel.id, username: channel.title, follower_count: channel.subscribers, updated_at: new Date().toISOString() }, { onConflict: 'creator_id,platform' });
   if (error?.code === '23505') return { error: 'That channel is already verified on another account.' };
   if (error) return { error: 'Couldn’t save. Try again.' };
   revalidatePath('/clipper');
