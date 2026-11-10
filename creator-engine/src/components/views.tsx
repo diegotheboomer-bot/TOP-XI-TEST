@@ -395,13 +395,16 @@ export function Checklist({ steps, title = 'Get started' }: { steps: ChecklistSt
 export function ConnectionCard({ icon, title, connected, detail, action, status = 'Connected' }: { icon: React.ReactNode; title: string; connected: boolean; detail: string; action: React.ReactNode; status?: string }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <span
-        className={cn(
-          'relative grid size-9 shrink-0 place-items-center rounded-lg transition [&>svg]:size-4',
-          connected ? 'bg-brand-a/10 text-[rgb(var(--brand-ta))] ring-1 ring-brand-b/50' : 'bg-zinc-100 text-zinc-400',
-        )}
-      >
-        {icon}
+      <span className="relative shrink-0">
+        <span
+          className={cn(
+            'relative grid size-9 place-items-center overflow-hidden rounded-lg transition [&>svg]:relative [&>svg]:size-4',
+            // Connected: the shiny volt tile; not yet: plain grey.
+            connected ? 'platform-tile bg-brand text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.45),0_4px_14px_-4px_rgb(var(--brand-b)/0.5)]' : 'bg-zinc-100 text-zinc-400',
+          )}
+        >
+          {icon}
+        </span>
         {connected && (
           <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-brand text-brand-ink ring-2 ring-white">
             <Check className="!size-2.5" strokeWidth={3.5} />
