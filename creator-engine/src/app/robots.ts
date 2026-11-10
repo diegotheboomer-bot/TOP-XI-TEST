@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: '*', allow: '/', disallow: ['/api/', '/clipper', '/streamer', '/onboarding', '/auth/'] }],
+    rules: [{ userAgent: '*', allow: '/', disallow: ['/api/', '/clipper', '/streamer', '/onboarding', '/auth/', '/test/'] }],
     sitemap: 'https://atlasclipping.com/sitemap.xml',
   };
 }
