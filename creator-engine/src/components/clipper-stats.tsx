@@ -7,7 +7,6 @@ import { holdHoursLeft } from '@/lib/payout-rules';
 import { compact, usd, usdCents } from '@/lib/format';
 import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
-import { StatGrid } from './ui/stat';
 import { cn } from './ui/cn';
 
 type Row = { sub: Submission; campaignTitle: string; brandName: string; cap: number; campaignId: string };
@@ -183,14 +182,45 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
             : 'You’re all paid up.'}
         </p>
       </div>
-      <StatGrid
-        items={[
-          { label: 'Paid out', value: usdCents(paid) },
-          { label: 'On the way', value: usdCents(owed), hint: 'paid 3 days after approval' },
-          { label: 'Held', value: usdCents(held), hint: held ? 'flagged clips, under review' : 'nothing held' },
-          { label: 'Payout method', value: d.payoutsEnabled ? 'Ready' : 'Not set up', hint: d.payoutsEnabled ? undefined : 'set it up to get paid' },
-        ]}
-      />
+      {/* Where the money is: one bar split into paid, on the way and held */}
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
+        <div className="flex h-3 gap-1 overflow-hidden rounded-full bg-zinc-100">
+          {[
+            [paid, 'bg-brand'],
+            [owed, 'bg-brand opacity-40'],
+            [held, 'bg-rose-600/70'],
+          ].map(([v, cls], i) =>
+            (v as number) > 0 ? <div key={i} className={cn('h-full rounded-full', cls as string)} style={{ flexGrow: v as number }} /> : null,
+          )}
+        </div>
+        <ul className="mt-5 space-y-3.5">
+          {(
+            [
+              ['Paid out', paid, 'bg-brand', 'In your account'],
+              ['On the way', owed, 'bg-brand opacity-40', 'Paid 3 days after approval'],
+              ['Held', held, 'bg-rose-600/70', 'Flagged clips, under review'],
+            ] as const
+          ).map(([label, v, dot, hint]) => (
+            <li key={label} className="flex items-center gap-3">
+              <span className={cn('size-2.5 shrink-0 rounded-full', dot)} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">{label}</span>
+                <span className="block text-xs text-zinc-500">{hint}</span>
+              </span>
+              <span className="text-lg font-semibold tabular-nums tracking-tight">{usdCents(v)}</span>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href="/clipper/payouts"
+          className="mt-5 flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-sm transition hover:bg-zinc-100"
+        >
+          <span className="text-zinc-500">Payout method</span>
+          <span className={cn('flex items-center gap-1.5 font-medium', d.payoutsEnabled ? 'text-[rgb(var(--brand-ta))]' : 'text-amber-700')}>
+            {d.payoutsEnabled ? 'Ready' : 'Set it up'} <ArrowUpRight className="size-3.5" />
+          </span>
+        </Link>
+      </div>
       <section>
         <h2 className="mb-3 font-semibold tracking-tight">By campaign</h2>
         {rows.length ? (
