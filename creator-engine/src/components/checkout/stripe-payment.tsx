@@ -32,7 +32,7 @@ export function StripePayment({
   quote: Quote | null;
   campaignId: string;
   createIntent: (campaignId: string, amount: number) => Promise<DepositIntentResult>;
-  onPaid: () => void;
+  onPaid: (pending?: boolean) => void;
 }) {
   const theme = useAppTheme();
   // Elements needs a positive amount; keep the last valid one while the input is being edited.
@@ -40,7 +40,7 @@ export function StripePayment({
   if (quote && quote.totalCents !== shownCents) setShownCents(quote.totalCents);
 
   const options = useMemo(
-    () => ({ mode: 'payment' as const, currency: 'usd', amount: shownCents, paymentMethodTypes: ['card'], appearance: elementsAppearance(theme), fonts: FONTS }),
+    () => ({ mode: 'payment' as const, currency: 'usd', amount: shownCents, paymentMethodTypes: ['card', 'us_bank_account'], appearance: elementsAppearance(theme), fonts: FONTS }),
     [shownCents, theme],
   );
 
@@ -60,7 +60,7 @@ function PaymentForm({
   quote: Quote | null;
   campaignId: string;
   createIntent: (campaignId: string, amount: number) => Promise<DepositIntentResult>;
-  onPaid: () => void;
+  onPaid: (pending?: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -85,7 +85,7 @@ function PaymentForm({
     const intent = await createIntent(campaignId, quote.amount);
     if ('error' in intent) return fail(intent.error);
 
-    const { error: payError } = await stripe.confirmPayment({
+    const { error: payError, paymentIntent } = await stripe.confirmPayment({
       elements,
       clientSecret: intent.clientSecret,
       // Only used by payment methods that redirect (bank redirects); cards finish here.
@@ -93,7 +93,8 @@ function PaymentForm({
       redirect: 'if_required',
     });
     if (payError) return fail(payError.message);
-    onPaid();
+    // Bank transfers (ACH) stay 'processing' for a few business days; the budget is added when they clear.
+    onPaid(paymentIntent?.status === 'processing');
   }
 
   return (

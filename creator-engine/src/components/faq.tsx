@@ -19,7 +19,7 @@ export const FAQ: [string, string][] = [
   ],
   [
     'How do I get paid, and are there fees?',
-    'Approved clips are paid automatically 3 days after approval to your bank or debit card, PayPal or Venmo. Clippers pay no fees and keep 100% of what they earn.',
+    'Approved clips are paid automatically once a week, every Friday, to your bank or debit card, PayPal or Venmo (after a 3-day check once a clip is approved). Clippers pay no fees and keep 100% of what they earn.',
   ],
   [
     'What do streamers get?',

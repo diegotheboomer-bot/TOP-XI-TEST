@@ -27,6 +27,10 @@ export function streamerCanFlag(c: ClipState, now = Date.now()): boolean {
   return false;
 }
 
+/** Clippers are paid in one weekly run, on Fridays (UTC), so fewer payouts mean lower per-payout costs. */
+export const PAYDAY_UTC = 5;
+export const isPayday = (now = Date.now()) => new Date(now).getUTCDay() === PAYDAY_UTC;
+
 /** Whether the sync should pay this clip now. `owed` is earned minus already transferred. */
 export function autoPayoutDue(c: ClipState & { owed: number; campaignEnded: boolean }, now = Date.now()): boolean {
   if (c.status !== 'live_tracking' || !c.approved_at) return false;

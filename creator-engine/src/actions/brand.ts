@@ -99,9 +99,9 @@ export async function createDepositIntent(campaignId: string, amount: number): P
     const intent = await stripe().paymentIntents.create({
       amount: cents(charge.total),
       currency: 'usd',
-      // Cards only (Apple Pay and Google Pay are card wallets, so they still appear where available).
-      allowed_payment_method_types: ['card'],
-      description: `Clipper budget ${usdCents(charge.budget)} + ${fee}% platform fee: ${campaign.title}`,
+      // Card (Apple Pay and Google Pay are card wallets) or US bank account (ACH: about 0.8%, capped at $5).
+      allowed_payment_method_types: ['card', 'us_bank_account'],
+      description: `Clipper budget ${usdCents(charge.budget)} + ${fee}% service fee: ${campaign.title}`,
       metadata: { kind: 'campaign_deposit', campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
       transfer_group: `campaign_${campaignId}`,
     });

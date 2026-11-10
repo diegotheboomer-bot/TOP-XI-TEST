@@ -21,7 +21,7 @@ export interface Quote {
 export type CheckoutCampaign = Pick<Campaign, 'id' | 'title' | 'payout_model' | 'cpm_rate' | 'status'>;
 
 /** What the payment section renders: a quote to charge (null while the amount is invalid) and a callback for success. */
-export type PaymentSlot = (quote: Quote | null, onPaid: () => void) => React.ReactNode;
+export type PaymentSlot = (quote: Quote | null, onPaid: (pending?: boolean) => void) => React.ReactNode;
 
 const QUICK_PICKS = [500, 1000, 5000, 10000];
 
@@ -48,6 +48,7 @@ export function AddBudget({
 }) {
   const [open, setOpen] = useState(false);
   const [paid, setPaid] = useState<Quote | null>(null);
+  const [pending, setPending] = useState(false);
   const close = () => {
     setOpen(false);
     if (paid) onDone?.();
@@ -59,16 +60,26 @@ export function AddBudget({
         className={className}
         onClick={() => {
           setPaid(null);
+          setPending(false);
           setOpen(true);
         }}
       >
         <Plus className="size-4" /> Add budget
       </Button>
-      <Dialog open={open} onClose={close} title={paid ? 'Payment received' : 'Add budget'} description={paid ? undefined : campaign.title}>
+      <Dialog open={open} onClose={close} title={paid ? (pending ? 'Bank transfer started' : 'Payment received') : 'Add budget'} description={paid ? undefined : campaign.title}>
         {paid ? (
-          <Paid quote={paid} feePercent={feePercent} title={campaign.title} draft={campaign.status === 'draft'} onClose={close} />
+          <Paid quote={paid} feePercent={feePercent} title={campaign.title} draft={campaign.status === 'draft'} pending={pending} onClose={close} />
         ) : (
-          <Checkout campaign={campaign} feePercent={feePercent} payment={payment} note={note} onPaid={setPaid} />
+          <Checkout
+            campaign={campaign}
+            feePercent={feePercent}
+            payment={payment}
+            note={note}
+            onPaid={(q, isPending) => {
+              setPending(!!isPending);
+              setPaid(q);
+            }}
+          />
         )}
       </Dialog>
     </>
@@ -86,7 +97,7 @@ function Checkout({
   feePercent: number;
   payment: PaymentSlot;
   note: React.ReactNode;
-  onPaid: (quote: Quote) => void;
+  onPaid: (quote: Quote, pending?: boolean) => void;
 }) {
   const [value, setValue] = useState('1000');
   const parsed = DepositSchema.safeParse(value);
@@ -145,7 +156,7 @@ function Checkout({
 
       <div className="mt-6 border-t border-zinc-100 pt-5">
         <h3 className="mb-3 text-sm font-semibold">Payment</h3>
-        {payment(quote, () => quote && onPaid(quote))}
+        {payment(quote, (isPending) => quote && onPaid(quote, isPending))}
         <p className="mt-3 flex items-start gap-1.5 text-xs text-zinc-500">
           <Lock className="mt-px size-3.5 shrink-0" />
           <span>{note}</span>
@@ -155,7 +166,7 @@ function Checkout({
   );
 }
 
-function Paid({ quote, feePercent, title, draft, onClose }: { quote: Quote; feePercent: number; title: string; draft: boolean; onClose: () => void }) {
+function Paid({ quote, feePercent, title, draft, pending, onClose }: { quote: Quote; feePercent: number; title: string; draft: boolean; pending: boolean; onClose: () => void }) {
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -163,7 +174,15 @@ function Paid({ quote, feePercent, title, draft, onClose }: { quote: Quote; feeP
           <Check className="size-5" />
         </span>
         <p className="text-sm text-zinc-500">
-          {usd(quote.amount)} is going into <span className="text-zinc-900">{title}</span> for clippers to earn.
+          {pending ? (
+            <>
+              Your bank transfer for <span className="text-zinc-900">{title}</span> is on its way. The {usd(quote.amount)} budget is added once it clears, usually in about 4 business days.
+            </>
+          ) : (
+            <>
+              {usd(quote.amount)} is going into <span className="text-zinc-900">{title}</span> for clippers to earn.
+            </>
+          )}
         </p>
       </div>
       <Breakdown quote={quote} feePercent={feePercent} className="mt-5" />

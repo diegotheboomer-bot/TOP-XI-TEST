@@ -79,7 +79,7 @@ export function PayoutsView({
             </div>
           </div>
         )}
-        <p className="relative mt-4 text-sm text-zinc-500">Paid automatically 3 days after a clip is approved. You keep 100%.</p>
+        <p className="relative mt-4 text-sm text-zinc-500">Paid automatically every Friday, once a clip has been approved for 3 days. You keep 100%.</p>
         {setup.lastFailure && <Failure text={setup.lastFailure} />}
         <div className="relative mt-5 flex flex-wrap gap-2 border-t border-zinc-100 pt-5">
           <Button

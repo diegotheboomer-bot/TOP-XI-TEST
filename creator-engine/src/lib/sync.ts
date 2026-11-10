@@ -9,7 +9,7 @@ import { getInstagramAccessToken, getTikTokAccessToken } from './tokens';
 import { queryInstagramReels } from './platforms/instagram';
 import type { Submission } from './types';
 import { payClip } from './pay-clip';
-import { MIN_AUTO_PAYOUT, autoPayoutDue } from './payout-rules';
+import { MIN_AUTO_PAYOUT, autoPayoutDue, isPayday } from './payout-rules';
 
 type SubmissionWithCampaign = Submission & { campaigns: PayoutTerms & { auto_approve_hours: number } };
 
@@ -104,6 +104,8 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
  * campaigns, which the metric sync skips, so earned money is never left unpaid.
  */
 async function runAutoPayouts(admin: SupabaseClient, report: SyncReport) {
+  // One payout run a week (Fridays, UTC). Clips that come due on other days wait for it.
+  if (!isPayday()) return;
   const { data } = await admin
     .from('submissions')
     .select('id, status, approved_at, payout_earned, payout_transferred, campaigns!inner(status)')

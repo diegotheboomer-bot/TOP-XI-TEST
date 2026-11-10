@@ -197,7 +197,7 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
           {(
             [
               ['Paid out', paid, 'bg-brand', 'In your account'],
-              ['On the way', owed, 'bg-brand opacity-40', 'Paid 3 days after approval'],
+              ['On the way', owed, 'bg-brand opacity-40', 'Sent every Friday'],
               ['Held', held, 'bg-rose-600/70', 'Flagged clips, under review'],
             ] as const
           ).map(([label, v, dot, hint]) => (

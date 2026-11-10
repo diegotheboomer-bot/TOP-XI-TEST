@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOLD_HOURS, autoPayoutDue, holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
+import { HOLD_HOURS, autoPayoutDue, holdHoursLeft, isPayday, streamerCanFlag } from '@/lib/payout-rules';
 
 const now = Date.parse('2026-11-10T12:00:00Z');
 const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
@@ -51,5 +51,12 @@ describe('automatic payouts (demo)', () => {
     const locked = subs.find((x) => x.creator_name === '@clipsbyrae')!;
     expect(core.reviewSubmission(s, locked.id, 'flag')?.error).toContain('locked');
     expect(core.reviewSubmission(s, holding.id, 'flag')?.success).toBe('Flagged.');
+  });
+});
+
+describe('payday', () => {
+  it('is Friday (UTC) only', () => {
+    expect(isPayday(Date.parse('2026-11-13T12:00:00Z'))).toBe(true);
+    expect(isPayday(Date.parse('2026-11-10T12:00:00Z'))).toBe(false);
   });
 });

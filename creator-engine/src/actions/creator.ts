@@ -253,6 +253,8 @@ async function payoutAccount(creatorId: string): Promise<string> {
       stripe_dashboard: { type: 'express' },
     },
     capabilities: { transfers: { requested: true } },
+    // Money reaches the clipper's bank once a week (Fridays): fewer bank payouts, lower fees.
+    settings: { payouts: { schedule: { interval: 'weekly', weekly_anchor: 'friday' } } },
     metadata: { creator_id: creatorId },
   });
   await admin.from('creators').update({ stripe_account_id: account.id }).eq('id', creatorId);
