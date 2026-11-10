@@ -1,5 +1,5 @@
 -- Atlas Clips: full database setup in one paste (Supabase SQL Editor → New query → Run).
--- Same as supabase/migrations/0001…0010 in order. Runs as one transaction: all or nothing.
+-- Same as supabase/migrations/0001…0011 in order. Runs as one transaction: all or nothing.
 -- Run it once on a new project.
 
 begin;
@@ -459,5 +459,12 @@ create table cashouts (
 create index cashouts_creator_time_idx on cashouts (creator_id, created_at desc);
 alter table cashouts enable row level security;
 create policy "creators read own cashouts" on cashouts for select using (creator_id = my_creator_id());
+
+
+-- ═════ 0011_submissions_campaign_fk.sql ═════
+-- 0011: direct link from submissions to campaigns. Submissions only referenced
+-- campaign_creators (campaign_id, creator_id), so the API couldn't join
+-- submissions to campaigns and the view sync failed.
+alter table submissions add constraint submissions_campaign_id_fkey foreign key (campaign_id) references campaigns (id) on delete cascade;
 
 commit;
