@@ -19,7 +19,7 @@ const STEPS: Record<Who, [string, string][]> = {
   ],
   clipper: [
     ['Pick a campaign', 'See the rate, the budget left and what you would take home before you join.'],
-    ['Claim and cut', 'Claim a moment, cut it your way and post it from your connected TikTok or verified YouTube channel.'],
+    ['Claim and cut', 'Claim a moment, cut it your way and post it from your connected TikTok, Instagram or verified YouTube channel.'],
     ['Get paid automatically', 'Earnings update every few hours. Approved clips are paid out 3 days later, straight to your bank, PayPal or Venmo. You keep 100%.'],
   ],
 };

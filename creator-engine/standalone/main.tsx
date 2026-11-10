@@ -868,6 +868,13 @@ function CreatorHome({ store }: { store: Store }) {
             action={null}
           />
           <ConnectionCard
+            icon={<PlatformIcon platform="instagram" />}
+            title="Instagram Reels"
+            connected
+            detail={`@${d.instagram?.username ?? 'connected'}`}
+            action={null}
+          />
+          <ConnectionCard
             icon={<Wallet />}
             title="Payouts"
             connected={d.payoutsEnabled}

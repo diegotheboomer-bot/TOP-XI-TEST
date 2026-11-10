@@ -7,7 +7,8 @@ import { isDemo } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { parseVideoUrlResolving } from '@/lib/video-url';
-import { getTikTokAccessToken } from '@/lib/tokens';
+import { getInstagramAccessToken, getTikTokAccessToken } from '@/lib/tokens';
+import { queryInstagramReels } from '@/lib/platforms/instagram';
 import { queryTikTokVideos } from '@/lib/platforms/tiktok';
 import { checkDuplicate } from '@/lib/sync';
 import { hasDisclosure } from '@/lib/compliance';
@@ -99,7 +100,6 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
   const where = { tiktok: 'TikTok', youtube: 'YouTube Shorts', instagram: 'Instagram Reels' }[platform];
   pass('Link recognised', where);
   if (!campaign.platforms.includes(platform)) return fail('Campaign takes this platform', `This campaign doesn’t take ${where} clips.`);
-  if (platform === 'instagram') return fail('Campaign takes this platform', 'Instagram Reels tracking isn’t connected yet. Submit a TikTok or YouTube Short.');
   pass('Campaign takes this platform');
 
   let stats;
@@ -114,6 +114,17 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
     if (!stats) return fail('Video found', 'That video isn’t on your connected TikTok account.');
     pass('Video found');
     pass('It’s your video', 'On your connected TikTok');
+  } else if (platform === 'instagram') {
+    // Instagram: read through the clipper's own connected account, which proves the Reel is theirs.
+    try {
+      const token = await getInstagramAccessToken(admin, creatorId);
+      [stats] = await queryInstagramReels(token, [videoId]);
+    } catch (e) {
+      return fail('Video found', e instanceof Error && /not connected|expired/.test(e.message) ? 'Connect your Instagram account first.' : 'Instagram couldn’t be reached. Try again shortly.');
+    }
+    if (!stats) return fail('Video found', 'That Reel isn’t on your connected Instagram account.');
+    pass('Video found');
+    pass('It’s your video', 'On your connected Instagram');
   } else {
     // YouTube: public stats; ownership comes from the clipper's verified channel.
     const { data: channel } = await admin.from('social_accounts').select('platform_user_id, username').eq('creator_id', creatorId).eq('platform', 'youtube').maybeSingle();
@@ -347,6 +358,11 @@ export async function connectTikTok(): Promise<void> {
     redirect('/clipper?tiktok=connected');
   }
   redirect('/api/oauth/tiktok/start');
+}
+
+export async function connectInstagram(): Promise<void> {
+  if (isDemo) redirect('/clipper?instagram=connected');
+  redirect('/api/oauth/instagram/start');
 }
 
 /** Demo only: switch which creator you are viewing as. */

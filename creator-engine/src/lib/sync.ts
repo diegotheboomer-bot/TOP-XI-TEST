@@ -5,7 +5,8 @@ import { perceptualHashFromUrl } from './phash';
 import { hasDisclosure, shouldAutoApprove } from './compliance';
 import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
 import { getYouTubeVideos } from './platforms/youtube';
-import { getTikTokAccessToken } from './tokens';
+import { getInstagramAccessToken, getTikTokAccessToken } from './tokens';
+import { queryInstagramReels } from './platforms/instagram';
 import type { Submission } from './types';
 import { payClip } from './pay-clip';
 import { MIN_AUTO_PAYOUT, autoPayoutDue } from './payout-rules';
@@ -32,14 +33,16 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
     .in('status', ['live_tracking', 'pending_review'])
     // Ended (cancelled) campaigns are skipped: their earnings are final.
     .in('campaigns.status', ['active', 'paused'])
-    .in('platform', ['tiktok', 'youtube']);
+    .in('platform', ['tiktok', 'youtube', 'instagram']);
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
   const report: SyncReport = { synced: 0, flagged: 0, autoApproved: 0, paid: 0, failed: [] };
   const all = (data ?? []) as SubmissionWithCampaign[];
   const byCreator = new Map<string, SubmissionWithCampaign[]>();
-  for (const s of all.filter((x) => x.platform === 'tiktok')) {
-    byCreator.set(s.creator_id, [...(byCreator.get(s.creator_id) ?? []), s]);
+  const igByCreator = new Map<string, SubmissionWithCampaign[]>();
+  for (const s of all) {
+    const map = s.platform === 'tiktok' ? byCreator : s.platform === 'instagram' ? igByCreator : null;
+    map?.set(s.creator_id, [...(map.get(s.creator_id) ?? []), s]);
   }
 
   // YouTube: one API-key batch for every submission.
@@ -63,11 +66,18 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
     }
   }
 
-  for (const [creatorId, subs] of byCreator) {
+  const perCreator: [string, SubmissionWithCampaign[], 'tiktok' | 'instagram'][] = [
+    ...[...byCreator].map(([c, s]) => [c, s, 'tiktok'] as [string, SubmissionWithCampaign[], 'tiktok']),
+    ...[...igByCreator].map(([c, s]) => [c, s, 'instagram'] as [string, SubmissionWithCampaign[], 'instagram']),
+  ];
+  for (const [creatorId, subs, platform] of perCreator) {
     let stats: Map<string, VideoStats>;
     try {
-      const token = await getTikTokAccessToken(admin, creatorId);
-      const videos = await queryTikTokVideos(token, subs.map((s) => s.social_platform_video_id));
+      const ids = subs.map((s) => s.social_platform_video_id);
+      const videos =
+        platform === 'tiktok'
+          ? await queryTikTokVideos(await getTikTokAccessToken(admin, creatorId), ids)
+          : await queryInstagramReels(await getInstagramAccessToken(admin, creatorId), ids);
       stats = new Map(videos.map((v) => [v.id, v]));
     } catch (e) {
       subs.forEach((s) => report.failed.push({ submissionId: s.id, error: String(e) }));
@@ -120,7 +130,7 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
 
   if (!v) {
     // Deleted, made private, or no longer owned by the connected account.
-    const where = sub.platform === 'youtube' ? 'YouTube' : 'TikTok';
+    const where = { youtube: 'YouTube', tiktok: 'TikTok', instagram: 'Instagram' }[sub.platform];
     await admin.from('submissions').update({ status: 'flagged', flag_reason: `Video unavailable on ${where}`, last_synced_at: now.toISOString() }).eq('id', sub.id);
     return 'flagged';
   }

@@ -5,7 +5,7 @@ import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { getCreatorDashboard } from '@/lib/data';
 import { compact, usd } from '@/lib/format';
 import { payoutDestination } from '@/lib/payout-methods';
-import { connectTikTok } from '@/actions/creator';
+import { connectInstagram, connectTikTok } from '@/actions/creator';
 import { isDemo } from '@/lib/env';
 import { currentCreatorId, demoCreators } from '@/lib/demo';
 import { PageHeader } from '@/components/ui/page-header';
@@ -19,6 +19,14 @@ import { Checklist, ConnectionCard, EnrollmentCard, MarketCard } from '@/compone
 
 export const dynamic = 'force-dynamic';
 
+const instagramMessages: Record<string, [string, boolean]> = {
+  connected: ['Instagram connected.', true],
+  missing_scope: ['Please allow insights access. We need it to read your Reel views.', false],
+  already_linked: ['That Instagram account is linked to another creator.', false],
+  cancelled: ['Instagram connection cancelled.', false],
+  error: ['Instagram connection failed. It needs a Professional (Creator or Business) account. Try again.', false],
+};
+
 const tiktokMessages: Record<string, [string, boolean]> = {
   connected: ['TikTok connected.', true],
   missing_scope: ['Please allow video access. We need it to verify your views.', false],
@@ -26,11 +34,11 @@ const tiktokMessages: Record<string, [string, boolean]> = {
   error: ['TikTok connection failed. Try again.', false],
 };
 
-export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string } }) {
+export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; instagram?: string } }) {
   const d = await getCreatorDashboard();
   const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
   const firstOpen = d.enrollments.find((e) => !e.submission);
-  const notice: [string, boolean] | undefined = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : undefined;
+  const notice: [string, boolean] | undefined = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : searchParams.instagram ? instagramMessages[searchParams.instagram] : undefined;
 
   const payoutsButton = (
     <ButtonLink href="/clipper/payouts" size="sm">
@@ -138,6 +146,19 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             status="Verified"
             detail={d.youtube ? (d.youtube.channel ?? 'Channel verified') : 'Verify your channel once to submit Shorts'}
             action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} />}
+          />
+          <ConnectionCard
+            icon={<PlatformIcon platform="instagram" />}
+            title="Instagram Reels"
+            connected={!!d.instagram}
+            detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : 'Needs a Professional (Creator or Business) account'}
+            action={
+              <form action={connectInstagram}>
+                <Button size="sm" variant={d.instagram ? 'ghost' : 'secondary'}>
+                  {d.instagram ? 'Reconnect' : 'Connect'}
+                </Button>
+              </form>
+            }
           />
           <ConnectionCard
             icon={<Wallet />}

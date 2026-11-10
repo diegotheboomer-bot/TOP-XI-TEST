@@ -613,7 +613,7 @@ export function NextStep({
               <li className="flex gap-2.5">
                 <span className="grid size-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-semibold">3</span>
                 <span>
-                  Post from your connected TikTok or verified YouTube channel.
+                  Post from your connected TikTok or Instagram, or your verified YouTube channel.
                 </span>
               </li>
               <li className="flex gap-2.5">

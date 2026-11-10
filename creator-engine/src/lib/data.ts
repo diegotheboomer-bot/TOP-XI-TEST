@@ -56,6 +56,7 @@ export interface CreatorDashboard {
   tiktok: { username: string | null; followers: number | null } | null;
   /** Verified YouTube channel, and the code to verify one. */
   youtube: { channel: string | null } | null;
+  instagram: { username: string | null; followers: number | null } | null;
   youtubeCode: string;
   /** Ready to be paid by the chosen method. */
   payoutsEnabled: boolean;
@@ -71,6 +72,7 @@ export interface CreatorCampaignDetail {
   submission: Submission | null;
   tiktokConnected: boolean;
   youtubeVerified: boolean;
+  instagramConnected: boolean;
   youtubeCode: string;
   payoutsEnabled: boolean;
   moments: MomentRow[];
@@ -221,10 +223,12 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const payout = await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false);
   const tiktok = (account ?? []).find((a) => a.platform === 'tiktok');
   const youtube = (account ?? []).find((a) => a.platform === 'youtube');
+  const instagram = (account ?? []).find((a) => a.platform === 'instagram');
   return {
     name: creator?.display_name ?? '',
     tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count } : null,
     youtube: youtube ? { channel: youtube.username } : null,
+    instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
     youtubeCode: youtubeVerifyCode(creatorId),
     payoutsEnabled: payoutReady(payout),
     payout,
@@ -268,6 +272,7 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     submission: sub ? num(sub as Submission, SUB_NUMS) : null,
     tiktokConnected: !!account?.some((a) => a.platform === 'tiktok'),
     youtubeVerified: !!account?.some((a) => a.platform === 'youtube'),
+    instagramConnected: !!account?.some((a) => a.platform === 'instagram'),
     youtubeCode: youtubeVerifyCode(creatorId),
     payoutsEnabled: payoutReady(await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false)),
     moments: await loadMoments(c.id, creatorId),

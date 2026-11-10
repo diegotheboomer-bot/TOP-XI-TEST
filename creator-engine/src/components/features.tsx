@@ -7,7 +7,7 @@ import { cn } from './ui/cn';
 
 const FEATURES: [string, string, () => React.ReactNode][] = [
   ['Moment board', 'Streamers pin the moments worth clipping. Limited slots per moment keep feeds from filling with the same clip.', SlotsArt],
-  ['Verified accounts', 'Clippers connect TikTok or verify their YouTube channel once. Every clip they post from it is matched to them automatically.', CodeArt],
+  ['Verified accounts', 'Clippers connect TikTok and Instagram or verify their YouTube channel once. Every clip they post from it is matched to them automatically.', CodeArt],
   ['Budget forecast', 'Each campaign shows how much is left and about how many days it will last at the current pace.', BudgetArt],
   ['Review window', 'Streamers pick a review deadline. Clean clips are approved automatically when it passes.', ReviewArt],
   ['No fees for clippers', 'Clippers keep 100% of what they earn. Streamers pay a flat {fee}% on top of their budget, shown before they pay.', KeepArt],

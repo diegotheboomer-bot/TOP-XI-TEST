@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getCreatorCampaign } from '@/lib/data';
 import { rateParts, usd } from '@/lib/format';
 import { trackingLink } from '@/lib/attribution';
-import { claimMoment, connectTikTok, joinCampaign } from '@/actions/creator';
+import { claimMoment, connectInstagram, connectTikTok, joinCampaign } from '@/actions/creator';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,11 +48,19 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
               }
               submitForm={<SubmitVideoForm campaignId={c.id} />}
               tiktokPrompt={
-                (c.platforms.includes('tiktok') && !d.tiktokConnected) || (c.platforms.includes('youtube') && !d.youtubeVerified) ? (
+                (c.platforms.includes('tiktok') && !d.tiktokConnected) || (c.platforms.includes('youtube') && !d.youtubeVerified) || (c.platforms.includes('instagram') && !d.instagramConnected) ? (
                   <div className="space-y-2">
                     {c.platforms.includes('tiktok') && !d.tiktokConnected && (
                       <form action={connectTikTok} className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
                         <span>Posting on TikTok? Connect it first so we know the clips are yours.</span>
+                        <Button size="sm" variant="secondary">
+                          Connect
+                        </Button>
+                      </form>
+                    )}
+                    {c.platforms.includes('instagram') && !d.instagramConnected && (
+                      <form action={connectInstagram} className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+                        <span>Posting Reels? Connect your Instagram (Creator or Business account) first.</span>
                         <Button size="sm" variant="secondary">
                           Connect
                         </Button>

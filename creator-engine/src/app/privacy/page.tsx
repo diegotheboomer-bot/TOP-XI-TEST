@@ -18,7 +18,9 @@ export default function PrivacyPage() {
       <section>
         <h2>What we collect</h2>
         <ul>
-          <li><strong>Account:</strong> your email address (we sign you in with an emailed link), your display or channel name, and whether you stream or clip.</li>
+          <li><strong>Account:</strong> your email address and password (handled by Supabase, never stored in plain text), your display or channel name, and whether you stream or clip.</li>
+          <li>
+            <strong>Instagram, if you connect it:</strong> your Instagram account ID, username and follower count, your posts’ captions, like and comment counts and Reel views, and the access token Instagram gives us, which we store encrypted. We only read; we never post.</li>
           <li>
             <strong>TikTok, if you connect it:</strong> your TikTok account ID, display name and follower count, and the access tokens TikTok gives us, which we store
             encrypted. For videos you submit we read the view, like, comment and share counts, the caption and the cover image.
@@ -52,7 +54,7 @@ export default function PrivacyPage() {
           <li>Streamers see the display names, submitted clips, view counts and earnings of clippers in their campaigns.</li>
           <li>Clippers see campaign details, budgets and which moments are claimed.</li>
           <li>
-            Service providers process data for us: Supabase (database and sign-in), Stripe (payments), PayPal (PayPal and Venmo payouts), our hosting provider, and TikTok and Google (YouTube) when we
+            Service providers process data for us: Supabase (database and sign-in), Stripe (payments), PayPal (PayPal and Venmo payouts), our hosting provider, and TikTok, Meta (Instagram) and Google (YouTube) when we
             read video statistics.
           </li>
         </ul>
