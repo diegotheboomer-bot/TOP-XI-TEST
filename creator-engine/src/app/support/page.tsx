@@ -21,7 +21,7 @@ export default async function SupportPage() {
   return (
     <AppLayout role={role}>
       <PageHeader title="Support" description="Ask the assistant first. If it can’t help, open a ticket and a person from the Atlas team will reply." />
-      <SupportChat />
+      <SupportChat audience={role === 'clipper' ? 'clipper' : 'business'} />
       {tickets.length > 0 && (
         <section className="mt-8">
           <h2 className="mb-3 font-semibold tracking-tight">Your tickets</h2>

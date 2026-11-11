@@ -6,18 +6,49 @@ import { Bot, LifeBuoy, Loader2, Send, UserRound } from 'lucide-react';
 import { createTicket, sendSupportMessage } from '@/actions/support';
 import type { ChatTurn } from '@/lib/support-ai';
 import { cn } from '../ui/cn';
+import { TierBadge } from '../tier-badge';
+import { TIERS, TIER_PERKS, TIER_RULES, compactViews, holdLabel } from '@/lib/tiers';
 import { Field, Input } from '../ui/field';
 import { FormMessage } from '../form-message';
 import { SubmitButton } from '../submit-button';
 
-const STARTERS = ['Where is my money?', 'Why was my clip flagged?', 'How do tiers work?', 'How do I get a refund?', 'Problem with a clipper or campaign'];
+const STARTERS = {
+  clipper: ['Where is my money?', 'Why was my clip flagged?', 'How do tiers work?', 'How do I cash out?', 'Problem with a campaign'],
+  business: ['How do I launch a campaign?', 'How do I approve clips?', 'How do refunds work?', 'What are the fees?', 'Problem with a clipper'],
+};
+
+/** Questions about tiers get a ready-made graphic instead of an AI call. */
+const isTierQuestion = (q: string) => /\b(tier|tiers|silver|gold|platinum|diamond|majesty|rank|level ?up)\b/i.test(q);
+
+function TierGraphic() {
+  return (
+    <div className="w-full max-w-sm space-y-2 rounded-2xl border border-zinc-200/80 p-3">
+      {TIERS.map((t) => {
+        const p = TIER_PERKS[t];
+        const r = TIER_RULES[t];
+        return (
+          <div key={t} className="flex items-center justify-between gap-3">
+            <TierBadge tier={t} />
+            <span className="text-right text-[11px] leading-tight text-zinc-500">
+              {t === 'silver' ? 'Start here' : `${compactViews(r.views)} views · ${r.approved} clips`}
+              <br />
+              <span className="font-semibold text-zinc-800">
+                {p.feePct}% fee · paid in {holdLabel(p.holdHours)}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /** Assistant first; a ticket to a person when it can't help or they ask. */
-export function SupportChat() {
-  const [turns, setTurns] = useState<ChatTurn[]>([
+export function SupportChat({ audience = 'clipper' }: { audience?: 'clipper' | 'business' }) {
+  const [turns, setTurns] = useState<(ChatTurn & { graphic?: 'tiers' })[]>([
     { role: 'assistant', text: 'Hi! I’m the Atlas assistant. Ask me anything about campaigns, clips, payouts or tiers.' },
   ]);
-  const [options, setOptions] = useState<string[]>(STARTERS);
+  const [options, setOptions] = useState<string[]>(STARTERS[audience]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [human, setHuman] = useState(false);
@@ -31,12 +62,19 @@ export function SupportChat() {
     const q = text.trim();
     if (!q || busy) return;
     const next = [...turns, { role: 'user' as const, text: q }];
+    const history = next.map(({ role, text }) => ({ role, text }));
     setTurns(next);
     setInput('');
     setOptions([]);
+    if (isTierQuestion(q)) {
+      // Answered locally: same graphic every time, no AI call.
+      setTurns([...next, { role: 'assistant', text: 'Clippers move up tiers automatically from verified views, approved clips and approval rate. Higher tiers pay a lower fee and get paid sooner:', graphic: 'tiers' }]);
+      setOptions(['How do I cash out?', 'Where is my money?']);
+      return;
+    }
     setBusy(true);
     try {
-      const r = await sendSupportMessage(next);
+      const r = await sendSupportMessage(history);
       setTurns([...next, { role: 'assistant', text: String(r?.answer ?? 'Sorry, something went wrong.') }]);
       setOptions(Array.isArray(r?.options) ? r.options.map(String) : []);
       setSuggest(!!r?.suggestHuman);
@@ -56,9 +94,10 @@ export function SupportChat() {
             <span className={cn('grid size-8 shrink-0 place-items-center rounded-full', t.role === 'user' ? 'bg-zinc-100 text-zinc-600' : 'bg-brand text-brand-ink')}>
               {t.role === 'user' ? <UserRound className="size-4" /> : <Bot className="size-4" />}
             </span>
-            <p className={cn('max-w-[80%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed', t.role === 'user' ? 'bg-zinc-100' : 'border border-zinc-200/80')}>
-              {t.text}
-            </p>
+            <div className="max-w-[80%] space-y-2">
+              <p className={cn('whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed', t.role === 'user' ? 'bg-zinc-100' : 'border border-zinc-200/80')}>{t.text}</p>
+              {t.graphic === 'tiers' && <TierGraphic />}
+            </div>
           </div>
         ))}
         {busy && (
