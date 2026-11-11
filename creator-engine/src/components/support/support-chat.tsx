@@ -18,7 +18,10 @@ const STARTERS = {
 };
 
 /** Questions about tiers get a ready-made graphic instead of an AI call. */
-const isTierQuestion = (q: string) => /\b(tier|tiers|silver|gold|platinum|diamond|majesty|rank|level ?up)\b/i.test(q);
+const isTierQuestion = (q: string) =>
+  // "How do tiers work?", "what are the tier perks", "how do I reach Gold" — not "how many people are Gold?"
+  !/\b(how many|people|users|members|count|number of|who)\b/i.test(q) &&
+  /\b(how|what|explain|which)\b.*\b(tiers?|ranks?|levels?)\b|\btiers? (work|perks|requirements|benefits)\b|\b(reach|get to|unlock|level up|rank up)\b.*\b(silver|gold|platinum|diamond|majesty|tier)\b/i.test(q);
 
 function TierGraphic() {
   return (

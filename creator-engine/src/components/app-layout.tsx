@@ -10,31 +10,50 @@ import type { NavSection } from './app-shell';
 
 export type Role = 'streamer' | 'clipper';
 
-const SECTIONS: Record<Role, NavSection> = {
-  streamer: {
-    title: 'Campaigns',
-    items: [
-      { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus />, primary: true },
-      { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
-      { href: '/streamer/creators', label: 'Creators', icon: <Users /> },
-      { href: '/streamer/stats', label: 'Stats', icon: <ChartColumn /> },
-      { href: '/streamer/money', label: 'Money', icon: <Wallet /> },
-      { href: '/support', label: 'Support', icon: <LifeBuoy /> },
-    ],
-  },
-  clipper: {
-    title: 'Clipper',
-    items: [
-      { href: '/clipper', label: 'Home', icon: <House /> },
-      { href: '/clipper/discover', label: 'Discover', icon: <Compass /> },
-      { href: '/clipper/campaigns', label: 'Campaigns', icon: <FolderOpen /> },
-      { href: '/clipper/earnings', label: 'Earnings', icon: <ChartColumn /> },
-      { href: '/clipper/clips', label: 'Clips', icon: <Clapperboard /> },
-      { href: '/clipper/payouts', label: 'Payouts', icon: <Wallet /> },
-      { href: '/clipper/profile', label: 'Profile', icon: <CircleUser /> },
-      { href: '/support', label: 'Support', icon: <LifeBuoy /> },
-    ],
-  },
+const SECTIONS: Record<Role, NavSection[]> = {
+  streamer: [
+    {
+      title: 'Campaigns',
+      items: [
+        { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus />, primary: true },
+        { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
+        { href: '/streamer/creators', label: 'Creators', icon: <Users /> },
+      ],
+    },
+    {
+      title: 'Insights & money',
+      items: [
+        { href: '/streamer/stats', label: 'Stats', icon: <ChartColumn /> },
+        { href: '/streamer/money', label: 'Money', icon: <Wallet /> },
+      ],
+    },
+    { title: 'Help', items: [{ href: '/support', label: 'Support', icon: <LifeBuoy /> }] },
+  ],
+  clipper: [
+    {
+      title: 'Clipping',
+      items: [
+        { href: '/clipper', label: 'Home', icon: <House /> },
+        { href: '/clipper/discover', label: 'Discover', icon: <Compass /> },
+        { href: '/clipper/campaigns', label: 'Campaigns', icon: <FolderOpen /> },
+        { href: '/clipper/clips', label: 'Clips', icon: <Clapperboard /> },
+      ],
+    },
+    {
+      title: 'Money',
+      items: [
+        { href: '/clipper/earnings', label: 'Earnings', icon: <ChartColumn /> },
+        { href: '/clipper/payouts', label: 'Payouts', icon: <Wallet /> },
+      ],
+    },
+    {
+      title: 'Account',
+      items: [
+        { href: '/clipper/profile', label: 'Profile', icon: <CircleUser /> },
+        { href: '/support', label: 'Support', icon: <LifeBuoy /> },
+      ],
+    },
+  ],
 };
 
 const footerItem = 'flex items-center gap-2 rounded-lg p-2 text-sm lg:w-full lg:px-2.5 lg:py-2 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 [&>svg]:size-4';
@@ -42,9 +61,10 @@ const footerItem = 'flex items-center gap-2 rounded-lg p-2 text-sm lg:w-full lg:
 /** Sidebar layout for /streamer and /clipper. Each side only shows its own menu. */
 export async function AppLayout({ role, children }: { role: Role; children: React.ReactNode }) {
   const tier = role === 'clipper' ? await getMyTier() : null;
-  const section: NavSection = tier
-    ? { ...SECTIONS[role], items: SECTIONS[role].items.map((i) => (i.href === '/clipper/profile' ? { ...i, badge: <TierBadge tier={tier} /> } : i)) }
-    : SECTIONS[role];
+  const sections: NavSection[] = SECTIONS[role].map((sec) => ({
+    ...sec,
+    items: sec.items.map((i) => (tier && i.href === '/clipper/profile' ? { ...i, badge: <TierBadge tier={tier} /> } : i)),
+  }));
   const other: Role = role === 'streamer' ? 'clipper' : 'streamer';
   const footer = isDemo ? (
     <div className="flex gap-1 lg:block lg:space-y-0.5">
@@ -69,7 +89,7 @@ export async function AppLayout({ role, children }: { role: Role; children: Reac
     </div>
   );
   return (
-    <NextShell sections={[section]} demo={isDemo} footer={footer}>
+    <NextShell sections={sections} demo={isDemo} footer={footer}>
       {children}
     </NextShell>
   );
