@@ -14,7 +14,7 @@ export type PayResult = { ok: true; gross: number; via: string; campaignId: stri
  * Each failed step reverses the ones before it. Used by the streamer's Pay button
  * and by the automatic payouts in the sync. `minimum` is the smallest amount to send.
  */
-export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 0.01): Promise<PayResult> {
+export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 0.01, maxGross?: number): Promise<PayResult> {
   const { data: sub } = await admin
     .from('submissions')
     .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, campaigns(cpm_cap, payout_model, status)')
@@ -38,7 +38,9 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   if (!payoutReady(setup)) return { ok: false, error: 'Creator has not finished payout setup.' };
   if (setup.method !== 'stripe' && !paypalConfigured()) return { ok: false, error: 'PayPal payouts aren’t configured on this platform.' };
 
-  const gross = Math.round((Number(sub.payout_earned) - Number(sub.payout_transferred)) * 100) / 100;
+  // Everything owed, or less when the clipper chose to cash out only part of their balance.
+  const owed = Math.round((Number(sub.payout_earned) - Number(sub.payout_transferred)) * 100) / 100;
+  const gross = maxGross == null ? owed : Math.min(owed, Math.floor(maxGross * 100) / 100);
   if (gross < minimum) return { ok: false, error: 'Nothing to pay out yet.' };
 
   // The platform's fee depends on the clipper's tier (9% Silver down to 4% Majesty).

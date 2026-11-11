@@ -385,7 +385,7 @@ export async function connectTikTok(): Promise<void> {
  * clipper's payout method now. The tier sets the fee (9% Silver to 4% Majesty) and
  * how many cash-outs a week are allowed.
  */
-export async function cashOut(): Promise<ActionState> {
+export async function cashOut(amount?: number): Promise<ActionState> {
   if (isDemo) return { success: 'Cashed out (demo).' };
   const creatorId = await requireCreator();
   const admin = createAdminClient();
@@ -408,15 +408,22 @@ export async function cashOut(): Promise<ActionState> {
     })
     .sort((a, b) => b.owed - a.owed);
   if (!ready.length) return { error: 'Nothing is ready to cash out yet.' };
+  const balance = Math.round(ready.reduce((n, s) => n + s.owed, 0) * 100) / 100;
+  // The clipper can take out part of their balance; the rest stays for later.
+  let remaining = amount == null ? balance : Math.min(balance, Math.floor(Number(amount) * 100) / 100);
+  if (!(remaining >= 0.01)) return { error: 'Enter an amount to cash out.' };
 
   let sent = 0;
   let gross = 0;
   const errors: string[] = [];
   for (const s of ready) {
-    const r = await payClip(admin, s.id);
+    if (remaining < 0.01) break;
+    const take = Math.min(s.owed, remaining);
+    const r = await payClip(admin, s.id, 0.01, take);
     if (r.ok) {
       sent += r.gross;
-      gross += s.owed;
+      gross += take;
+      remaining = Math.round((remaining - take) * 100) / 100;
     } else errors.push(r.error);
   }
   const fee = Math.round((gross - sent) * 100) / 100;

@@ -4,10 +4,9 @@ import { ArrowUpRight } from 'lucide-react';
 import type { CreatorDashboard } from '@/lib/data';
 import type { Submission, SubmissionStatus } from '@/lib/types';
 import { cashoutReady } from '@/lib/payout-rules';
-import { TIER_LABEL, TIER_PERKS, holdLabel, payoutFee } from '@/lib/tiers';
+import { TIER_LABEL, TIER_PERKS, holdLabel } from '@/lib/tiers';
 import { TierBadge } from './tier-badge';
-import { cashOut } from '@/actions/creator';
-import { ActionButton } from './action-button';
+import { CashOutForm } from './cash-out-form';
 import { compact, usd, usdCents } from '@/lib/format';
 import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
@@ -178,22 +177,19 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
   const tier = d.tier ?? 'silver';
   const perks = TIER_PERKS[tier];
   const ready = rows.filter((r) => !r.openPool && cashoutReady(r.sub, Date.now(), perks.holdHours)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
-  const fee = payoutFee(ready, tier);
   const left = perks.cashoutsPerWeek === Infinity ? Infinity : Math.max(0, perks.cashoutsPerWeek - d.recentCashouts);
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full bg-brand opacity-[0.08] blur-3xl" />
-        <p className="text-sm text-zinc-500">Ready to cash out</p>
+        <p className="text-sm text-zinc-500">Your balance</p>
         <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight text-brand">{usdCents(ready)}</p>
         <p className="mt-2 text-sm text-zinc-500">
           {usdCents(earned)} earned in total{owed > ready ? ` · ${usdCents(owed - ready)} still in the ${holdLabel(perks.holdHours)} check` : ''}
         </p>
         <div className="mt-5">
           {ready > 0 && d.payoutsEnabled && left > 0 ? (
-            <ActionButton variant="primary" block action={cashOut}>
-              Cash out {usdCents(Math.max(0, ready - fee))}
-            </ActionButton>
+            <CashOutForm balance={Math.round(ready * 100) / 100} feePct={perks.feePct} />
           ) : (
             <p className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
               {!d.payoutsEnabled
@@ -205,7 +201,7 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
           )}
           <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
             <TierBadge tier={tier} />
-            {perks.feePct}% fee{ready > 0 ? ` (${usdCents(fee)})` : ''} · {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · paid {holdLabel(perks.holdHours)} after approval
+            {perks.feePct}% fee · {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · paid {holdLabel(perks.holdHours)} after approval
           </p>
         </div>
       </div>
