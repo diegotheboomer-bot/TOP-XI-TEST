@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { BadgeCheck, Compass, FolderOpen, Mail, TrendingUp, Wallet } from 'lucide-react';
+import { BadgeCheck, Clapperboard, Compass, DollarSign, Eye, FolderOpen, Mail, TrendingUp, Wallet } from 'lucide-react';
 import { PlatformIcon } from '@/components/platform-icon';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { getCreatorDashboard } from '@/lib/data';
@@ -94,12 +94,25 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-4xl font-semibold tabular-nums tracking-tight text-brand sm:text-5xl">{usd(earned)}</p>
-                <p className="text-xs text-zinc-500">earned from {compact(views)} verified views</p>
-                <dl className="mt-5 grid grid-cols-3 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="flex items-center gap-1.5 text-xs text-zinc-500">
+                      <Eye className="size-3.5 text-[rgb(var(--brand-ta))]" /> Views
+                    </p>
+                    <p className="text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl">{compact(views)}</p>
+                  </div>
+                  <div>
+                    <p className="flex items-center gap-1.5 text-xs text-zinc-500">
+                      <DollarSign className="size-3.5 text-[rgb(var(--brand-ta))]" /> Earned
+                    </p>
+                    <p className="text-3xl font-semibold tabular-nums tracking-tight text-brand sm:text-4xl">{usd(earned)}</p>
+                  </div>
+                </div>
+                <dl className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {(
                     [
                       [Wallet, 'Paid out', usd(paid)],
+                      [Clapperboard, 'Clips', compact(subs.length)],
                       [BadgeCheck, 'Approval', `${Math.round(approvalRate(d.record) * 100)}%`],
                       [FolderOpen, 'Campaigns', String(d.enrollments.length)],
                     ] as const

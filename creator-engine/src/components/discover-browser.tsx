@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowDownWideNarrow, ChevronDown, Compass, Search, Shapes, Sparkles, Video, Wallet, X } from 'lucide-react';
+import { ArrowDownWideNarrow, ChevronDown, Compass, Search, Shapes, SlidersHorizontal, Sparkles, Video, Wallet, X } from 'lucide-react';
 import type { MarketCampaign } from '@/lib/data';
 import { CATEGORIES, CONTENT_TYPES, contentTypeLabel } from '@/lib/campaign-tags';
 import { MarketCard } from './views';
@@ -37,13 +37,13 @@ function Pick({ icon: Icon, label, value, options, onChange }: { icon: React.Ele
   return (
     <label
       className={cn(
-        'relative inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm transition',
+        'relative inline-flex h-10 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-xl border px-3 text-sm transition',
         value ? 'border-transparent bg-brand font-medium text-brand-ink' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300',
       )}
     >
-      <Icon className="size-3.5" />
-      {chosen ?? label}
-      <ChevronDown className="size-3.5 opacity-60" />
+      <Icon className="size-3.5 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{chosen ?? label}</span>
+      <ChevronDown className="size-3.5 shrink-0 opacity-60" />
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} className="absolute inset-0 cursor-pointer opacity-0">
         <option value="">{label === 'Sort' ? 'Newest' : `Any ${label.toLowerCase()}`}</option>
         {options.filter(([v]) => v).map(([v, l]) => (
@@ -63,6 +63,7 @@ function Pick({ icon: Icon, label, value, options, onChange }: { icon: React.Ele
 export function DiscoverBrowser({ campaigns, forYou }: { campaigns: MarketCampaign[]; forYou: string[] }) {
   const [f, setF] = useState<Filters>(EMPTY);
   const set = (k: keyof Filters) => (v: string) => setF((x) => ({ ...x, [k]: v }));
+  const [panel, setPanel] = useState(false);
   const filtering = Object.entries(f).some(([k, v]) => k !== 'sort' && v);
 
   const niches = CATEGORIES.filter((n) => campaigns.some((c) => c.category === n)).map((n) => [n, n] as [string, string]);
@@ -86,6 +87,17 @@ export function DiscoverBrowser({ campaigns, forYou }: { campaigns: MarketCampai
     return f.sort ? [...list].sort(by[f.sort]) : list;
   }, [campaigns, f]);
 
+  const nameOf = (list: [string, string][], v: string) => list.find(([x]) => x === v)?.[1] ?? v;
+  const chips = (
+    [
+      ['niche', f.niche && nameOf(niches, f.niche)],
+      ['pay', f.pay && nameOf(PAY, f.pay)],
+      ['platform', f.platform && nameOf(PLATFORMS, f.platform)],
+      ['type', f.type && nameOf(types, f.type)],
+      ['sort', f.sort && nameOf(SORTS, f.sort)],
+    ] as [keyof Filters, string][]
+  ).filter(([, l]) => l);
+  const active = chips.length;
   const picks = forYou.map((id) => campaigns.find((c) => c.id === id)).filter((c): c is MarketCampaign => !!c);
   // Few campaigns: big cards. Lots: four across.
   const few = shown.length <= 3;
@@ -93,34 +105,56 @@ export function DiscoverBrowser({ campaigns, forYou }: { campaigns: MarketCampai
 
   return (
     <div className="space-y-8">
-      {/* Search + filters */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-zinc-400" />
+      {/* Search: one bar, filters tucked behind a button, active ones as removable chips */}
+      <div>
+        <div className="group relative flex h-14 items-center gap-2 rounded-full border border-zinc-200 bg-white pl-5 pr-2 shadow-card transition focus-within:border-[rgb(var(--brand-a))] focus-within:shadow-[0_0_0_4px_rgb(var(--brand-a)/0.12)]">
+          <Search className="size-5 shrink-0 text-zinc-400 transition group-focus-within:text-[rgb(var(--brand-ta))]" />
           <input
             value={f.q}
             onChange={(e) => set('q')(e.target.value)}
-            placeholder="Search campaigns, streamers, brands…"
-            className="h-12 w-full rounded-2xl border border-zinc-200 bg-white pl-12 pr-11 text-base shadow-card transition focus:border-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-900/5"
+            placeholder="Search campaigns"
+            aria-label="Search campaigns, streamers or brands"
+            className="h-full min-w-0 flex-1 bg-transparent text-base placeholder:text-zinc-400 focus:outline-none"
           />
           {f.q && (
-            <button type="button" onClick={() => set('q')('')} aria-label="Clear search" className="absolute right-3 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700">
+            <button type="button" onClick={() => set('q')('')} aria-label="Clear search" className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700">
               <X className="size-4" />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setPanel((o) => !o)}
+            aria-expanded={panel}
+            className={cn('inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition', panel || active > 0 ? 'bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200')}
+          >
+            <SlidersHorizontal className="size-4" />
+            <span className="hidden sm:inline">Filters</span>
+            {active > 0 && <span className="grid size-5 place-items-center rounded-full text-[11px] font-bold" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}>{active}</span>}
+          </button>
         </div>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-          {niches.length > 0 && <Pick icon={Shapes} label="Niche" value={f.niche} options={niches} onChange={set('niche')} />}
-          <Pick icon={Wallet} label="Pay" value={f.pay} options={PAY} onChange={set('pay')} />
-          <Pick icon={Compass} label="Platform" value={f.platform} options={PLATFORMS} onChange={set('platform')} />
-          {types.length > 0 && <Pick icon={Video} label="Video type" value={f.type} options={types} onChange={set('type')} />}
-          <Pick icon={ArrowDownWideNarrow} label="Sort" value={f.sort} options={SORTS} onChange={set('sort')} />
-          {filtering && (
-            <button type="button" onClick={() => setF(EMPTY)} className="inline-flex h-9 shrink-0 items-center gap-1 px-2 text-sm font-medium text-zinc-500 hover:text-zinc-900">
-              <X className="size-3.5" /> Clear
+
+        {panel && (
+          <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-card sm:grid-cols-3 lg:grid-cols-5">
+            {niches.length > 0 && <Pick icon={Shapes} label="Niche" value={f.niche} options={niches} onChange={set('niche')} />}
+            <Pick icon={Wallet} label="Pay" value={f.pay} options={PAY} onChange={set('pay')} />
+            <Pick icon={Compass} label="Platform" value={f.platform} options={PLATFORMS} onChange={set('platform')} />
+            {types.length > 0 && <Pick icon={Video} label="Video type" value={f.type} options={types} onChange={set('type')} />}
+            <Pick icon={ArrowDownWideNarrow} label="Sort" value={f.sort} options={SORTS} onChange={set('sort')} />
+          </div>
+        )}
+
+        {chips.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {chips.map(([k, label]) => (
+              <button key={k} type="button" onClick={() => set(k)('')} className="inline-flex items-center gap-1 rounded-full bg-brand-a/15 px-3 py-1 text-xs font-medium text-[rgb(var(--brand-ta))] transition hover:bg-brand-a/25">
+                {label} <X className="size-3" />
+              </button>
+            ))}
+            <button type="button" onClick={() => setF(EMPTY)} className="px-2 text-xs font-medium text-zinc-500 hover:text-zinc-900">
+              Clear all
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* For you */}
