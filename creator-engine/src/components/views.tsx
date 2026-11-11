@@ -13,6 +13,7 @@ import { holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
 import { cn } from './ui/cn';
 import { PlatformIcon } from './platform-icon';
 import { CampaignBadge, FraudBadge, SubmissionBadge } from './status';
+import { TierBadge } from './tier-badge';
 
 // `a`, or a router link component such as next/link.
 export type LinkLike = React.ElementType;
@@ -207,6 +208,7 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
             <p className="mt-1.5 flex items-center gap-2 text-sm text-zinc-600">
               <StreamerAvatar name={c.brandName} />
               <span className="truncate">{c.brandName}</span>
+              {c.agencyName && <span className="shrink-0 text-xs text-zinc-400">via {c.agencyName}</span>}
             </p>
           </div>
           <div className="flex items-baseline gap-1.5">
@@ -214,8 +216,9 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
             <span className="text-sm text-zinc-500">{r.unit}</span>
           </div>
           <p className="-mt-2 text-xs text-zinc-500">{r.terms}</p>
-          {(c.category || (c.content_types?.length ?? 0) > 0) && (
+          {(c.category || (c.content_types?.length ?? 0) > 0 || (c.min_tier && c.min_tier !== 'silver')) && (
             <div className="-mt-1 flex flex-wrap gap-1.5">
+              {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
               {c.category && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-ink">{c.category}</span>}
               {(c.content_types ?? []).map((t) => (
                 <span key={t} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600">{contentTypeLabel(t)}</span>
@@ -330,7 +333,14 @@ export function SubmissionTable({
                 <StreamerAvatar name={s.creator_name} size="md" />
                 <div className="min-w-0">
                   <p className="flex min-w-0 items-baseline gap-2">
-                    <span className="truncate text-sm font-semibold">{s.creator_name}</span>
+                    {s.creator_id ? (
+                      <a href={`/streamer/clippers/${s.creator_id}`} className="truncate text-sm font-semibold hover:underline">
+                        {s.creator_name}
+                      </a>
+                    ) : (
+                      <span className="truncate text-sm font-semibold">{s.creator_name}</span>
+                    )}
+                    {s.creator_tier && <TierBadge tier={s.creator_tier} />}
                     {s.creator_profile && (
                       <a href={s.creator_profile.url} target="_blank" rel="noreferrer" className="truncate text-xs text-zinc-500 hover:text-zinc-900 hover:underline">
                         {s.creator_profile.handle}

@@ -7,14 +7,14 @@ import { CampaignForm } from '@/components/forms/campaign-form';
 export const dynamic = 'force-dynamic';
 
 export default async function NewCampaignPage() {
-  const { brandName } = await getBrandDashboard();
+  const { brandName, agency } = await getBrandDashboard();
   return (
     <>
       <Link href="/streamer" className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
         <ArrowLeft className="size-4" /> Campaigns
       </Link>
       <PageHeader title="New campaign" description="Set it up, add a budget, then launch." />
-      <CampaignForm brandName={brandName} />
+      <CampaignForm brandName={brandName} agency={!!agency} />
     </>
   );
 }

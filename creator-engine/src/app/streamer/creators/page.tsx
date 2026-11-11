@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { TierBadge } from '@/components/tier-badge';
 import { Crown, Users } from 'lucide-react';
 import { getStreamerCreators } from '@/lib/data';
 import { compact, timeAgo, usdCompact } from '@/lib/format';
@@ -51,7 +53,9 @@ export default async function CreatorsPage() {
                     </span>
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold tracking-tight">{c.name}</p>
+                    <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate font-semibold tracking-tight hover:underline">
+                      {c.name} {c.tier && <TierBadge tier={c.tier} />}
+                    </Link>
                     <Handles handles={c.handles} />
                   </div>
                 </div>
@@ -85,7 +89,9 @@ export default async function CreatorsPage() {
                   <div className="flex min-w-0 items-center gap-3">
                     <StreamerAvatar name={c.name} size="md" />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{c.name}</p>
+                      <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate text-sm font-medium hover:underline">
+                        {c.name} {c.tier && <TierBadge tier={c.tier} />}
+                      </Link>
                       <Handles handles={c.handles} />
                     </div>
                   </div>

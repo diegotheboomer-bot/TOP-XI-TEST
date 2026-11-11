@@ -6,12 +6,13 @@ import { FormMessage } from '../form-message';
 import { SubmitButton } from '../submit-button';
 import { CampaignFormBody } from './campaign-form-body';
 
-export function CampaignForm({ brandName }: { brandName: string }) {
+export function CampaignForm({ brandName, agency = false }: { brandName: string; agency?: boolean }) {
   const [state, action] = useFormState(createCampaign, undefined);
   return (
     <form action={action}>
       <CampaignFormBody
         brandName={brandName}
+        agency={agency}
         uploadUrl={referenceUploadUrl}
         footer={
           <div className="space-y-3">

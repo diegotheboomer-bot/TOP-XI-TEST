@@ -12,7 +12,7 @@ import { DEMO_ERROR, type ActionState } from './result';
 
 const Email = z.string().trim().toLowerCase().email('Enter a valid email address.');
 const Password = z.string().min(8, 'Use at least 8 characters for your password.').max(72);
-const Role = z.enum(['brand', 'creator']);
+const Role = z.enum(['brand', 'creator', 'agency']);
 const Name = z.string().trim().min(2, 'Name is too short').max(120);
 
 /** Starts a handoff the waiting page can finish if the person taps the email's button instead of typing the code. */
@@ -171,7 +171,7 @@ export async function checkHandoff(): Promise<{ status: 'waiting' | 'signed_in' 
 export async function createProfile(_prev: ActionState, form: FormData): Promise<ActionState> {
   if (isDemo) return { error: DEMO_ERROR };
   const input = z
-    .object({ role: z.enum(['brand', 'creator']), name: z.string().trim().min(2, 'Name is too short').max(120) })
+    .object({ role: Role, name: z.string().trim().min(2, 'Name is too short').max(120) })
     .safeParse({ role: form.get('role'), name: form.get('name') });
   if (!input.success) return { error: input.error.issues[0].message };
 
@@ -180,11 +180,11 @@ export async function createProfile(_prev: ActionState, form: FormData): Promise
 
   const admin = createAdminClient();
   const { error } =
-    input.data.role === 'brand'
-      ? await admin.from('brands').insert({ owner_id: data.user.id, name: input.data.name })
+    input.data.role !== 'creator'
+      ? await admin.from('brands').insert({ owner_id: data.user.id, name: input.data.name, kind: input.data.role === 'agency' ? 'agency' : 'streamer' })
       : await admin.from('creators').insert({ user_id: data.user.id, display_name: input.data.name });
   if (error && error.code !== '23505') return { error: error.message };
-  redirect(input.data.role === 'brand' ? '/streamer' : '/clipper');
+  redirect(input.data.role === 'creator' ? '/clipper' : '/streamer');
 }
 
 export async function resetDemoData() {

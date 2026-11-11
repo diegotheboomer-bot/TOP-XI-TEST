@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { Check, Copy, FileText, Film, Image as ImageIcon, Link2, ListChecks, Loader2, MapPin, Paperclip, Plus, Upload, X } from 'lucide-react';
 import { Field, Input } from '../ui/field';
 import { cn } from '../ui/cn';
+import { TIERS, TIER_LABEL, type Tier } from '@/lib/tiers';
+import { TierBadge } from '../tier-badge';
 import { REF_MAX, REF_MAX_BYTES, kindOf, linkName, type Reference } from '@/lib/references';
 
 export type UploadUrl = (name: string, size: number) => Promise<{ error: string } | { uploadUrl: string; publicUrl: string }>;
@@ -21,7 +23,9 @@ export function InstructionsFields({
   assetFolderUrl = '',
   momentsEnabled = false,
   maxClips = null,
+  minTier = 'silver',
 }: {
+  minTier?: Tier;
   maxClips?: number | null;
   uploadUrl: UploadUrl;
   brief?: string;
@@ -37,6 +41,7 @@ export function InstructionsFields({
   const [uploading, setUploading] = useState(0);
   const [refError, setRefError] = useState('');
   const [moments, setMoments] = useState(momentsEnabled);
+  const [tier, setTier] = useState<Tier>(minTier);
 
   const addRule = () => {
     const t = rule.trim();
@@ -87,6 +92,7 @@ export function InstructionsFields({
       <input type="hidden" name="requirements" value={rules.join('\n')} />
       <input type="hidden" name="reference_items" value={JSON.stringify(refs)} />
       <input type="hidden" name="moments_enabled" value={moments ? 'true' : 'false'} />
+      <input type="hidden" name="min_tier" value={tier} />
           <Field label="What you want">
             <textarea
               id="brief"
@@ -134,7 +140,24 @@ export function InstructionsFields({
             )}
             <p className="mt-2 text-xs text-zinc-500">Clippers tick these off before they submit. You check them when you approve.</p>
           </div>
-          <label className="mt-6 flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
+          <div className="mt-6 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
+            <p className="text-sm font-medium">Who can join</p>
+            <p className="text-xs text-zinc-500">Clipper tiers come from real views, approved clips and approval rate. Higher tiers are proven clippers.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {TIERS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTier(t)}
+                  className={cn('rounded-full p-0.5 transition', tier === t ? 'ring-2 ring-[rgb(var(--brand-b))]' : 'opacity-60 hover:opacity-100')}
+                >
+                  <TierBadge tier={t} size="lg" />
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">{tier === 'silver' ? 'Everyone can join.' : `${TIER_LABEL[tier]} clippers and up only. Fewer clippers, but more reliable ones.`}</p>
+          </div>
+          <label className="mt-3 flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
             <Copy className="size-4 shrink-0 text-zinc-400" />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">Clips per clipper</span>

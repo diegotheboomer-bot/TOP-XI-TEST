@@ -34,14 +34,14 @@ export function autoPayoutDue(c: ClipState & { owed: number; campaignEnded: bool
   return c.owed >= (c.campaignEnded ? 1 : MIN_AUTO_PAYOUT);
 }
 
-// Cash-outs: clippers choose when to get paid. One free cash-out every 7 days,
-// then a small fee for each extra one (it covers the extra transfer costs).
+// Cash-outs: clippers choose when to get paid. Free cash-outs per 7 days depend on the
+// clipper's tier (see tiers.ts), then a small fee for each extra one (it covers transfer costs).
 export const MIN_CASHOUT = 10;
 export const FREE_CASHOUTS_PER_WEEK = 1;
 export const EXTRA_CASHOUT_FEE = 1;
 
 /** Fee for the next cash-out, given how many the clipper made in the last 7 days. */
-export const cashoutFee = (recentCount: number) => (recentCount >= FREE_CASHOUTS_PER_WEEK ? EXTRA_CASHOUT_FEE : 0);
+export const cashoutFee = (recentCount: number, freePerWeek = FREE_CASHOUTS_PER_WEEK) => (recentCount >= freePerWeek ? EXTRA_CASHOUT_FEE : 0);
 
 /** Approved clips past the hold, with money not yet sent, can be cashed out. */
 export function cashoutReady(c: ClipState, now = Date.now()): boolean {

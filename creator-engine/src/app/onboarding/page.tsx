@@ -20,13 +20,13 @@ export default async function OnboardingPage({ searchParams }: { searchParams: {
   const { data } = await createClient().auth.getUser();
   const meta = data.user?.user_metadata ?? {};
   const name = typeof meta.name === 'string' ? meta.name.trim().slice(0, 120) : '';
-  if ((meta.role === 'brand' || meta.role === 'creator') && name.length >= 2) {
+  if ((meta.role === 'brand' || meta.role === 'agency' || meta.role === 'creator') && name.length >= 2) {
     const admin = createAdminClient();
     const { error } =
-      meta.role === 'brand'
-        ? await admin.from('brands').insert({ owner_id: viewer.userId, name })
+      meta.role !== 'creator'
+        ? await admin.from('brands').insert({ owner_id: viewer.userId, name, kind: meta.role === 'agency' ? 'agency' : 'streamer' })
         : await admin.from('creators').insert({ user_id: viewer.userId, display_name: name });
-    if (!error || error.code === '23505') redirect(meta.role === 'brand' ? '/streamer' : '/clipper');
+    if (!error || error.code === '23505') redirect(meta.role === 'creator' ? '/clipper' : '/streamer');
   }
   return (
     <main className="grid min-h-screen place-items-center px-4 py-12">

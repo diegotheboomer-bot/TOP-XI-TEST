@@ -1,6 +1,6 @@
 // "How will you use it?" — the first choice a new visitor makes. Shared by the
 // Next app (/start) and the standalone demo (#start).
-import { Check } from 'lucide-react';
+import { ArrowRight, Building2, Check } from 'lucide-react';
 import type { LinkLike } from './views';
 import { buttonClass } from './ui/button';
 
@@ -10,7 +10,7 @@ const ROLES = [
     title: 'I stream',
     lead: 'Get clippers turning your streams into short videos. You only pay for real views.',
     photo: 'stage-lights.jpg',
-    points: ['Set a rate and a budget', 'Pin the moments worth clipping', 'Approve clips and pay clippers'],
+    points: ['Set a rate and a budget', 'Pin the moments worth clipping', 'Approve clips; we pay clippers'],
     cta: 'Continue as a streamer',
   },
   {
@@ -27,8 +27,11 @@ export function RolePicker({
   link: Link = 'a',
   streamerHref,
   clipperHref,
+  agencyHref,
   assetBase,
 }: {
+  /** Agencies running campaigns for streamers they manage. */
+  agencyHref?: string;
   link?: LinkLike;
   streamerHref: string;
   clipperHref: string;
@@ -64,6 +67,21 @@ export function RolePicker({
           </Link>
         ))}
       </div>
+      {agencyHref && (
+        <Link
+          href={agencyHref}
+          className="group mt-5 flex items-center gap-4 rounded-xl border border-zinc-200/80 bg-white p-5 shadow-card transition hover:border-zinc-400 sm:p-6"
+        >
+          <span className="platform-tile relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand text-brand-ink">
+            <Building2 className="relative size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold tracking-tight">I run an agency</span>
+            <span className="block text-sm text-zinc-600">Run clipping campaigns for the streamers you manage, all from one account.</span>
+          </span>
+          <ArrowRight className="size-5 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-zinc-900" />
+        </Link>
+      )}
     </main>
   );
 }

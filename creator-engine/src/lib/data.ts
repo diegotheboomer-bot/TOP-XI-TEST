@@ -1,6 +1,7 @@
 import { payoutReady, type PayoutSetup } from './payout-methods';
 import { redirect } from 'next/navigation';
 import { youtubeVerifyCode } from './youtube-verify';
+import { approvalRate, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
 import { isDemo } from './env';
 import { getViewer } from './session';
 import { createClient } from './supabase/server';
@@ -21,6 +22,9 @@ export type SubmissionRow = Submission & {
   creator_name: string;
   /** The clipper's account on the clip's platform, when connected. */
   creator_profile?: { handle: string; url: string } | null;
+  creator_tier?: Tier;
+  /** Share of the clipper's reviewed clips that were approved, 0–1. */
+  creator_approval?: number;
 };
 
 /** Public profile URL for a connected account. */
@@ -35,10 +39,18 @@ function profileUrl(platform: string, username: string | null, platformUserId: s
 export type MomentRow = Moment & { claimers: string[]; mine: boolean };
 
 /** A campaign as creators see it in Discover. */
-export type MarketCampaign = Campaign & { brandName: string; budget: BudgetStats; creators: number };
+export type MarketCampaign = Campaign & { brandName: string; budget: BudgetStats; creators: number; /** Set when an agency runs it for brandName. */ agencyName?: string };
+
+/** Who clippers see: the streamer, plus the agency when one runs the campaign for them. */
+function shownBrand(clientName: string | null | undefined, brands: unknown): { brandName: string; agencyName?: string } {
+  const owner = (brands as { name: string } | null)?.name ?? '';
+  return clientName ? { brandName: clientName, agencyName: owner } : { brandName: owner };
+}
 
 export interface BrandDashboard {
   brandName: string;
+  /** Agencies run campaigns for streamers they manage. */
+  agency?: boolean;
   campaigns: CampaignSummary[];
 }
 
@@ -78,6 +90,9 @@ export interface CreatorDashboard {
   payout: PayoutSetup;
   enrollments: CreatorEnrollment[];
   openCampaigns: MarketCampaign[];
+  /** Tier and the record it's based on (missing in the demo: Silver). */
+  tier?: Tier;
+  record?: ClipperRecord;
 }
 
 /** Total views across the clipper's clips, one point per day (last 30 days). */
@@ -166,6 +181,7 @@ export interface StreamerCreator {
   clips: number;
   campaigns: number;
   lastClipAt: string;
+  tier?: Tier;
 }
 
 /** Everyone who has clipped this streamer's campaigns, ranked by views. */
@@ -209,7 +225,10 @@ export async function getStreamerCreators(): Promise<StreamerCreator[]> {
     if ((s.created_at as string) > row.lastClipAt) row.lastClipAt = s.created_at as string;
     by.set(id, row);
   }
-  return [...by.values()].map(({ _camps, ...r }) => ({ ...r, campaigns: _camps.size })).sort((a, b) => b.views - a.views);
+  const records = await clipperRecords(ids);
+  return [...by.values()]
+    .map(({ _camps, ...r }) => ({ ...r, campaigns: _camps.size, tier: tierFor(records.get(r.id)!) }))
+    .sort((a, b) => b.views - a.views);
 }
 
 export interface CreatorCampaignDetail {
@@ -238,6 +257,16 @@ async function creatorNames(ids: string[]): Promise<Map<string, string>> {
   if (!unique.length) return new Map();
   const { data } = await createAdminClient().from('creators').select('id, display_name').in('id', unique);
   return new Map((data ?? []).map((c) => [c.id as string, c.display_name as string]));
+}
+
+/** Track records (for tiers) of the given clippers, from all their clips. */
+export async function clipperRecords(ids: string[]): Promise<Map<string, ClipperRecord>> {
+  const unique = [...new Set(ids)];
+  const out = new Map<string, ClipperRecord>();
+  if (!unique.length) return out;
+  const { data } = await createAdminClient().from('submissions').select('creator_id, status, current_view_count, fraud_score, created_at').in('creator_id', unique);
+  for (const id of unique) out.set(id, recordFrom((data ?? []).filter((s) => s.creator_id === id) as { status: string; current_view_count: number; fraud_score: number; created_at: string }[]));
+  return out;
 }
 
 async function requireRole(role: 'brand' | 'creator') {
@@ -306,7 +335,7 @@ export async function getBrandDashboard(): Promise<BrandDashboard> {
   const brandId = await requireRole('brand');
   const db = createClient();
   const [{ data: brand }, { data: campaigns }, { data: subs }] = await Promise.all([
-    db.from('brands').select('name').eq('id', brandId).single(),
+    db.from('brands').select('name, kind').eq('id', brandId).single(),
     db.from('campaigns').select('*').eq('brand_id', brandId).order('created_at', { ascending: false }),
     db.from('submissions').select('campaign_id, status, current_view_count, current_conversions, payout_earned'),
   ]);
@@ -314,6 +343,7 @@ export async function getBrandDashboard(): Promise<BrandDashboard> {
   const budgets = await loadBudgets(list);
   return {
     brandName: brand?.name ?? '',
+    agency: brand?.kind === 'agency',
     campaigns: list.map((c) => {
       const own = (subs ?? []).filter((s) => s.campaign_id === c.id);
       return {
@@ -343,19 +373,31 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
   const { conversion_pixels, ...rest } = campaign;
   const c = num(rest as Campaign, CAMPAIGN_NUMS);
   const creatorIds = [...new Set((subs ?? []).map((s) => s.creator_id as string))];
-  const [names, { data: socials }] = await Promise.all([
+  const [names, { data: socials }, records] = await Promise.all([
     creatorNames(creatorIds),
     creatorIds.length
       ? createAdminClient().from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', creatorIds)
       : Promise.resolve({ data: [] as { creator_id: string; platform: string; username: string | null; platform_user_id: string | null }[] }),
+    clipperRecords(creatorIds),
   ]);
   const rows = (subs ?? []).map((s) => {
+    const rec = records.get(s.creator_id as string);
     const acct = (socials ?? []).find((a) => a.creator_id === s.creator_id && a.platform === s.platform);
     return {
       ...num(s as Submission, SUB_NUMS),
       creator_name: names.get(s.creator_id as string) ?? 'Clipper',
       creator_profile: acct ? profileUrl(acct.platform as string, acct.username as string | null, acct.platform_user_id as string | null) : null,
+      creator_tier: rec ? tierFor(rec) : ('silver' as Tier),
+      creator_approval: rec ? approvalRate(rec) : 1,
     };
+  });
+  // Clips waiting for review come first, highest tier first; the rest by views.
+  rows.sort((a, b) => {
+    const pa = a.status === 'pending_review' ? 1 : 0;
+    const pb = b.status === 'pending_review' ? 1 : 0;
+    if (pa !== pb) return pb - pa;
+    if (pa) return tierRank(b.creator_tier!) - tierRank(a.creator_tier!);
+    return b.current_view_count - a.current_view_count;
   });
   const owed = rows.filter((s) => s.status === 'live_tracking').reduce((a, s) => a + s.payout_earned - s.payout_transferred, 0);
   return {
@@ -391,7 +433,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const joined = new Set((enrollments ?? []).map((e) => e.campaign_id));
   const openList = (open ?? [])
     .filter((c) => !joined.has(c.id))
-    .map(({ brands, ...c }) => ({ ...num(c as Campaign, CAMPAIGN_NUMS), brandName: (brands as { name: string } | null)?.name ?? '' }));
+    .map(({ brands, ...c }) => ({ ...num(c as Campaign, CAMPAIGN_NUMS), ...shownBrand((c as { client_name?: string | null }).client_name, brands) }));
   const budgets = await loadBudgets(openList);
   const payout = await loadPayoutSetup(creatorId, creator?.payouts_enabled ?? false);
   const { count: recentCashouts } = await createAdminClient()
@@ -409,6 +451,10 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
     youtubeCode: youtubeVerifyCode(creatorId),
     recentCashouts: recentCashouts ?? 0,
+    ...(() => {
+      const record = recordFrom((subs ?? []) as { status: string; current_view_count: number; fraud_score: number; created_at: string }[]);
+      return { record, tier: tierFor(record) };
+    })(),
     payoutsEnabled: payoutReady(payout),
     payout,
     enrollments: (enrollments ?? []).map(({ campaigns, ...e }) => {
@@ -417,7 +463,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
       return {
         enrollment: e as Enrollment,
         campaign: num(c as unknown as Campaign, CAMPAIGN_NUMS),
-        brandName: (brands as { name: string } | null)?.name ?? '',
+        ...shownBrand((c as { client_name?: string | null }).client_name, brands),
         shopDomain: (conversion_pixels as { shop_domain: string | null } | null)?.shop_domain ?? null,
         submission: sub ? num(sub as Submission, SUB_NUMS) : null,
       };
@@ -445,7 +491,7 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
   const c = num(rest as Campaign, CAMPAIGN_NUMS);
   const { creators, ...budget } = (await loadBudgets([c])).get(c.id)!;
   return {
-    campaign: { ...c, brandName: (brands as { name: string } | null)?.name ?? '', budget, creators },
+    campaign: { ...c, ...shownBrand((c as { client_name?: string | null }).client_name, brands), budget, creators },
     shopDomain: (conversion_pixels as { shop_domain: string | null } | null)?.shop_domain ?? null,
     enrollment: (enrollment as Enrollment | null) ?? null,
     submission: sub?.[0] ? num(sub[0] as Submission, SUB_NUMS) : null,
@@ -484,7 +530,7 @@ export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
   ]);
   const camps = (enrollments ?? []).map((e) => {
     const { brands, ...c } = e.campaigns as unknown as Record<string, unknown>;
-    return { ...num(c as unknown as Campaign, CAMPAIGN_NUMS), brandName: (brands as { name: string } | null)?.name ?? '' };
+    return { ...num(c as unknown as Campaign, CAMPAIGN_NUMS), ...shownBrand((c as { client_name?: string | null }).client_name, brands) };
   });
   const budgets = await loadBudgets(camps);
   return camps.map((c) => {
@@ -493,3 +539,79 @@ export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
     return { campaign: { ...c, budget, creators }, submissions: mine };
   });
 }
+
+export interface ClipperProfile {
+  id: string;
+  name: string;
+  joinedAt: string | null;
+  handles: { platform: string; handle: string; url: string }[];
+  record: ClipperRecord;
+  tier: Tier;
+  earned: number;
+  clips: number;
+  /** Campaigns with this clipper's clips: all of them for the clipper, only yours for a streamer. */
+  campaigns: { id: string; title: string; brandName: string; agencyName?: string; clips: number; views: number; earned: number; thumbnail_url: string | null; cover_color: string }[];
+}
+
+async function loadClipperProfile(creatorId: string, onlyBrand?: string): Promise<ClipperProfile | null> {
+  const admin = createAdminClient();
+  const [{ data: creator }, { data: socials }, { data: subs }] = await Promise.all([
+    admin.from('creators').select('id, display_name, created_at').eq('id', creatorId).maybeSingle(),
+    admin.from('social_accounts').select('platform, username, platform_user_id').eq('creator_id', creatorId),
+    admin.from('submissions').select('campaign_id, status, current_view_count, fraud_score, created_at, payout_earned').eq('creator_id', creatorId),
+  ]);
+  if (!creator) return null;
+  const all = (subs ?? []) as { campaign_id: string; status: string; current_view_count: number; fraud_score: number; created_at: string; payout_earned: number }[];
+  const record = recordFrom(all);
+  const ids = [...new Set(all.map((s) => s.campaign_id))];
+  const { data: camps } = ids.length
+    ? await admin.from('campaigns').select('id, title, brand_id, client_name, thumbnail_url, cover_color, brands(name)').in('id', ids)
+    : { data: [] as Record<string, unknown>[] };
+  const visible = (camps ?? []).filter((c) => !onlyBrand || c.brand_id === onlyBrand);
+  return {
+    id: creator.id as string,
+    name: creator.display_name as string,
+    joinedAt: (creator.created_at as string) ?? null,
+    handles: (socials ?? [])
+      .map((a) => profileUrl(a.platform as string, a.username as string | null, a.platform_user_id as string | null))
+      .map((h, i) => (h ? { platform: (socials ?? [])[i].platform as string, ...h } : null))
+      .filter((h): h is { platform: string; handle: string; url: string } => !!h),
+    record,
+    tier: tierFor(record),
+    earned: all.filter((s) => s.status !== 'flagged').reduce((n, s) => n + Number(s.payout_earned), 0),
+    clips: all.length,
+    campaigns: visible.map((c) => {
+      const mine = all.filter((s) => s.campaign_id === c.id && s.status !== 'flagged');
+      return {
+        id: c.id as string,
+        title: c.title as string,
+        ...shownBrand(c.client_name as string | null, c.brands),
+        clips: all.filter((s) => s.campaign_id === c.id).length,
+        views: mine.reduce((n, s) => n + Number(s.current_view_count), 0),
+        earned: mine.reduce((n, s) => n + Number(s.payout_earned), 0),
+        thumbnail_url: (c.thumbnail_url as string | null) ?? null,
+        cover_color: (c.cover_color as string) ?? '#0c0f0b',
+      };
+    }),
+  };
+}
+
+/** The signed-in clipper's own profile. */
+export async function getMyClipperProfile(): Promise<ClipperProfile | null> {
+  if (isDemo) return null;
+  return loadClipperProfile(await requireRole('creator'));
+}
+
+/** A clipper's profile as a streamer sees it: only for clippers who posted on their campaigns. */
+export async function getClipperProfileForBrand(creatorId: string): Promise<ClipperProfile | null> {
+  if (isDemo) return null;
+  const brandId = await requireRole('brand');
+  const admin = createAdminClient();
+  const { data: camps } = await admin.from('campaigns').select('id').eq('brand_id', brandId);
+  const ids = (camps ?? []).map((c) => c.id);
+  if (!ids.length) return null;
+  const { count } = await admin.from('submissions').select('id', { count: 'exact', head: true }).eq('creator_id', creatorId).in('campaign_id', ids);
+  if (!count) return null;
+  return loadClipperProfile(creatorId, brandId);
+}
+

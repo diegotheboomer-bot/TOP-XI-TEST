@@ -29,6 +29,10 @@ export interface Campaign {
   reference_items?: import('./references').Reference[];
   /** Clips earning less than this aren't paid (Per 1K views). */
   min_payout?: number;
+  /** For agency campaigns: the streamer the agency runs it for. */
+  client_name?: string | null;
+  /** Lowest clipper tier that can join. */
+  min_tier?: import('./tiers').Tier;
   /** Most clips one clipper may post; null = unlimited. */
   max_clips_per_clipper?: number | null;
   /** Pinned stream moments for clippers to claim. */

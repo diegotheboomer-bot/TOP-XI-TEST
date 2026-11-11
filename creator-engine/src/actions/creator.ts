@@ -20,7 +20,9 @@ import { paypalConfigured } from '@/lib/paypal';
 import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
 import { payClip } from '@/lib/pay-clip';
-import { MIN_CASHOUT, cashoutFee, cashoutReady } from '@/lib/payout-rules';
+import { cashoutFee, cashoutReady } from '@/lib/payout-rules';
+import { TIER_LABEL, TIER_PERKS, atLeast, tierFor, type Tier } from '@/lib/tiers';
+import { clipperRecords } from '@/lib/data';
 import { usd, usdCents } from '@/lib/format';
 import type { ActionState, SubmitCheck, SubmitState } from './result';
 
@@ -35,8 +37,13 @@ export async function joinCampaign(campaignId: string): Promise<ActionState> {
   const creatorId = await requireCreator();
   const admin = createAdminClient();
 
-  const { data: campaign } = await admin.from('campaigns').select('id, status, code_prefix').eq('id', campaignId).maybeSingle();
+  const { data: campaign } = await admin.from('campaigns').select('id, status, code_prefix, min_tier').eq('id', campaignId).maybeSingle();
   if (!campaign || campaign.status !== 'active') return { error: 'This campaign is not accepting creators.' };
+  const minTier = (campaign.min_tier ?? 'silver') as Tier;
+  if (minTier !== 'silver') {
+    const tier = tierFor((await clipperRecords([creatorId])).get(creatorId)!);
+    if (!atLeast(tier, minTier)) return { error: `This campaign is for ${TIER_LABEL[minTier]} clippers and up. You’re ${TIER_LABEL[tier]}.` };
+  }
 
   // Retry on the (unlikely) discount-code collision.
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -51,7 +58,7 @@ export async function joinCampaign(campaignId: string): Promise<ActionState> {
     if (!error.message.includes('discount_code')) return { error: 'You already joined this campaign.' };
   }
   revalidatePath('/clipper');
-  return { success: 'Joined. Your clip code is ready.' };
+  return { success: 'Joined. Post your first clip.' };
 }
 
 const SubmitSchema = z.object({
@@ -393,8 +400,10 @@ export async function cashOut(): Promise<ActionState> {
     })
     .sort((a, b) => b.owed - a.owed);
   const total = ready.reduce((n, s) => n + s.owed, 0);
-  if (total < MIN_CASHOUT) return { error: `You can cash out once you have at least ${usd(MIN_CASHOUT)} ready.` };
-  const fee = cashoutFee(count ?? 0);
+  const tier = tierFor((await clipperRecords([creatorId])).get(creatorId)!);
+  const perks = TIER_PERKS[tier];
+  if (total < perks.minCashout) return { error: `You can cash out once you have at least ${usd(perks.minCashout)} ready.` };
+  const fee = cashoutFee(count ?? 0, perks.freeCashouts);
 
   let sent = 0;
   let feeTaken = 0;

@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import type { CreatorDashboard } from '@/lib/data';
 import type { Submission, SubmissionStatus } from '@/lib/types';
-import { EXTRA_CASHOUT_FEE, MIN_CASHOUT, cashoutFee, cashoutReady } from '@/lib/payout-rules';
+import { EXTRA_CASHOUT_FEE, cashoutFee, cashoutReady } from '@/lib/payout-rules';
+import { TIER_LABEL, TIER_PERKS } from '@/lib/tiers';
 import { cashOut } from '@/actions/creator';
 import { ActionButton } from './action-button';
 import { compact, usd, usdCents } from '@/lib/format';
@@ -174,7 +175,10 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
   const owed = rows.filter((r) => r.sub.status !== 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const held = rows.filter((r) => r.sub.status === 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const ready = rows.filter((r) => !r.openPool && cashoutReady(r.sub)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
-  const fee = cashoutFee(d.recentCashouts);
+  const tier = d.tier ?? 'silver';
+  const perks = TIER_PERKS[tier];
+  const fee = cashoutFee(d.recentCashouts, perks.freeCashouts);
+  const MIN_CASHOUT = perks.minCashout;
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-8">
@@ -195,7 +199,11 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
             </p>
           )}
           <p className="mt-3 text-xs text-zinc-500">
-            {fee ? `You’ve used this week’s free cash-out. Extra cash-outs cost ${usd(EXTRA_CASHOUT_FEE)}.` : `1 free cash-out every 7 days. Extra ones cost ${usd(EXTRA_CASHOUT_FEE)}.`}
+            {perks.freeCashouts === Infinity
+              ? `${TIER_LABEL[tier]}: unlimited free cash-outs.`
+              : fee
+                ? `You’ve used this week’s free cash-outs. Extra ones cost ${usd(EXTRA_CASHOUT_FEE)}.`
+                : `${TIER_LABEL[tier]}: ${perks.freeCashouts} free cash-out${perks.freeCashouts === 1 ? '' : 's'} every 7 days. Extra ones cost ${usd(EXTRA_CASHOUT_FEE)}.`}
           </p>
         </div>
       </div>

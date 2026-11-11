@@ -12,6 +12,7 @@ export default function StartPage() {
         link={Link}
         streamerHref={isDemo ? '/streamer' : '/signup?role=brand'}
         clipperHref={isDemo ? '/clipper' : '/signup?role=creator'}
+        agencyHref={isDemo ? '/streamer' : '/signup?role=agency'}
         assetBase="/demo/thumbs/"
       />
     </>

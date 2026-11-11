@@ -11,7 +11,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: { rol
   if (await getViewer()) redirect('/onboarding');
   return (
     <AuthShell title="Create your account" subtitle="Takes a minute. We’ll email you a code to confirm." wide>
-      <SignUpForm defaultRole={searchParams.role === 'creator' ? 'creator' : 'brand'} />
+      <SignUpForm defaultRole={searchParams.role === 'creator' ? 'creator' : searchParams.role === 'agency' ? 'agency' : 'brand'} />
     </AuthShell>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormState } from 'react-dom';
 import Link from 'next/link';
-import { Check, MailCheck, Megaphone, Video } from 'lucide-react';
+import { Check, MailCheck, Megaphone, Video, Building2 } from 'lucide-react';
 import { checkHandoff, createProfile, resendCode, resetPassword, sendResetCode, signIn, signUp, verifySignupCode } from '@/actions/account';
 import type { ActionState } from '@/actions/result';
 import { FormMessage } from '../form-message';
@@ -41,6 +41,7 @@ export function SignInForm() {
 const roles = [
   { value: 'brand', icon: Megaphone, title: 'I stream', body: 'Run campaigns and pay clippers for real views.' },
   { value: 'creator', icon: Video, title: 'I clip', body: 'Clip streamers and get paid per view.' },
+  { value: 'agency', icon: Building2, title: 'I run an agency', body: 'Run clipping campaigns for the streamers you manage.' },
 ] as const;
 type Role = (typeof roles)[number]['value'];
 
@@ -54,7 +55,8 @@ function RoleCards({ role, onChange }: { role: Role; onChange: (r: Role) => void
           <label
             key={r.value}
             className={cn(
-              'relative flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition',
+              'relative flex cursor-pointer gap-3 rounded-xl border p-4 transition',
+              r.value === 'agency' ? 'col-span-2 flex-row items-center pr-9' : 'flex-col',
               on ? 'border-brand-b/60 bg-brand-a/10 ring-4 ring-brand-a/10' : 'border-zinc-200 bg-white hover:border-zinc-300',
             )}
           >
@@ -85,8 +87,8 @@ export function SignUpForm({ defaultRole = 'brand' }: { defaultRole?: Role }) {
   return (
     <form action={action} className="space-y-4">
       <RoleCards role={role} onChange={setRole} />
-      <Field label={role === 'brand' ? 'Channel name' : 'Display name'}>
-        <Input name="name" required minLength={2} autoComplete="nickname" placeholder={role === 'brand' ? 'Marlow Kade' : 'Rae'} />
+      <Field label={role === 'brand' ? 'Channel name' : role === 'agency' ? 'Agency name' : 'Display name'}>
+        <Input name="name" required minLength={2} autoComplete="nickname" placeholder={role === 'brand' ? 'Marlow Kade' : role === 'agency' ? 'Reach Clipping' : 'Rae'} />
       </Field>
       <Field label="Email">
         <Input name="email" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -204,8 +206,8 @@ export function OnboardingForm({ defaultRole = 'brand' }: { defaultRole?: 'brand
   return (
     <form action={action} className="space-y-5">
       <RoleCards role={role} onChange={setRole} />
-      <Field label={role === 'brand' ? 'Channel name' : 'Display name'}>
-        <Input name="name" required minLength={2} placeholder={role === 'brand' ? 'Marlow Kade' : 'Rae'} />
+      <Field label={role === 'brand' ? 'Channel name' : role === 'agency' ? 'Agency name' : 'Display name'}>
+        <Input name="name" required minLength={2} placeholder={role === 'brand' ? 'Marlow Kade' : role === 'agency' ? 'Reach Clipping' : 'Rae'} />
       </Field>
       <FormMessage state={state} />
       <SubmitButton className="w-full" pendingText="Setting up…">Continue</SubmitButton>

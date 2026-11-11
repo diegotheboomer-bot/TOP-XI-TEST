@@ -89,13 +89,14 @@ function Money(props: React.ComponentProps<typeof Input>) {
  * The caller supplies the <form> and the submit row (`footer`).
  */
 
-export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: string; footer: React.ReactNode; uploadUrl: UploadUrl }) {
+export function CampaignFormBody({ brandName, footer, uploadUrl, agency = false }: { brandName: string; footer: React.ReactNode; uploadUrl: UploadUrl; agency?: boolean }) {
   const [model, setModel] = useState<PayoutModel>('pure_cpm');
   const [asking, setAsking] = useState(true);
   const [thumb, setThumb] = useState<string | null>(null);
   const [thumbError, setThumbError] = useState('');
   const [budget, setBudget] = useState('1000');
   const [title, setTitle] = useState('');
+  const [client, setClient] = useState('');
   const [base, setBase] = useState('20');
   const [cpm, setCpm] = useState('3');
   const [min, setMin] = useState('5');
@@ -136,7 +137,8 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
     platforms,
     content_types: types,
     category,
-    brandName,
+    brandName: agency ? client.trim() || 'Your client' : brandName,
+    agencyName: agency ? brandName : undefined,
     creators: 0,
     budget: { deposited: 0, committed: 0, available: 0, usedShare: 0, daysLeft: null },
   };
@@ -203,6 +205,11 @@ export function CampaignFormBody({ brandName, footer, uploadUrl }: { brandName: 
             )}
           </label>
           {thumbError && <p className="-mt-3 mb-4 text-sm text-rose-600">{thumbError}</p>}
+          {agency && (
+            <Field label="Streamer you’re running this for" hint={`Clippers see “${client.trim() || 'Streamer'} · via ${brandName}”.`} className="mb-4">
+              <Input name="client_name" required minLength={2} maxLength={120} value={client} onChange={(e) => setClient(e.target.value)} placeholder="e.g. Clix" />
+            </Field>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
             <Field label="Title">
               <Input id="title" name="title" required minLength={3} maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ranked Grind Highlights" />

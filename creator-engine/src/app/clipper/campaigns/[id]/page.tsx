@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, BadgeCheck, ExternalLink, Users, Wallet } from 'lucide-react';
 import { SubmissionBadge } from '@/components/status';
+import { TierBadge } from '@/components/tier-badge';
 import { getCreatorCampaign } from '@/lib/data';
 import { compact, platformRates, rateParts, usd, usdCents, usdCompact } from '@/lib/format';
 import { contentTypeLabel } from '@/lib/campaign-tags';
@@ -46,6 +47,8 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
               <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-600">
                 <StreamerAvatar name={c.brandName} />
                 <span className="font-medium text-zinc-900">{c.brandName}</span>
+                {c.agencyName && <span className="text-xs text-zinc-500">via {c.agencyName}</span>}
+                {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
                 {c.category && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-ink">{c.category}</span>}
                 {(c.content_types ?? []).map((t) => (
                   <span key={t} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600">

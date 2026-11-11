@@ -155,7 +155,7 @@ export function AppShell({
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200/80 bg-white/90 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur-xl lg:hidden"
       >
-        <div className="mx-auto flex max-w-md items-end px-2">{items.map(tab)}</div>
+        <div className="mx-auto flex max-w-md items-end overflow-x-auto px-2 [scrollbar-width:none] [&>*]:min-w-[4rem]">{items.map(tab)}</div>
       </nav>
 
       <main className="gutter mx-auto w-full max-w-6xl pb-28 pt-6 lg:px-10 lg:py-10">{children}</main>

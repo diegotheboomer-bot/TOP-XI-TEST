@@ -43,6 +43,13 @@ export function EditCampaignForm({ campaign: c }: { campaign: Campaign }) {
           </span>
         </label>
         {thumbError && <p className="-mt-3 mb-4 text-sm text-rose-600">{thumbError}</p>}
+        {c.client_name ? (
+          <Field label="Streamer you’re running this for" className="mb-4">
+            <Input name="client_name" required minLength={2} maxLength={120} defaultValue={c.client_name} />
+          </Field>
+        ) : (
+          <input type="hidden" name="client_name" value="" />
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
           <Field label="Title">
             <Input name="title" required minLength={3} maxLength={80} defaultValue={c.title} />
@@ -62,6 +69,7 @@ export function EditCampaignForm({ campaign: c }: { campaign: Campaign }) {
           assetFolderUrl={c.asset_folder_url ?? ''}
           momentsEnabled={!!c.moments_enabled}
           maxClips={c.max_clips_per_clipper ?? null}
+          minTier={c.min_tier ?? 'silver'}
         />
       </Card>
       <p className="text-xs text-zinc-500">Pay terms can’t change once a campaign exists, so clippers always get what they signed up for.</p>
