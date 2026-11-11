@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Check, ChevronDown, Pencil, Rocket, Store, Users } from 'lucide-react';
+import { ArrowLeft, Check, Pencil, Rocket, Users } from 'lucide-react';
 import { cn } from '@/components/ui/cn';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, rateParts, usd, usdCompact } from '@/lib/format';
@@ -13,9 +13,8 @@ import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
 import { ActionButton } from '@/components/action-button';
 import { CampaignBadge } from '@/components/status';
-import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, ReferenceList, RequirementList, StorefrontStatus, StreamerAvatar, SubmissionTable, submissionActionKinds } from '@/components/views';
+import { BudgetMeter, CampaignCover, DemoBar, MomentBoard, PlatformChips, ReferenceList, RequirementList, StreamerAvatar, SubmissionTable, submissionActionKinds } from '@/components/views';
 import { MomentForm } from '@/components/forms/moment-form';
-import { ConnectStoreForm } from '@/components/forms/campaign-forms';
 import { AppAddBudget } from '@/components/checkout/app-checkout';
 import { CancelCampaign, type CancelSummary } from '@/components/cancel-campaign';
 import type { Campaign } from '@/lib/types';
@@ -205,18 +204,6 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           )}
 
 
-          <details className="group rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 shadow-card">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
-              <span className="flex items-center gap-2">
-                <Store className="size-4 text-zinc-400" /> Merch store <span className="font-normal text-zinc-400">· optional</span>
-              </span>
-              <ChevronDown className="size-4 text-zinc-400 transition group-open:rotate-180" />
-            </summary>
-            <div className="mt-4">
-              <p className="mb-3 text-xs text-zinc-500">Orders using a clipper’s code are credited to them.</p>
-              {shopDomain ? <StorefrontStatus shopDomain={shopDomain} /> : <ConnectStoreForm campaignId={c.id} />}
-            </div>
-          </details>
         </div>
       </div>
     </div>
