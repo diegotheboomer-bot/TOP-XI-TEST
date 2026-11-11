@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Clapperboard, Dumbbell, Eye, FileText, Film, GalleryHorizontal, Gamepad2, GraduationCap, Image as ImageIcon, Laugh, Link2, ListChecks, Loader2, MapPin, MessageCircle, Music, Paperclip, PieChart, Plus, Repeat2, Scissors, ShieldCheck, Sparkles, Trophy, Upload, Webcam, X } from 'lucide-react';
+import { MonitorPlay, PenTool, Smile, VenetianMask, Check, ChevronDown, Clapperboard, Dumbbell, Eye, FileText, Film, GalleryHorizontal, Gamepad2, GraduationCap, Image as ImageIcon, Laugh, Link2, ListChecks, Loader2, MapPin, MessageCircle, Music, Paperclip, PieChart, Plus, Repeat2, Scissors, ShieldCheck, Sparkles, Trophy, Upload, X } from 'lucide-react';
 import { Field, Input } from '../ui/field';
 import { Card } from '../ui/card';
 import { MarketCard } from '../views';
@@ -27,7 +27,16 @@ const PLATFORMS: [Platform, string][] = [
   ['instagram', 'Instagram Reels'],
 ];
 
-const TYPE_ICON: Record<string, React.ElementType> = { clipping: Scissors, facecam: Webcam, faceless: Gamepad2, meme: Laugh, slideshow: GalleryHorizontal, reposting: Repeat2 };
+const TYPE_ICON: Record<string, React.ElementType> = {
+  clipping: Scissors,
+  ugc_face: Smile,
+  ugc_faceless: VenetianMask,
+  slideshow: GalleryHorizontal,
+  logo: PenTool,
+  sound: Music,
+  reposting: Repeat2,
+  youtube_long: MonitorPlay,
+};
 const CATEGORY_ICON: Record<string, React.ElementType> = {
   Gaming: Gamepad2,
   IRL: MapPin,

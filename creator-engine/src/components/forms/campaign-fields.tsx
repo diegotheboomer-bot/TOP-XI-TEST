@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { Check, Copy, FileText, Film, Image as ImageIcon, Link2, ListChecks, Loader2, MapPin, Paperclip, Plus, Upload, X } from 'lucide-react';
 import { Field, Input } from '../ui/field';
 import { cn } from '../ui/cn';
-import { TIERS, TIER_LABEL, type Tier } from '@/lib/tiers';
-import { TierBadge } from '../tier-badge';
+import type { Tier } from '@/lib/tiers';
 import { REF_MAX, REF_MAX_BYTES, kindOf, linkName, type Reference } from '@/lib/references';
 
 export type UploadUrl = (name: string, size: number) => Promise<{ error: string } | { uploadUrl: string; publicUrl: string }>;
@@ -41,7 +40,9 @@ export function InstructionsFields({
   const [uploading, setUploading] = useState(0);
   const [refError, setRefError] = useState('');
   const [moments, setMoments] = useState(momentsEnabled);
-  const [tier, setTier] = useState<Tier>(minTier);
+  const [tier] = useState<Tier>(minTier);
+  const [limitOn, setLimitOn] = useState(!!maxClips);
+  const [limit, setLimit] = useState(String(maxClips ?? 3));
 
   const addRule = () => {
     const t = rule.trim();
@@ -141,41 +142,25 @@ export function InstructionsFields({
             <p className="mt-2 text-xs text-zinc-500">Clippers tick these off before they submit. You check them when you approve.</p>
           </div>
           <div className="mt-6 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
-            <p className="text-sm font-medium">Who can join</p>
-            <p className="text-xs text-zinc-500">Clipper tiers come from real views, approved clips and approval rate. Higher tiers are proven clippers.</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {TIERS.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTier(t)}
-                  className={cn('rounded-full p-0.5 transition', tier === t ? 'ring-2 ring-[rgb(var(--brand-b))]' : 'opacity-60 hover:opacity-100')}
-                >
-                  <TierBadge tier={t} size="lg" />
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">{tier === 'silver' ? 'Everyone can join.' : `${TIER_LABEL[tier]} clippers and up only. Fewer clippers, but more reliable ones.`}</p>
+            <input type="hidden" name="max_clips_per_clipper" value={limitOn ? String(Math.max(1, Math.round(Number(limit) || 1))) : ''} />
+            <label className="flex cursor-pointer items-center gap-3">
+              <Copy className="size-4 shrink-0 text-zinc-400" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">Limit clips per clipper</span>
+                <span className="block text-xs text-zinc-500">{limitOn ? 'Each clipper can post up to this many videos.' : 'Off: clippers can post as many clips as they like.'}</span>
+              </span>
+              <input type="checkbox" checked={limitOn} onChange={(e) => setLimitOn(e.target.checked)} className="sr-only" />
+              <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition', limitOn ? 'bg-brand' : 'bg-zinc-200')}>
+                <span className={cn('absolute top-0.5 size-5 rounded-full shadow transition-all', limitOn ? 'left-[22px]' : 'left-0.5')} style={{ backgroundColor: '#fff' }} />
+              </span>
+            </label>
+            {limitOn && (
+              <div className="mt-3 flex items-center gap-2 pl-7">
+                <Input inputMode="numeric" value={limit} onChange={(e) => setLimit(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))} className="h-9 w-20 tabular-nums" aria-label="Clips per clipper" />
+                <span className="text-sm text-zinc-500">clips per clipper</span>
+              </div>
+            )}
           </div>
-          <label className="mt-3 flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
-            <Copy className="size-4 shrink-0 text-zinc-400" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium">Clips per clipper</span>
-              <span className="block text-xs text-zinc-500">How many videos one clipper can post for this campaign.</span>
-            </span>
-            <select
-              name="max_clips_per_clipper"
-              defaultValue={maxClips ? String(maxClips) : ''}
-              className="h-9 rounded-lg border border-zinc-200 bg-white px-2.5 text-sm focus:outline-none focus:ring-4 focus:ring-zinc-900/5"
-            >
-              <option value="">Unlimited</option>
-              {[1, 2, 3, 5, 10, 20].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
             <MapPin className="size-4 shrink-0 text-zinc-400" />
             <span className="min-w-0 flex-1">
