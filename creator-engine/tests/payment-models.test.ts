@@ -39,7 +39,7 @@ describe('campaign form', () => {
     return CampaignSchema.safeParse(campaignInput(f));
   };
   it('accepts per post, pool, content types and a category', () => {
-    expect(form({ payout_model: 'per_post', base_payout: '20', cpm_rate: '0', cpm_cap: '20', content_types: ['clipping', 'meme'], category: 'Gaming' }).success).toBe(true);
+    expect(form({ payout_model: 'per_post', base_payout: '20', cpm_rate: '0', cpm_cap: '20', content_types: ['clipping', 'ugc_face'], category: 'Gaming' }).success).toBe(true);
     expect(form({ payout_model: 'pool', base_payout: '0', cpm_rate: '0', cpm_cap: '1000000' }).success).toBe(true);
   });
   it('rejects a per-post campaign with no amount', () => {
