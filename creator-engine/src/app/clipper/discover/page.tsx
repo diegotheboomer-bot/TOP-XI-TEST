@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Compass, Flame, Sparkles, Timer, TrendingUp } from 'lucide-react';
+import { ArrowRight, Compass, Flame, Sparkles, Timer, TrendingUp, Wallet } from 'lucide-react';
 import { getCreatorDashboard, type MarketCampaign } from '@/lib/data';
 import { rateParts, usdCompact } from '@/lib/format';
 import { rateFor } from '@/lib/payout';
@@ -46,9 +46,10 @@ function Row({ title, icon, items }: { title: string; icon: React.ReactNode; ite
   if (!items.length) return null;
   return (
     <section>
-      <h2 className="mb-3 flex items-center gap-2 font-semibold tracking-tight [&>svg]:size-4 [&>svg]:text-[rgb(var(--brand-ta))]">
+      <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight [&>svg]:size-5 [&>svg]:text-[rgb(var(--brand-ta))]">
         {icon}
         {title}
+        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">{items.length}</span>
       </h2>
       <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
         {items.map((c) => (
@@ -124,6 +125,23 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
         <Empty icon={<Compass />} title="You’ve joined everything open" body="New campaigns show up here as soon as they launch." />
       ) : (
         <div className="space-y-10">
+          {!filtering && (
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {(
+                [
+                  [Compass, String(openCampaigns.length), openCampaigns.length === 1 ? 'campaign open' : 'campaigns open'],
+                  [Wallet, usdCompact(openCampaigns.reduce((n, c) => n + c.budget.available, 0)), 'up for grabs'],
+                  [Flame, String(fresh.length), 'new this week'],
+                ] as const
+              ).map(([Icon, v, k]) => (
+                <div key={k} className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-card sm:p-4">
+                  <Icon className="size-4 text-[rgb(var(--brand-ta))]" />
+                  <p className="mt-2 text-lg font-semibold tabular-nums tracking-tight sm:text-2xl">{v}</p>
+                  <p className="text-[11px] text-zinc-500 sm:text-xs">{k}</p>
+                </div>
+              ))}
+            </div>
+          )}
           {!filtering && featured && <Featured c={featured} />}
           {!filtering && openCampaigns.length > 1 && (
             <>

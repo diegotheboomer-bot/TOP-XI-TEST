@@ -87,7 +87,10 @@ export interface CreatorEnrollment {
   campaign: Campaign;
   brandName: string;
   shopDomain: string | null;
+  /** The latest clip in this campaign (kept for older screens). */
   submission: Submission | null;
+  /** Every clip they posted to this campaign, newest first. */
+  submissions: Submission[];
 }
 
 export interface CreatorDashboard {
@@ -476,13 +479,18 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     payout,
     enrollments: (enrollments ?? []).map(({ campaigns, ...e }) => {
       const { brands, conversion_pixels, ...c } = campaigns as Record<string, unknown>;
-      const sub = (subs ?? []).find((s) => s.campaign_id === e.campaign_id);
+      const mine = (subs ?? [])
+        .filter((s) => s.campaign_id === e.campaign_id)
+        .map((s) => num(s as Submission, SUB_NUMS))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const sub = mine[0];
       return {
         enrollment: e as Enrollment,
         campaign: num(c as unknown as Campaign, CAMPAIGN_NUMS),
         ...shownBrand((c as { client_name?: string | null }).client_name, brands),
         shopDomain: (conversion_pixels as { shop_domain: string | null } | null)?.shop_domain ?? null,
-        submission: sub ? num(sub as Submission, SUB_NUMS) : null,
+        submission: sub ?? null,
+        submissions: mine,
       };
     }),
     openCampaigns: openList.map((c) => {
@@ -893,4 +901,90 @@ export async function getCampaignInvites(campaignId: string): Promise<SentInvite
       joined: inside.has(i.creator_id as string),
     };
   });
+}
+
+export interface PaidClip {
+  clipId: string;
+  campaignId: string;
+  campaignTitle: string;
+  gross: number;
+  fee: number;
+  transferId: string | null;
+  at: string;
+}
+
+export interface PayoutEvent {
+  /** A cash-out the clipper asked for, or money sent automatically when a campaign ended. */
+  kind: 'cashout' | 'automatic';
+  at: string;
+  /** What reached their account, after the tier fee. */
+  received: number;
+  fee: number;
+  clips: PaidClip[];
+}
+
+/**
+ * Every payout to the signed-in clipper, newest first, with the clips and campaigns
+ * each one paid for. Cash-outs are matched to the per-clip transfers made just before
+ * them; transfers outside any cash-out were sent automatically when a campaign ended.
+ */
+export async function getPayoutHistory(): Promise<PayoutEvent[]> {
+  if (isDemo) return [];
+  const creatorId = await requireRole('creator');
+  const admin = createAdminClient();
+  const [{ data: subs }, { data: cashouts }] = await Promise.all([
+    selectAll(() => admin.from('submissions').select('id, campaign_id').eq('creator_id', creatorId).order('id')),
+    selectAll(() => admin.from('cashouts').select('id, amount, fee, created_at').eq('creator_id', creatorId).order('id')),
+  ]);
+  if (!subs.length) return [];
+  const campOf = new Map(subs.map((s) => [s.id as string, s.campaign_id as string]));
+  const [{ data: ledger }, { data: camps }] = await Promise.all([
+    selectAllIn([...campOf.keys()], (ids) =>
+      admin.from('escrow_ledger').select('submission_id, entry_type, amount, stripe_object_id, created_at').in('submission_id', ids).in('entry_type', ['creator_payout', 'platform_fee']).order('id'),
+    ),
+    selectAllIn([...new Set(campOf.values())], (ids) => admin.from('campaigns').select('id, title').in('id', ids).order('id')),
+  ]);
+  const title = new Map(camps.map((c) => [c.id as string, c.title as string]));
+  const feeOf = new Map<string, number>();
+  for (const l of ledger) if (l.entry_type === 'platform_fee') feeOf.set(`${l.submission_id}:${l.stripe_object_id}`, Number(l.amount));
+  const paid: PaidClip[] = ledger
+    .filter((l) => l.entry_type === 'creator_payout')
+    .map((l) => {
+      const clipId = l.submission_id as string;
+      const campaignId = campOf.get(clipId)!;
+      return {
+        clipId,
+        campaignId,
+        campaignTitle: title.get(campaignId) ?? 'Campaign',
+        gross: Number(l.amount),
+        fee: feeOf.get(`${clipId}:${l.stripe_object_id}`) ?? 0,
+        transferId: (l.stripe_object_id as string | null) ?? null,
+        at: l.created_at as string,
+      };
+    })
+    .sort((a, b) => a.at.localeCompare(b.at));
+
+  // A cash-out row is written right after its transfers: claim the transfers from the 15 minutes before it.
+  const used = new Set<PaidClip>();
+  const events: PayoutEvent[] = [...cashouts]
+    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+    .map((c) => {
+      const end = new Date(c.created_at as string).getTime();
+      const clips = paid.filter((p) => !used.has(p) && new Date(p.at).getTime() <= end + 60_000 && new Date(p.at).getTime() >= end - 15 * 60_000);
+      clips.forEach((p) => used.add(p));
+      return { kind: 'cashout' as const, at: c.created_at as string, received: Number(c.amount), fee: Number(c.fee ?? 0), clips };
+    });
+  // Everything else: sent on its own (automatic payouts when a campaign ended), grouped by day.
+  const byDay = new Map<string, PaidClip[]>();
+  for (const p of paid) {
+    if (used.has(p)) continue;
+    const day = p.at.slice(0, 10);
+    byDay.set(day, [...(byDay.get(day) ?? []), p]);
+  }
+  for (const clips of byDay.values()) {
+    const fee = clips.reduce((n, p) => n + p.fee, 0);
+    const gross = clips.reduce((n, p) => n + p.gross, 0);
+    events.push({ kind: 'automatic', at: clips[clips.length - 1].at, received: Math.round((gross - fee) * 100) / 100, fee: Math.round(fee * 100) / 100, clips });
+  }
+  return events.sort((a, b) => b.at.localeCompare(a.at));
 }

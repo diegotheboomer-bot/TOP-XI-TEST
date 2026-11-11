@@ -53,7 +53,7 @@ export default async function CreatorsPage() {
                     </span>
                   </span>
                   <div className="min-w-0">
-                    <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate font-semibold tracking-tight hover:underline">
+                    <Link href={`/streamer/clippers/${c.id}`} className="flex min-w-0 items-center gap-1.5 py-0.5 font-semibold tracking-tight hover:underline">
                       <span className="truncate">{c.name}</span> {c.verified && <VerifiedMark />} {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
                     </Link>
                     <Handles handles={c.handles} />
@@ -89,7 +89,7 @@ export default async function CreatorsPage() {
                   <div className="flex min-w-0 items-center gap-3">
                     <StreamerAvatar name={c.name} size="md" src={c.avatar} />
                     <div className="min-w-0">
-                      <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate text-sm font-medium hover:underline">
+                      <Link href={`/streamer/clippers/${c.id}`} className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm font-medium hover:underline">
                         <span className="truncate">{c.name}</span> {c.verified && <VerifiedMark />} {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
                       </Link>
                       <Handles handles={c.handles} />

@@ -4,6 +4,9 @@ export const usd = (n: number) =>
 /** Always two decimals, e.g. $2,665.65 or $1,200.00. */
 export const usdCents = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
 
+/** A short, unique reference for a clip, for support and disputes: CLP- and the first 8 characters of its id. */
+export const clipRef = (id: string) => `CLP-${id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+
 export const compact = (n: number) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 
 export const percent = (n: number) => `${(n * 100).toFixed(n < 0.01 ? 2 : 1)}%`;

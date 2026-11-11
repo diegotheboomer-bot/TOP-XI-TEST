@@ -41,7 +41,7 @@ const tiktokMessages: Record<string, [string, boolean]> = {
 export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; instagram?: string } }) {
   if (await needsWelcome()) redirect('/welcome');
   const [d, invites] = await Promise.all([getCreatorDashboard(), getMyInvites()]);
-  const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
+  const subs = d.enrollments.flatMap((e) => e.submissions);
   const firstOpen = d.enrollments.find((e) => !e.submission);
   const notice: [string, boolean] | undefined = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : searchParams.instagram ? instagramMessages[searchParams.instagram] : undefined;
 

@@ -1,5 +1,7 @@
 import { MoneyJourney } from '@/components/payouts/money-journey';
-import { getCreatorDashboard } from '@/lib/data';
+import { getCreatorDashboard, getPayoutHistory } from '@/lib/data';
+import { PayoutHistory, PayoutSteps } from '@/components/payout-history';
+import { PAYOUT_METHOD_LABEL } from '@/lib/payout-methods';
 import { isDemo } from '@/lib/env';
 import { paypalConfigured } from '@/lib/paypal';
 import { completeDemoPayouts, createPayoutSession, openPayoutDashboard, refreshPayoutStatus, savePayoutMethod } from '@/actions/creator';
@@ -15,7 +17,7 @@ import { AppPayoutForm } from '@/components/payouts/app-payouts';
 export const dynamic = 'force-dynamic';
 
 export default async function PayoutsPage() {
-  const d = await getCreatorDashboard();
+  const [d, history] = await Promise.all([getCreatorDashboard(), getPayoutHistory()]);
   const rows = rowsOf(d);
   const summary = {
     paid: usdCents(rows.reduce((n, r) => n + r.sub.payout_transferred, 0)),
@@ -26,8 +28,14 @@ export default async function PayoutsPage() {
     <div className="space-y-8">
       <PageHeader
         title="Payouts"
-        description="Where your earnings go. Set up once, then get paid for every approved clip."
+        description="Where your money goes, and every payout you’ve received."
         actions={isDemo ? <CreatorSwitcher creators={demoCreators()} current={currentCreatorId()} /> : undefined}
+      />
+      <PayoutSteps
+        methodReady={d.payoutsEnabled}
+        methodLabel={d.payout.method === 'stripe' ? 'Bank account' : PAYOUT_METHOD_LABEL[d.payout.method]}
+        approved={rows.some((r) => r.sub.status === 'live_tracking' || r.sub.status === 'paid')}
+        cashedOut={history.length > 0 || rows.some((r) => r.sub.payout_transferred > 0)}
       />
       <PayoutsView
         key={isDemo ? currentCreatorId() : undefined}
@@ -52,6 +60,7 @@ export default async function PayoutsPage() {
           )
         }
       />
+      <PayoutHistory events={history} />
       <MoneyJourney />
     </div>
   );

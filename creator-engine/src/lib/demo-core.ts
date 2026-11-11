@@ -420,8 +420,8 @@ export function creatorDashboard(s: State, viewer: string): CreatorDashboard {
     payout: payoutSetupOf(me),
     enrollments: mine.map((e) => {
       const c = s.campaigns.find((x) => x.id === e.campaign_id)!;
-      const sub = s.submissions.find((x) => x.creator_id === me.id && x.campaign_id === c.id);
-      return { enrollment: e, campaign: strip(c), brandName: brandNameOf(s, c.brand_id), shopDomain: c.shopDomain, submission: sub ? stripSub(sub) : null };
+      const subs = s.submissions.filter((x) => x.creator_id === me.id && x.campaign_id === c.id).map(stripSub).sort((a, b) => b.created_at.localeCompare(a.created_at));
+      return { enrollment: e, campaign: strip(c), brandName: brandNameOf(s, c.brand_id), shopDomain: c.shopDomain, submission: subs[0] ?? null, submissions: subs };
     }),
     openCampaigns: s.campaigns.filter((c) => c.status === 'active' && !mine.some((e) => e.campaign_id === c.id)).map((c) => market(s, c)),
   };

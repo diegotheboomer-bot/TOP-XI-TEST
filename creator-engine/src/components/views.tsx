@@ -4,7 +4,7 @@ import { ArrowUpRight, Check, Clock, FileText, Film, Link2, Play, Store } from '
 import type { CampaignSummary, MarketCampaign, MomentRow, SubmissionRow } from '@/lib/data';
 import type { BudgetStats } from '@/lib/budget';
 import type { Campaign, Enrollment, Platform, Submission } from '@/lib/types';
-import { compact, hoursLabel, percent, rateParts, timeAgo, usd, usdCompact } from '@/lib/format';
+import { compact, hoursLabel, percent, rateParts, timeAgo, usd, usdCompact, clipRef } from '@/lib/format';
 import { contentTypeLabel } from '@/lib/campaign-tags';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -196,43 +196,62 @@ export function ReferenceList({ campaign }: { campaign: Pick<Campaign, 'asset_fo
 // ─── Creator marketplace ───────────────────────────────────────────────────
 export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; href: string; link?: LinkLike }) {
   const r = rateParts(c);
+  const days = budgetDaysLabel(c.budget);
+  const tags = [...(c.category ? [c.category] : []), ...(c.content_types ?? []).map(contentTypeLabel)];
   return (
     <Link
       href={href}
       aria-label={`${c.title} by ${c.brandName}, ${r.rate} ${r.unit}`}
-      className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card transition duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-[0_18px_40px_-18px_rgb(var(--brand-b)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
     >
-      <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-card transition group-hover:border-zinc-300">
-        {/* Streamer and title are printed below, so the cover is artwork only. */}
-        <CampaignCover campaign={c} brandName="" showTitle={false} />
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="min-w-0">
-            <h3 className="truncate font-semibold tracking-tight">{c.title}</h3>
-            <p className="mt-1.5 flex items-center gap-2 text-sm text-zinc-600">
-              <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
-              <span className="truncate">{c.brandName}</span>
-              {c.brandVerified && <VerifiedMark />}
-              {c.agencyName && <span className="shrink-0 text-xs text-zinc-400">via {c.agencyName}</span>}
-            </p>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-semibold tracking-tight tabular-nums">{r.rate}</span>
-            <span className="text-sm text-zinc-500">{r.unit}</span>
-          </div>
-          <p className="-mt-2 text-xs text-zinc-500">{r.terms}</p>
-          {(c.category || (c.content_types?.length ?? 0) > 0 || (c.min_tier && c.min_tier !== 'silver')) && (
-            <div className="-mt-1 flex flex-wrap gap-1.5">
-              {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
-              {c.category && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-ink">{c.category}</span>}
-              {(c.content_types ?? []).map((t) => (
-                <span key={t} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600">{contentTypeLabel(t)}</span>
-              ))}
-            </div>
-          )}
-          <BudgetMeter budget={c.budget} className="mt-auto" />
-          <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-            <PlatformChips platforms={c.platforms} />
-            <span className="shrink-0">
+      {/* Cover with the pay on it, so the number is the first thing you see. */}
+      <div className="relative overflow-hidden">
+        <CampaignCover campaign={c} brandName="" showTitle={false} className="transition duration-500 group-hover:scale-[1.04]" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0) 55%, rgba(0,0,0,0.25))' }} />
+        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+          <span className="flex gap-1">
+            {PLATFORM_ORDER.filter((p) => c.platforms.includes(p)).map((p) => (
+              <span key={p} className="grid size-6 place-items-center rounded-md backdrop-blur" style={{ backgroundColor: 'rgba(0,0,0,0.45)', color: '#fff' }} title={PLATFORM_LABEL[p]}>
+                <PlatformIcon platform={p} className="size-3" />
+              </span>
+            ))}
+          </span>
+          {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
+        </div>
+        <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2" style={{ color: '#fff' }}>
+          <span>
+            <span className="block text-2xl font-semibold leading-none tracking-tight tabular-nums">{r.rate}</span>
+            <span className="mt-1 block text-[11px]" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              {r.unit} · {r.terms}
+            </span>
+          </span>
+          {days.urgent && <span className="shrink-0 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950">{days.text}</span>}
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="line-clamp-2 min-h-[2.5rem] font-semibold leading-5 tracking-tight">{c.title}</h3>
+        <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm text-zinc-600">
+          <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
+          <span className="truncate">{c.brandName}</span>
+          {c.brandVerified && <VerifiedMark />}
+          {c.agencyName && <span className="shrink-0 truncate text-xs text-zinc-400">via {c.agencyName}</span>}
+        </p>
+        {/* One line of tags, so every card is the same height. */}
+        <div className="mt-3 flex h-5 gap-1.5 overflow-hidden">
+          {tags.slice(0, 2).map((t, i) => (
+            <span key={t} className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px]', i === 0 && c.category ? 'bg-brand font-medium text-brand-ink' : 'bg-zinc-100 text-zinc-600')}>
+              {t}
+            </span>
+          ))}
+          {tags.length > 2 && <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-500">+{tags.length - 2}</span>}
+        </div>
+        <div className="mt-auto pt-4">
+          <Progress value={c.budget.committed} max={c.budget.deposited} tone={c.budget.usedShare > 0.85 ? 'amber' : 'brand'} />
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-zinc-500">
+            <span>
+              <span className="font-semibold text-zinc-900">{usdCompact(c.budget.available)}</span> left to earn
+            </span>
+            <span>
               {c.creators} {c.creators === 1 ? 'clipper' : 'clippers'}
             </span>
           </div>
@@ -363,6 +382,10 @@ export function SubmissionTable({
                       <PlatformIcon platform={s.platform} className="size-3" />
                       Watch
                     </a>
+                    <span className="text-zinc-300">·</span>
+                    <span className="shrink-0 select-all font-mono text-[11px]" title="Clip reference, for support">
+                      {clipRef(s.id)}
+                    </span>
                     <span className={cn('truncate md:hidden', NOTE_TONE[note.tone])} title={note.text}>
                       {note.text}
                     </span>

@@ -1,13 +1,13 @@
 // Clipper "Clips" and "Earnings" pages: everything from the clipper's submissions.
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ChevronDown } from 'lucide-react';
 import type { CreatorDashboard } from '@/lib/data';
 import type { Submission, SubmissionStatus } from '@/lib/types';
 import { cashoutReady } from '@/lib/payout-rules';
 import { TIER_LABEL, TIER_PERKS, holdLabel } from '@/lib/tiers';
 import { TierBadge } from './tier-badge';
 import { CashOutForm } from './cash-out-form';
-import { compact, usd, usdCents } from '@/lib/format';
+import { clipRef, compact, usd, usdCents } from '@/lib/format';
 import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
 import { cn } from './ui/cn';
@@ -16,9 +16,9 @@ type Row = { sub: Submission; campaignTitle: string; brandName: string; cap: num
 
 export function rowsOf(d: CreatorDashboard): Row[] {
   return d.enrollments
-    .filter((e) => e.submission)
-    .map((e) => ({
-      sub: e.submission!,
+    .flatMap((e) => (e.submissions ?? (e.submission ? [e.submission] : [])).map((sub) => ({ e, sub })))
+    .map(({ e, sub }) => ({
+      sub,
       campaignTitle: e.campaign.title,
       brandName: e.brandName,
       cap: e.campaign.payout_model === 'pool' ? 0 : e.campaign.cpm_cap,
@@ -115,7 +115,9 @@ export function ClipsView({ d, tab, history }: { d: CreatorDashboard; tab: strin
                 <div className="mt-2 flex items-start justify-between gap-2 px-0.5">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{campaignTitle}</p>
-                    <p className="truncate text-xs text-zinc-500">{brandName}</p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {brandName} · <span className="font-mono">{clipRef(sub.id)}</span>
+                    </p>
                   </div>
                   <p className="shrink-0 text-sm font-semibold tabular-nums text-brand">{usdCents(sub.payout_earned)}</p>
                 </div>
@@ -244,46 +246,87 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
           </span>
         </Link>
       </div>
-      <section>
-        <h2 className="mb-3 font-semibold tracking-tight">By campaign</h2>
-        {rows.length ? (
-          <ul className="space-y-3">
-            {rows.map(({ sub, campaignTitle, brandName, cap, campaignId }) => {
-              const pct = cap > 0 ? Math.min(100, (sub.payout_earned / cap) * 100) : 0;
-              return (
-                <li key={sub.id} className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-card sm:p-5">
-                  <div className="flex items-center gap-3">
-                    <PlatformTile platform={sub.platform} />
-                    <div className="min-w-0 flex-1">
-                      <Link href={`/clipper/campaigns/${campaignId}`} className="block truncate text-sm font-medium hover:underline">
-                        {campaignTitle}
-                      </Link>
-                      <p className="truncate text-xs text-zinc-500">{brandName}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold tabular-nums">{usdCents(sub.payout_earned)}</p>
-                      <p className="text-xs tabular-nums text-zinc-500">{usdCents(sub.payout_transferred)} paid</p>
-                    </div>
-                  </div>
-                  {cap > 0 && (
-                    <div className="mt-4">
-                      <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
-                        <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
-                      </div>
-                      <p className="mt-1.5 text-xs tabular-nums text-zinc-500">
-                        {Math.round(pct)}% of the {usd(cap)} cap
-                      </p>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <Empty title="Nothing earned yet" body="Your earnings per campaign show up here once your clips get views." />
-        )}
-      </section>
+      <ByCampaign rows={rows} />
     </div>
+  );
+}
+
+/** Earnings per campaign, with every clip (and its reference) inside. */
+function ByCampaign({ rows }: { rows: Row[] }) {
+  const groups = new Map<string, Row[]>();
+  for (const r of rows) groups.set(r.campaignId, [...(groups.get(r.campaignId) ?? []), r]);
+  const list = [...groups.values()]
+    .map((clips) => ({
+      clips,
+      first: clips[0],
+      earned: clips.reduce((n, c) => n + c.sub.payout_earned, 0),
+      paid: clips.reduce((n, c) => n + c.sub.payout_transferred, 0),
+      views: clips.reduce((n, c) => n + c.sub.current_view_count, 0),
+    }))
+    .sort((a, b) => b.earned - a.earned);
+  return (
+    <section>
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="font-semibold tracking-tight">By campaign</h2>
+        <span className="text-xs text-zinc-500">
+          {list.length} {list.length === 1 ? 'campaign' : 'campaigns'} · {rows.length} {rows.length === 1 ? 'clip' : 'clips'}
+        </span>
+      </div>
+      {list.length ? (
+        <ul className="space-y-3">
+          {list.map(({ clips, first, earned, paid, views }) => (
+            <li key={first.campaignId} className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{first.campaignTitle}</p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {first.brandName} · {clips.length} {clips.length === 1 ? 'clip' : 'clips'} · {compact(views)} views
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold tabular-nums">{usdCents(earned)}</p>
+                    <p className="text-xs tabular-nums text-zinc-500">{usdCents(paid)} paid</p>
+                  </div>
+                  <ChevronDown className="size-4 shrink-0 text-zinc-400 transition group-open:rotate-180" />
+                </summary>
+                <div className="px-4 pb-4 sm:px-5">
+                  <div className="flex h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                    <div className="h-full bg-brand" style={{ width: `${earned > 0 ? (paid / earned) * 100 : 0}%` }} />
+                    <div className="h-full bg-brand opacity-30" style={{ width: `${earned > 0 ? ((earned - paid) / earned) * 100 : 0}%` }} />
+                  </div>
+                  <ul className="mt-3 divide-y divide-zinc-100">
+                    {clips.map(({ sub, cap }) => (
+                      <li key={sub.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+                        <PlatformTile platform={sub.platform} className="size-7 rounded-lg" iconClassName="size-3.5" />
+                        <div className="min-w-0">
+                          <a href={sub.video_url} target="_blank" rel="noreferrer" className="font-mono text-xs font-semibold hover:underline">
+                            {clipRef(sub.id)}
+                          </a>
+                          <p className="text-xs text-zinc-500">
+                            {compact(sub.current_view_count)} views · {new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {cap > 0 && ` · ${Math.round(Math.min(100, (sub.payout_earned / cap) * 100))}% of ${usd(cap)} cap`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <SubmissionBadge status={sub.status} />
+                          <span className="w-16 text-right text-sm font-semibold tabular-nums">{usdCents(sub.payout_earned)}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={`/clipper/campaigns/${first.campaignId}`} className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900">
+                    Open campaign <ArrowUpRight className="size-3.5" />
+                  </Link>
+                </div>
+              </details>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Empty title="Nothing earned yet" body="Your earnings per campaign show up here once your clips get views." />
+      )}
+    </section>
   );
 }
 
