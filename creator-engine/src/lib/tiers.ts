@@ -103,3 +103,6 @@ export function tierProgress(r: ClipperRecord): { tier: Tier; next: Tier | null;
   const parts = p.items.map((it) => (it.need ? Math.min(1, it.have / it.need) : 1));
   return { tier, next: p.next, pct: parts.reduce((a, b) => a + b, 0) / parts.length };
 }
+
+/** 250K, 2.5M, 10M */
+export const compactViews = (n: number) => (n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));

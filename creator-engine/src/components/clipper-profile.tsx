@@ -2,23 +2,14 @@ import Link from 'next/link';
 import { Check } from 'lucide-react';
 import type { ClipperProfile } from '@/lib/data';
 import { compact, usd, usdCompact } from '@/lib/format';
-import { TIERS, TIER_LABEL, TIER_PERKS, holdLabel, TIER_RULES, approvalRate, nextTierProgress, tierRank, type Tier } from '@/lib/tiers';
+import { TIER_LABEL, TIER_RULES, approvalRate, nextTierProgress } from '@/lib/tiers';
 import type { Platform } from '@/lib/types';
 import { PlatformIcon } from './platform-icon';
 import { StreamerAvatar } from './views';
 import { TierBadge, TierEmblem } from './tier-badge';
-import { TierLadder } from './tier-progress';
-import { cn } from './ui/cn';
+import { NextTierBar } from './tier-progress';
+import { TierGuideButton } from './tier-guide';
 
-const perkLines = (t: Tier) => {
-  const p = TIER_PERKS[t];
-  return [
-    `${p.feePct}% payout fee`,
-    p.cashoutsPerWeek === Infinity ? 'Unlimited cash-outs' : `${p.cashoutsPerWeek} cash-out${p.cashoutsPerWeek === 1 ? '' : 's'} a week`,
-    `Paid ${holdLabel(p.holdHours)} after approval`,
-    ...(t === 'silver' ? ['Join any open campaign'] : [`${TIER_LABEL[t]}-only campaigns`, 'Reviewed first by streamers']),
-  ];
-};
 
 /** A clipper's tier, record and campaigns. `own` adds tier progress and the perks table. */
 export function ClipperProfileView({ p, own = false, campaignHref }: { p: ClipperProfile; own?: boolean; campaignHref: (id: string) => string }) {
@@ -50,9 +41,14 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
             </div>
           </div>
         </div>
-        <div className="relative mt-6">
-          <TierLadder record={p.record} />
-        </div>
+        {own && (
+          <div className="relative mt-6 rounded-xl border border-zinc-100 p-4">
+            <NextTierBar record={p.record} />
+            <div className="mt-3">
+              <TierGuideButton record={p.record} />
+            </div>
+          </div>
+        )}
         <dl className="relative mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-100 bg-zinc-100 sm:grid-cols-4">
           {[
             ['Verified views', compact(p.record.views)],
@@ -69,7 +65,7 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
       </section>
 
       {own && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div>
           {/* Progress to the next tier */}
           <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
             {next ? (
@@ -111,25 +107,6 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
             )}
           </section>
 
-          {/* Perks per tier */}
-          <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
-            <h2 className="font-semibold tracking-tight">Tier perks</h2>
-            <ul className="mt-4 space-y-3">
-              {TIERS.map((t) => {
-                const on = t === p.tier;
-                const reached = tierRank(t) <= tierRank(p.tier);
-                return (
-                  <li key={t} className={cn('rounded-xl border px-3.5 py-3', on ? 'border-brand-b/60 bg-brand-a/10' : 'border-zinc-200', !reached && 'opacity-70')}>
-                    <div className="flex items-center justify-between">
-                      <TierBadge tier={t} />
-                      {on && <span className="text-[11px] font-semibold text-[rgb(var(--brand-ta))]">You</span>}
-                    </div>
-                    <p className="mt-1.5 text-xs text-zinc-600">{perkLines(t).join(' · ')}</p>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
         </div>
       )}
 
