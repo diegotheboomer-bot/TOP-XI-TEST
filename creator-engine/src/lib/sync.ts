@@ -1,3 +1,4 @@
+import { selectAll } from './fetch-all';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, poolShares, type PayoutTerms } from './payout';
 import { detectBotVelocity, detectLowEngagement, hashSimilarity, DUPLICATE_THRESHOLD, LOW_ENGAGEMENT_REASON } from './fraud';
@@ -28,13 +29,16 @@ export interface SyncReport {
  * Videos are grouped per creator because TikTok stats need that creator's token.
  */
 export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncReport> {
-  const { data, error } = await admin
-    .from('submissions')
-    .select('*, campaigns!inner(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, min_payout, platform_rates, status)')
-    .in('status', ['live_tracking', 'pending_review'])
-    // Ended (cancelled) campaigns are skipped: their earnings are final.
-    .in('campaigns.status', ['active', 'paused'])
-    .in('platform', ['tiktok', 'youtube', 'instagram']);
+  const { data, error } = await selectAll(() =>
+    admin
+      .from('submissions')
+      .select('*, campaigns!inner(payout_model, base_payout, cpm_rate, cpm_cap, cps_commission_pct, min_payout, platform_rates, status)')
+      .in('status', ['live_tracking', 'pending_review'])
+      // Ended (cancelled) campaigns are skipped: their earnings are final.
+      .in('campaigns.status', ['active', 'paused'])
+      .in('platform', ['tiktok', 'youtube', 'instagram'])
+      .order('id'),
+  );
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
   const report: SyncReport = { synced: 0, flagged: 0, paid: 0, failed: [] };
@@ -107,7 +111,7 @@ async function recomputePools(admin: SupabaseClient, campaignIds: string[]) {
   for (const id of campaignIds) {
     const [{ data: camp }, { data: subs }] = await Promise.all([
       admin.from('campaigns').select('escrow_balance').eq('id', id).single(),
-      admin.from('submissions').select('id, status, current_view_count, payout_transferred').eq('campaign_id', id),
+      selectAll(() => admin.from('submissions').select('id, status, current_view_count, payout_transferred').eq('campaign_id', id).order('id')),
     ]);
     if (!camp || !subs) continue;
     const eligible = subs.filter((s) => s.status === 'live_tracking' || s.status === 'paid');
@@ -126,11 +130,14 @@ async function recomputePools(admin: SupabaseClient, campaignIds: string[]) {
  * campaigns, which the metric sync skips, so earned money is never left unpaid.
  */
 async function runAutoPayouts(admin: SupabaseClient, report: SyncReport) {
-  const { data } = await admin
-    .from('submissions')
-    .select('id, creator_id, status, approved_at, payout_earned, payout_transferred, campaigns!inner(status)')
-    .eq('status', 'live_tracking')
-    .not('approved_at', 'is', null);
+  const { data } = await selectAll(() =>
+    admin
+      .from('submissions')
+      .select('id, creator_id, status, approved_at, payout_earned, payout_transferred, campaigns!inner(status)')
+      .eq('status', 'live_tracking')
+      .not('approved_at', 'is', null)
+      .order('id'),
+  );
   const rows = (data ?? []) as unknown as { id: string; creator_id: string; status: 'live_tracking'; approved_at: string; payout_earned: number; payout_transferred: number; campaigns: { status: string } }[];
   const records = await clipperRecords(admin, rows.map((r) => r.creator_id));
   for (const row of rows) {
@@ -262,12 +269,7 @@ export async function checkDuplicate(
   const phash = await perceptualHashFromUrl(coverUrl);
   if (!phash) return { phash: null, duplicateOf: null };
 
-  const { data } = await admin
-    .from('submissions')
-    .select('id, phash')
-    .eq('campaign_id', campaignId)
-    .neq('id', submissionId)
-    .not('phash', 'is', null);
+  const { data } = await selectAll(() => admin.from('submissions').select('id, phash').eq('campaign_id', campaignId).neq('id', submissionId).not('phash', 'is', null).order('id'));
 
   const match = (data ?? []).find((s) => hashSimilarity(phash, s.phash as string) > DUPLICATE_THRESHOLD);
   return { phash, duplicateOf: match?.id ?? null };

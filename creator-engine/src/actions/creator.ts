@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { selectAll } from '@/lib/fetch-all';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { isDemo } from '@/lib/env';
@@ -394,7 +395,7 @@ export async function cashOut(amount?: number): Promise<ActionState> {
   const creatorId = await requireCreator();
   const admin = createAdminClient();
   const [{ data: subs }, { data: recent }, tier] = await Promise.all([
-    admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred, campaigns(payout_model, status)').eq('creator_id', creatorId),
+    selectAll(() => admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred, campaigns(payout_model, status)').eq('creator_id', creatorId).order('id')),
     admin.from('cashouts').select('created_at').eq('creator_id', creatorId).gte('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString()).order('created_at'),
     clipperTier(admin, creatorId),
   ]);

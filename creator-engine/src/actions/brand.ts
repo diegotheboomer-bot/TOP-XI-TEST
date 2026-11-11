@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { selectAll } from '@/lib/fetch-all';
 import { redirect } from 'next/navigation';
 import { isDemo } from '@/lib/env';
 import { getViewer } from '@/lib/session';
@@ -183,7 +184,7 @@ export async function cancelCampaign(campaignId: string): Promise<ActionState> {
   const wasLive = campaign.status !== 'completed';
   if (wasLive) await admin.from('campaigns').update({ status: 'completed' }).eq('id', campaignId);
 
-  const { data: subs } = await admin.from('submissions').select('payout_earned, payout_transferred').eq('campaign_id', campaignId).eq('status', 'live_tracking');
+  const { data: subs } = await selectAll(() => admin.from('submissions').select('payout_earned, payout_transferred').eq('campaign_id', campaignId).eq('status', 'live_tracking').order('id'));
   const owed = (subs ?? []).reduce((a, x) => a + Number(x.payout_earned) - Number(x.payout_transferred), 0);
   const { data: fresh } = await admin.from('campaigns').select('escrow_balance').eq('id', campaignId).single();
   const escrowCents = Math.round(Number(fresh?.escrow_balance ?? 0) * 100);

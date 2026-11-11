@@ -2,6 +2,7 @@ import { payoutReady, type PayoutSetup } from './payout-methods';
 import { redirect } from 'next/navigation';
 import { youtubeVerifyCode } from './youtube-verify';
 import { clipperRecords as loadRecords } from './clipper-records';
+import { selectAll, selectAllIn } from './fetch-all';
 import { approvalRate, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
 import { isDemo } from './env';
 import { getViewer } from './session';
@@ -114,7 +115,7 @@ export interface CreatorDashboard {
 export async function getCreatorViewHistory(): Promise<{ day: string; views: number }[]> {
   if (isDemo) return [];
   const creatorId = await requireRole('creator');
-  const { data: subs } = await createAdminClient().from('submissions').select('id').eq('creator_id', creatorId);
+  const { data: subs } = await selectAll(() => createAdminClient().from('submissions').select('id').eq('creator_id', creatorId).order('id'));
   return viewHistory((subs ?? []).map((s) => s.id as string));
 }
 
@@ -122,12 +123,11 @@ export async function getCreatorViewHistory(): Promise<{ day: string; views: num
 async function viewHistory(ids: string[]): Promise<{ day: string; views: number }[]> {
   if (!ids.length) return [];
   const since = new Date(Date.now() - 30 * 86_400_000);
-  const { data: logs } = await createAdminClient()
-    .from('social_metrics_logs')
-    .select('submission_id, captured_at, view_count')
-    .in('submission_id', ids)
-    .gte('captured_at', since.toISOString())
-    .order('captured_at');
+  const admin = createAdminClient();
+  const { data: unsorted } = await selectAllIn(ids, (chunk) =>
+    admin.from('social_metrics_logs').select('submission_id, captured_at, view_count').in('submission_id', chunk).gte('captured_at', since.toISOString()).order('id'),
+  );
+  const logs = unsorted.sort((a, b) => String(a.captured_at).localeCompare(String(b.captured_at)));
   // Latest count per clip per day, carried forward, then summed.
   const days: string[] = [];
   for (let d = new Date(since); d <= new Date(); d = new Date(d.getTime() + 86_400_000)) days.push(d.toISOString().slice(0, 10));
@@ -165,12 +165,13 @@ export async function getStreamerStats(platform?: string): Promise<StreamerStats
   const admin = createAdminClient();
   const { data: camps } = await admin.from('campaigns').select('id, title, status').eq('brand_id', brandId).order('created_at', { ascending: false });
   if (!camps?.length) return empty;
-  let q = admin
-    .from('submissions')
-    .select('id, campaign_id, platform, status, current_view_count, payout_earned, payout_transferred')
-    .in('campaign_id', camps.map((c) => c.id));
-  if (platform) q = q.eq('platform', platform);
-  const { data: subs } = await q;
+  const { data: subs } = await selectAllIn(
+    camps.map((c) => c.id as string),
+    (ids) => {
+      const q = admin.from('submissions').select('id, campaign_id, platform, status, current_view_count, payout_earned, payout_transferred').in('campaign_id', ids);
+      return (platform ? q.eq('platform', platform) : q).order('id');
+    },
+  );
   const counted = (subs ?? []).filter((s) => s.status !== 'flagged');
   const sum = (list: typeof counted, k: 'current_view_count' | 'payout_earned' | 'payout_transferred') => list.reduce((n, s) => n + Number(s[k]), 0);
   return {
@@ -208,15 +209,14 @@ export async function getStreamerCreators(): Promise<StreamerCreator[]> {
   const admin = createAdminClient();
   const { data: camps } = await admin.from('campaigns').select('id').eq('brand_id', brandId);
   if (!camps?.length) return [];
-  const { data: subs } = await admin
-    .from('submissions')
-    .select('creator_id, campaign_id, status, current_view_count, payout_earned, payout_transferred, created_at')
-    .in('campaign_id', camps.map((c) => c.id))
-    .neq('status', 'flagged');
+  const { data: subs } = await selectAllIn(
+    camps.map((c) => c.id as string),
+    (ids) => admin.from('submissions').select('creator_id, campaign_id, status, current_view_count, payout_earned, payout_transferred, created_at').in('campaign_id', ids).neq('status', 'flagged').order('id'),
+  );
   if (!subs?.length) return [];
   const ids = [...new Set(subs.map((s) => s.creator_id as string))];
   const names = await creatorNames(ids);
-  const { data: socials } = await admin.from('social_accounts').select('creator_id, platform, username').in('creator_id', ids);
+  const { data: socials } = await selectAllIn(ids, (chunk) => admin.from('social_accounts').select('creator_id, platform, username').in('creator_id', chunk).order('id'));
   const by = new Map<string, StreamerCreator & { _camps: Set<string> }>();
   for (const s of subs) {
     const id = s.creator_id as string;
@@ -274,7 +274,8 @@ export interface CreatorCampaignDetail {
 async function creatorNames(ids: string[]): Promise<Map<string, { name: string; avatar: string | null; verified: boolean }>> {
   const unique = [...new Set(ids)];
   if (!unique.length) return new Map();
-  const { data } = await createAdminClient().from('creators').select('id, display_name, avatar_url, verified').in('id', unique);
+  const admin = createAdminClient();
+  const { data } = await selectAllIn(unique, (chunk) => admin.from('creators').select('id, display_name, avatar_url, verified').in('id', chunk).order('id'));
   return new Map((data ?? []).map((c) => [c.id as string, { name: c.display_name as string, avatar: (c.avatar_url as string | null) ?? null, verified: !!c.verified }]));
 }
 
@@ -308,8 +309,8 @@ async function loadBudgets(campaigns: Campaign[]): Promise<Map<string, BudgetSta
   if (!ids.length) return out;
   const admin = createAdminClient();
   const [{ data: ledger }, { data: subs }] = await Promise.all([
-    admin.from('escrow_ledger').select('campaign_id, entry_type, amount').in('entry_type', ['deposit', 'refund']).in('campaign_id', ids),
-    admin.from('submissions').select('campaign_id, status, payout_earned, payout_transferred').in('campaign_id', ids),
+    selectAllIn(ids, (chunk) => admin.from('escrow_ledger').select('campaign_id, entry_type, amount').in('entry_type', ['deposit', 'refund']).in('campaign_id', chunk).order('id')),
+    selectAllIn(ids, (chunk) => admin.from('submissions').select('campaign_id, status, payout_earned, payout_transferred').in('campaign_id', chunk).order('id')),
   ]);
   for (const c of campaigns) {
     const own = (subs ?? []).filter((s) => s.campaign_id === c.id);
@@ -349,7 +350,7 @@ export async function getBrandDashboard(): Promise<BrandDashboard> {
   const [{ data: brand }, { data: campaigns }, { data: subs }] = await Promise.all([
     db.from('brands').select('name, kind').eq('id', brandId).single(),
     db.from('campaigns').select('*').eq('brand_id', brandId).order('created_at', { ascending: false }),
-    db.from('submissions').select('campaign_id, status, current_view_count, current_conversions, payout_earned'),
+    selectAll(() => db.from('submissions').select('campaign_id, status, current_view_count, current_conversions, payout_earned').order('id')),
   ]);
   const list = (campaigns ?? []).map((c) => num(c as Campaign, CAMPAIGN_NUMS));
   const budgets = await loadBudgets(list);
@@ -377,8 +378,8 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
   const db = createClient();
   const [{ data: campaign }, { data: subs }, { data: ledger }] = await Promise.all([
     db.from('campaigns').select('*, conversion_pixels(shop_domain)').eq('id', id).maybeSingle(),
-    db.from('submissions').select('*').eq('campaign_id', id).order('current_view_count', { ascending: false }),
-    db.from('escrow_ledger').select('entry_type, amount, submission_id').eq('campaign_id', id),
+    selectAll(() => db.from('submissions').select('*').eq('campaign_id', id).order('current_view_count', { ascending: false }).order('id')),
+    selectAll(() => db.from('escrow_ledger').select('entry_type, amount, submission_id').eq('campaign_id', id).order('id')),
   ]);
   if (!campaign) return null;
   // Platform fees on a clip payout (submission_id set) come out of the clipper's share, not the streamer's deposit.
@@ -389,7 +390,7 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
   const [names, { data: socials }, records] = await Promise.all([
     creatorNames(creatorIds),
     creatorIds.length
-      ? createAdminClient().from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', creatorIds)
+      ? selectAllIn(creatorIds, (chunk) => createAdminClient().from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', chunk).order('id'))
       : Promise.resolve({ data: [] as { creator_id: string; platform: string; username: string | null; platform_user_id: string | null }[] }),
     clipperRecords(creatorIds),
   ]);
@@ -443,7 +444,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     createAdminClient().from('social_accounts').select('platform, username, follower_count').eq('creator_id', creatorId),
     db.from('campaign_creators').select('*, campaigns(*, brands(name, avatar_url, verified), conversion_pixels(shop_domain))').eq('creator_id', creatorId),
     db.from('campaigns').select('*, brands(name, avatar_url, verified)').eq('status', 'active').order('created_at', { ascending: false }),
-    db.from('submissions').select('*').eq('creator_id', creatorId),
+    selectAll(() => db.from('submissions').select('*').eq('creator_id', creatorId).order('id')),
   ]);
   const joined = new Set((enrollments ?? []).map((e) => e.campaign_id));
   const openList = (open ?? [])
@@ -542,7 +543,7 @@ export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
   const db = createClient();
   const [{ data: enrollments }, { data: subs }] = await Promise.all([
     db.from('campaign_creators').select('joined_at, campaigns(*, brands(name, avatar_url, verified))').eq('creator_id', creatorId).order('joined_at', { ascending: false }),
-    db.from('submissions').select('*').eq('creator_id', creatorId).order('created_at', { ascending: false }),
+    selectAll(() => db.from('submissions').select('*').eq('creator_id', creatorId).order('created_at', { ascending: false }).order('id')),
   ]);
   const camps = (enrollments ?? []).map((e) => {
     const { brands, ...c } = e.campaigns as unknown as Record<string, unknown>;
@@ -578,7 +579,7 @@ async function loadClipperProfile(creatorId: string, onlyBrand?: string): Promis
   const [{ data: creator }, { data: socials }, { data: subs }] = await Promise.all([
     admin.from('creators').select('id, display_name, created_at, avatar_url, bio, verified, interests').eq('id', creatorId).maybeSingle(),
     admin.from('social_accounts').select('platform, username, platform_user_id').eq('creator_id', creatorId),
-    admin.from('submissions').select('campaign_id, status, current_view_count, fraud_score, created_at, payout_earned').eq('creator_id', creatorId),
+    selectAll(() => admin.from('submissions').select('campaign_id, status, current_view_count, fraud_score, created_at, payout_earned').eq('creator_id', creatorId).order('id')),
   ]);
   if (!creator) return null;
   const all = (subs ?? []) as { campaign_id: string; status: string; current_view_count: number; fraud_score: number; created_at: string; payout_earned: number }[];
@@ -674,13 +675,13 @@ export async function getBrandMoney(): Promise<BrandMoney> {
   const { data: camps } = await admin.from('campaigns').select('id, title, escrow_balance').eq('brand_id', brandId);
   if (!camps?.length) return empty;
   const titles = new Map(camps.map((c) => [c.id as string, c.title as string]));
-  const { data: ledger } = await admin
-    .from('escrow_ledger')
-    .select('id, campaign_id, submission_id, entry_type, amount, created_at')
-    .in('campaign_id', [...titles.keys()])
-    .order('created_at', { ascending: false })
-    .limit(200);
-  const rows = (ledger ?? []).filter((l) => !(l.entry_type === 'platform_fee' && l.submission_id)); // clipper-side fees aren't the owner's money
+  // Totals use every ledger row; the history list shows the latest 200.
+  const { data: ledger } = await selectAllIn([...titles.keys()], (ids) =>
+    admin.from('escrow_ledger').select('id, campaign_id, submission_id, entry_type, amount, created_at').in('campaign_id', ids).order('id'),
+  );
+  const rows = ledger
+    .filter((l) => !(l.entry_type === 'platform_fee' && l.submission_id)) // clipper-side fees aren't the owner's money
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   const kindOf = (t: string): MoneyEntry['kind'] => (t === 'deposit' ? 'deposit' : t === 'creator_payout' ? 'payout' : t === 'refund' ? 'refund' : 'fee');
   const entries = rows.map((l) => ({
     id: l.id as string,
@@ -697,7 +698,7 @@ export async function getBrandMoney(): Promise<BrandMoney> {
     refunded: sum('refund'),
     fees: sum('fee'),
     held: camps.reduce((n, c) => n + Number(c.escrow_balance), 0),
-    entries,
+    entries: entries.slice(0, 200),
   };
 }
 
@@ -745,12 +746,12 @@ export async function getScoutClippers(topic?: string): Promise<ScoutClipper[]> 
   if (!ids.length) return [];
   const [records, { data: socials }, { data: posted }] = await Promise.all([
     clipperRecords(ids),
-    admin.from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', ids),
-    admin.from('submissions').select('creator_id, campaign_id').in('creator_id', ids),
+    selectAllIn(ids, (chunk) => admin.from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', chunk).order('id')),
+    selectAllIn(ids, (chunk) => admin.from('submissions').select('creator_id, campaign_id').in('creator_id', chunk).order('id')),
   ]);
   // What each clipper has clipped, by campaign niche.
   const campIds = [...new Set((posted ?? []).map((s) => s.campaign_id as string))];
-  const { data: camps } = campIds.length ? await admin.from('campaigns').select('id, category').in('id', campIds) : { data: [] };
+  const { data: camps } = await selectAllIn(campIds, (chunk) => admin.from('campaigns').select('id, category').in('id', chunk).order('id'));
   const niche = new Map((camps ?? []).map((c) => [c.id as string, c.category as string | null]));
   const clipped = new Map<string, Set<string>>();
   for (const s of posted ?? []) {
@@ -807,8 +808,8 @@ export async function getInvitableCampaigns(): Promise<InvitableCampaign[]> {
   const ids = (data ?? []).map((c) => c.id as string);
   if (!ids.length) return [];
   const [{ data: members }, { data: invites }] = await Promise.all([
-    admin.from('campaign_creators').select('campaign_id, creator_id').in('campaign_id', ids),
-    admin.from('campaign_invites').select('campaign_id, creator_id').in('campaign_id', ids),
+    selectAllIn(ids, (chunk) => admin.from('campaign_creators').select('campaign_id, creator_id').in('campaign_id', chunk).order('id')),
+    selectAllIn(ids, (chunk) => admin.from('campaign_invites').select('campaign_id, creator_id').in('campaign_id', chunk).order('id')),
   ]);
   return (data ?? []).map((c) => ({
     id: c.id as string,
