@@ -618,3 +618,57 @@ export async function getClipperProfileForBrand(creatorId: string): Promise<Clip
   return loadClipperProfile(creatorId, brandId);
 }
 
+export interface MoneyEntry {
+  id: string;
+  kind: 'deposit' | 'payout' | 'refund' | 'fee';
+  amount: number;
+  campaignId: string;
+  campaignTitle: string;
+  createdAt: string;
+}
+
+export interface BrandMoney {
+  added: number;
+  paidToClippers: number;
+  refunded: number;
+  fees: number;
+  held: number;
+  entries: MoneyEntry[];
+}
+
+/** Everything that happened to the campaign owner's money, newest first. */
+export async function getBrandMoney(): Promise<BrandMoney> {
+  const empty: BrandMoney = { added: 0, paidToClippers: 0, refunded: 0, fees: 0, held: 0, entries: [] };
+  if (isDemo) return empty;
+  const brandId = await requireRole('brand');
+  const admin = createAdminClient();
+  const { data: camps } = await admin.from('campaigns').select('id, title, escrow_balance').eq('brand_id', brandId);
+  if (!camps?.length) return empty;
+  const titles = new Map(camps.map((c) => [c.id as string, c.title as string]));
+  const { data: ledger } = await admin
+    .from('escrow_ledger')
+    .select('id, campaign_id, submission_id, entry_type, amount, created_at')
+    .in('campaign_id', [...titles.keys()])
+    .order('created_at', { ascending: false })
+    .limit(200);
+  const rows = (ledger ?? []).filter((l) => !(l.entry_type === 'platform_fee' && l.submission_id)); // clipper-side fees aren't the owner's money
+  const kindOf = (t: string): MoneyEntry['kind'] => (t === 'deposit' ? 'deposit' : t === 'creator_payout' ? 'payout' : t === 'refund' ? 'refund' : 'fee');
+  const entries = rows.map((l) => ({
+    id: l.id as string,
+    kind: kindOf(l.entry_type as string),
+    amount: Number(l.amount),
+    campaignId: l.campaign_id as string,
+    campaignTitle: titles.get(l.campaign_id as string) ?? 'Campaign',
+    createdAt: l.created_at as string,
+  }));
+  const sum = (k: MoneyEntry['kind']) => entries.filter((e) => e.kind === k).reduce((n, e) => n + e.amount, 0);
+  return {
+    added: sum('deposit'),
+    paidToClippers: sum('payout'),
+    refunded: sum('refund'),
+    fees: sum('fee'),
+    held: camps.reduce((n, c) => n + Number(c.escrow_balance), 0),
+    entries,
+  };
+}
+

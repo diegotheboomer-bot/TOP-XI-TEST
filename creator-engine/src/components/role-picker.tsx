@@ -7,19 +7,19 @@ import { buttonClass } from './ui/button';
 const ROLES = [
   {
     key: 'streamer',
-    title: 'I stream',
-    lead: 'Get clippers turning your streams into short videos. You only pay for real views.',
+    title: 'I want clips',
+    lead: 'For streamers, brands, musicians, studios and agencies. Clippers turn your content into short videos; you pay only for real views.',
     photo: 'stage-lights.jpg',
-    points: ['Set a rate and a budget', 'Pin the moments worth clipping', 'Approve clips; we pay clippers'],
-    cta: 'Continue as a streamer',
+    points: ['Set a rate and a budget', 'Share your content and rules', 'Approve clips; we pay clippers'],
+    cta: 'Get clips',
   },
   {
     key: 'clipper',
     title: 'I clip',
-    lead: 'Clip streamers you like, post on TikTok, Shorts or Reels, and get paid for the views.',
+    lead: 'Clip creators and brands you like, post on TikTok, Shorts or Reels, and get paid for the views.',
     photo: 'couch-coop.jpg',
-    points: ['Pick a streamer’s campaign', 'Clip a moment and post it', 'Get paid per 1,000 views, and level up for lower fees'],
-    cta: 'Continue as a clipper',
+    points: ['Pick a campaign', 'Clip a moment and post it', 'Get paid per 1,000 views, and level up for lower fees'],
+    cta: 'Start clipping',
   },
 ] as const;
 

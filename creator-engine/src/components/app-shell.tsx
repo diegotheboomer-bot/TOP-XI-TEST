@@ -165,10 +165,48 @@ export function AppShell({
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200/80 bg-white/90 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur-xl lg:hidden"
       >
-        <div className="mx-auto flex max-w-md items-end overflow-x-auto px-2 [scrollbar-width:none] [&>*]:min-w-[4rem]">{items.map(tab)}</div>
+        <div className="mx-auto flex max-w-md items-end px-2">
+          {(items.length > 5 ? items.slice(0, 4) : items).map(tab)}
+          {items.length > 5 && <MoreTab items={items.slice(4)} current={current} link={Link} />}
+        </div>
       </nav>
 
       <main className="gutter mx-auto w-full max-w-6xl pb-28 pt-6 lg:px-10 lg:py-10">{children}</main>
     </div>
+  );
+}
+
+/** Phone tab bar overflow: a "More" tab that opens a small menu with the rest. */
+function MoreTab({ items, current, link: Link }: { items: NavItem[]; current: string | null; link: LinkLike }) {
+  const on = items.some((i) => i.href === current);
+  return (
+    <details className="group relative flex flex-1 [&::-webkit-details-marker]:hidden">
+      <summary
+        className={cn('relative flex flex-1 cursor-pointer list-none flex-col items-center gap-1 pt-2 text-[10.5px] font-medium [&::-webkit-details-marker]:hidden', on ? 'text-zinc-900' : 'text-zinc-400')}
+      >
+        {on && <span className="absolute top-0 h-[3px] w-8 rounded-full bg-brand" />}
+        <span className={cn('grid h-8 w-12 place-items-center rounded-full', on && 'bg-brand-a/15 text-[rgb(var(--brand-ta))]')}>
+          <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
+        </span>
+        More
+      </summary>
+      <div className="absolute bottom-full right-0 mb-3 w-52 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl">
+        {items.map((i) => (
+          <Link
+            key={i.href}
+            href={i.href}
+            className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition [&>svg]:size-4', i.href === current ? 'bg-brand-a/15 font-medium' : 'hover:bg-zinc-100')}
+          >
+            {i.icon}
+            <span className="flex-1">{i.label}</span>
+            {i.badge}
+          </Link>
+        ))}
+      </div>
+    </details>
   );
 }

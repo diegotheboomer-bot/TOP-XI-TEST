@@ -12,12 +12,13 @@ export type Role = 'streamer' | 'clipper';
 
 const SECTIONS: Record<Role, NavSection> = {
   streamer: {
-    title: 'Streamer',
+    title: 'Campaigns',
     items: [
       { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus />, primary: true },
       { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
       { href: '/streamer/creators', label: 'Creators', icon: <Users /> },
       { href: '/streamer/stats', label: 'Stats', icon: <ChartColumn /> },
+      { href: '/streamer/money', label: 'Money', icon: <Wallet /> },
     ],
   },
   clipper: {
@@ -26,8 +27,8 @@ const SECTIONS: Record<Role, NavSection> = {
       { href: '/clipper', label: 'Home', icon: <House /> },
       { href: '/clipper/discover', label: 'Discover', icon: <Compass /> },
       { href: '/clipper/campaigns', label: 'Campaigns', icon: <FolderOpen /> },
-      { href: '/clipper/clips', label: 'Clips', icon: <Clapperboard /> },
       { href: '/clipper/earnings', label: 'Earnings', icon: <ChartColumn /> },
+      { href: '/clipper/clips', label: 'Clips', icon: <Clapperboard /> },
       { href: '/clipper/payouts', label: 'Payouts', icon: <Wallet /> },
       { href: '/clipper/profile', label: 'Profile', icon: <CircleUser /> },
     ],
