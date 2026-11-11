@@ -126,3 +126,13 @@
   .tier-shine::after, .tier-float, .tier-sparkle { animation: none; }
   .tier-shine::after { opacity: 0; }
 }
+
+/* Majesty: the holographic rim drifts, the halo turns, a spark orbits the emblem. */
+.majesty-ring { animation: majesty-drift 6s linear infinite; }
+@keyframes majesty-drift { to { background-position: 300% 0; } }
+.majesty-halo { animation: majesty-turn 8s linear infinite; }
+.majesty-orbit { animation: majesty-turn 5s linear infinite; }
+@keyframes majesty-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .majesty-ring, .majesty-halo, .majesty-orbit { animation: none; }
+}

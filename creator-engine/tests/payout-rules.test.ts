@@ -58,7 +58,8 @@ describe('automatic payouts (demo)', () => {
 describe('cash-outs', () => {
   it('takes the tier fee from each payout', () => {
     expect(payoutFee(100, 'silver')).toBe(9);
-    expect(payoutFee(100, 'gold')).toBe(8);
+    expect(payoutFee(100, 'gold')).toBe(8.5);
+    expect(payoutFee(100, 'platinum')).toBe(8);
     expect(payoutFee(100, 'diamond')).toBe(6);
     expect(payoutFee(100, 'majesty')).toBe(4);
     expect(payoutFee(12.34, 'silver')).toBe(1.11);

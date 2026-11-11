@@ -8,8 +8,9 @@ import { TierGuideButton } from './tier-guide';
 const TRACK: Record<string, string> = {
   silver: 'linear-gradient(90deg, #e4e4e7, #a1a1aa)',
   gold: 'linear-gradient(90deg, #fde68a, #f59e0b)',
+  platinum: 'linear-gradient(90deg, #a7f3d0, #2dd4bf)',
   diamond: 'linear-gradient(90deg, #a5f3fc, #3b82f6)',
-  majesty: 'linear-gradient(90deg, #a3e635, #22c55e, #a855f7)',
+  majesty: 'linear-gradient(90deg, #fde68a, #f472b6, #a78bfa, #67e8f9)',
 };
 
 /** One bar from the current tier to the next. */

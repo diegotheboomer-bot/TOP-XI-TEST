@@ -1,7 +1,7 @@
 // Clipper tiers, worked out from a clipper's real track record. Higher tiers get
 // cheaper cash-outs, sit higher in streamers' review lists and can join gated campaigns.
 
-export const TIERS = ['silver', 'gold', 'diamond', 'majesty'] as const;
+export const TIERS = ['silver', 'gold', 'platinum', 'diamond', 'majesty'] as const;
 export type Tier = (typeof TIERS)[number];
 
 export interface ClipperRecord {
@@ -25,9 +25,10 @@ interface TierRule {
 
 export const TIER_RULES: Record<Tier, TierRule> = {
   silver: { views: 0, approved: 0, approvalRate: 0, noFraud: false },
-  gold: { views: 250_000, approved: 5, approvalRate: 0.8, noFraud: false },
-  diamond: { views: 2_500_000, approved: 25, approvalRate: 0.9, noFraud: false },
-  majesty: { views: 10_000_000, approved: 75, approvalRate: 0.95, noFraud: true },
+  gold: { views: 50_000, approved: 8, approvalRate: 0.8, noFraud: false },
+  platinum: { views: 250_000, approved: 20, approvalRate: 0.85, noFraud: false },
+  diamond: { views: 2_500_000, approved: 50, approvalRate: 0.9, noFraud: false },
+  majesty: { views: 10_000_000, approved: 120, approvalRate: 0.95, noFraud: true },
 };
 
 export interface TierPerks {
@@ -41,7 +42,8 @@ export interface TierPerks {
 
 export const TIER_PERKS: Record<Tier, TierPerks> = {
   silver: { feePct: 9, cashoutsPerWeek: 1, holdHours: 72 },
-  gold: { feePct: 8, cashoutsPerWeek: 3, holdHours: 48 },
+  gold: { feePct: 8.5, cashoutsPerWeek: 2, holdHours: 60 },
+  platinum: { feePct: 8, cashoutsPerWeek: 3, holdHours: 48 },
   diamond: { feePct: 6, cashoutsPerWeek: 7, holdHours: 24 },
   majesty: { feePct: 4, cashoutsPerWeek: Infinity, holdHours: 12 },
 };
@@ -50,9 +52,9 @@ export const TIER_PERKS: Record<Tier, TierPerks> = {
 export const payoutFee = (gross: number, tier: Tier) => Math.round(gross * TIER_PERKS[tier].feePct) / 100;
 
 /** "3 days", "12 hours" */
-export const holdLabel = (hours: number) => (hours >= 48 ? `${hours / 24} days` : hours === 24 ? '1 day' : `${hours} hours`);
+export const holdLabel = (hours: number) => (hours >= 48 ? `${+(hours / 24).toFixed(1)} days` : hours === 24 ? '1 day' : `${hours} hours`);
 
-export const TIER_LABEL: Record<Tier, string> = { silver: 'Silver', gold: 'Gold', diamond: 'Diamond', majesty: 'Majesty' };
+export const TIER_LABEL: Record<Tier, string> = { silver: 'Silver', gold: 'Gold', platinum: 'Platinum', diamond: 'Diamond', majesty: 'Majesty' };
 
 export const approvalRate = (r: ClipperRecord) => (r.approved + r.flagged > 0 ? r.approved / (r.approved + r.flagged) : 1);
 

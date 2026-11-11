@@ -25,7 +25,7 @@ export const CampaignSchema = z
       .pipe(z.array(z.string().max(120, 'Keep each requirement under 120 characters')).max(12, 'Up to 12 requirements')),
     min_payout: money(99_999).default(0),
     client_name: z.preprocess((v) => (typeof v === 'string' && v.trim() ? v.trim() : null), z.string().max(120).nullable()).default(null),
-    min_tier: z.enum(['silver', 'gold', 'diamond', 'majesty']).default('silver'),
+    min_tier: z.enum(['silver', 'gold', 'platinum', 'diamond', 'majesty']).default('silver'),
     max_clips_per_clipper: z.preprocess((v) => (v === '' || v == null || v === '0' ? null : v), z.coerce.number().int().min(1).max(100).nullable()).default(null),
     moments_enabled: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(false),
     platform_rates: z
@@ -73,7 +73,7 @@ export const CampaignEditSchema = z.object({
     .pipe(z.array(z.string().max(120, 'Keep each requirement under 120 characters')).max(12, 'Up to 12 requirements')),
   asset_folder_url: z.union([z.literal(''), z.string().url()]),
   moments_enabled: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(false),
-  min_tier: z.enum(['silver', 'gold', 'diamond', 'majesty']).default('silver'),
+  min_tier: z.enum(['silver', 'gold', 'platinum', 'diamond', 'majesty']).default('silver'),
   client_name: z.preprocess((v) => (typeof v === 'string' && v.trim() ? v.trim() : null), z.string().max(120).nullable()).default(null),
   max_clips_per_clipper: z.preprocess((v) => (v === '' || v == null || v === '0' ? null : v), z.coerce.number().int().min(1).max(100).nullable()).default(null),
   reference_items: z
