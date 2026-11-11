@@ -7,7 +7,7 @@ import { compact, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { achEnabled, feeFor } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSale, simulateSync } from '@/actions/brand';
+import { cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
@@ -24,7 +24,7 @@ export const dynamic = 'force-dynamic';
 export default async function CampaignPage({ params, searchParams }: { params: { id: string }; searchParams: { funded?: string; fund?: string; saved?: string } }) {
   const detail = await getCampaignDetail(params.id);
   if (!detail) notFound();
-  const { campaign: c, submissions, shopDomain, deposited, refunded, paidOut, fees, budget } = detail;
+  const { campaign: c, submissions, deposited, refunded, paidOut, fees, budget } = detail;
   const r = rateParts(c);
   const ended = c.status === 'completed';
   const { data: brandRow } = isDemo ? { data: null } : await createAdminClient().from('brands').select('early_partner').eq('id', c.brand_id).single();
@@ -81,7 +81,6 @@ export default async function CampaignPage({ params, searchParams }: { params: {
       {isDemo && !ended && (
         <DemoBar>
           <ActionButton action={simulateSync.bind(null, c.id)}>Run 4h sync</ActionButton>
-          {shopDomain && <ActionButton action={simulateSale.bind(null, c.id)}>Simulate merch order</ActionButton>}
         </DemoBar>
       )}
 

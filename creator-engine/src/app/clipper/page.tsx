@@ -80,7 +80,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
           { label: 'Earned', value: usd(subs.reduce((a, s) => a + s.payout_earned, 0)) },
           { label: 'Paid out', value: usd(subs.reduce((a, s) => a + s.payout_transferred, 0)) },
           { label: 'Verified views', value: compact(subs.reduce((a, s) => a + s.current_view_count, 0)) },
-          { label: 'Merch orders', value: compact(subs.reduce((a, s) => a + s.current_conversions, 0)) },
+          { label: 'Clips', value: compact(subs.length) },
         ]}
       />
 

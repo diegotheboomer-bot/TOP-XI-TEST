@@ -7,13 +7,11 @@ import { compact, platformRates, rateParts, usd, usdCents, usdCompact } from '@/
 import { contentTypeLabel } from '@/lib/campaign-tags';
 import { PlatformIcon } from '@/components/platform-icon';
 import type { Platform } from '@/lib/types';
-import { trackingLink } from '@/lib/attribution';
 import { claimMoment, connectInstagram, connectTikTok, joinCampaign } from '@/actions/creator';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/components/action-button';
-import { CopyField } from '@/components/copy-button';
 import { EarningsEstimator } from '@/components/estimator';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
@@ -26,7 +24,6 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
   if (!d) notFound();
   const { campaign: c } = d;
   const r = rateParts(c);
-  const merchLink = d.enrollment ? trackingLink(d.shopDomain, d.enrollment.ref_param) : null;
 
   const split = platformRates(c);
   const mine = d.submissions ?? (d.submission ? [d.submission] : []);
@@ -109,7 +106,6 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
             <h2 className="mb-2 font-semibold tracking-tight">How you get paid</h2>
             <ul className="max-w-prose list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-600">
               <li>Views are read from TikTok and YouTube every 4 hours. Screenshots and self-reported numbers aren’t accepted.</li>
-              {c.payout_model === 'cps_performance' && <li>Every merch order placed with your code or link earns you {c.cps_commission_pct}%.</li>}
               {c.payout_model === 'hybrid' && (
                 <li>
                   {usd(c.base_payout)} once your clip is approved, plus {r.rate} {r.unit}.
@@ -231,11 +227,6 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                 ) : undefined
               }
             />
-            {merchLink && (
-              <div className="mt-5 border-t border-zinc-100 pt-5">
-                <CopyField label="Your merch link (earns you a cut)" value={merchLink} />
-              </div>
-            )}
           </Card>
           <Card>
             <EarningsEstimator terms={c} />

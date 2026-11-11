@@ -5,7 +5,6 @@ import type { CampaignSummary, MarketCampaign, MomentRow, SubmissionRow } from '
 import type { BudgetStats } from '@/lib/budget';
 import type { Campaign, Enrollment, Platform, Submission } from '@/lib/types';
 import { compact, hoursLabel, percent, rateParts, timeAgo, usd, usdCompact } from '@/lib/format';
-import { trackingLink } from '@/lib/attribution';
 import { contentTypeLabel } from '@/lib/campaign-tags';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -13,7 +12,6 @@ import { Progress } from './ui/progress';
 import { holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
 import { cn } from './ui/cn';
 import { PlatformIcon } from './platform-icon';
-import { CopyField } from './copy-button';
 import { CampaignBadge, FraudBadge, SubmissionBadge } from './status';
 
 // `a`, or a router link component such as next/link.
@@ -370,7 +368,7 @@ export function SubmissionTable({
                   <Progress value={s.payout_earned} max={cap} className="ml-auto mt-1 w-20" />
                 </div>
               </div>
-              <div className={cn('mt-3 grid grid-cols-2 gap-2 md:mt-0 md:flex md:justify-end [&>*:only-child]:col-span-2 [&_button]:w-full md:[&_button]:w-auto', !act && 'hidden md:flex')}>{act}</div>
+              <div className={cn('mt-3 grid grid-cols-2 gap-2 md:mt-0 md:flex md:justify-end [&>*:only-child]:col-span-2 [&_button]:w-full md:[&_button]:w-[5rem] md:[&_button]:px-0', !act && 'hidden md:flex')}>{act}</div>
             </li>
           );
         })}
@@ -397,7 +395,8 @@ function Cell({ label, value }: { label: string; value: string }) {
 export function submissionActionKinds(s: Submission, ended = false, now = Date.now()): ('approve' | 'flag' | 'pay' | 'clear')[] {
   const flag = streamerCanFlag(s, now) ? (['flag'] as const) : [];
   if (s.status === 'pending_review') return ended ? [...flag] : ['approve', ...flag];
-  if (s.status === 'live_tracking') return s.payout_earned - s.payout_transferred >= 1 ? ['pay', ...flag] : [...flag];
+  // Payouts are automatic once the hold ends, so streamers only approve or flag.
+  if (s.status === 'live_tracking') return [...flag];
   if (s.status === 'flagged') return ended ? [] : ['clear'];
   return [];
 }
@@ -510,7 +509,6 @@ export function EnrollmentCard({
   href: string;
   link?: LinkLike;
 }) {
-  const linkUrl = trackingLink(shopDomain, enrollment.ref_param);
   const r = rateParts(campaign);
   return (
     <Card className="flex min-w-0 flex-col gap-5">
@@ -528,18 +526,11 @@ export function EnrollmentCard({
         {submission && <SubmissionBadge status={submission.status} />}
       </div>
 
-      {linkUrl && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <CopyField label="Merch discount code" value={enrollment.discount_code} />
-          <CopyField label="Merch link" value={linkUrl} />
-        </div>
-      )}
-
       {submission ? (
         <div className="space-y-2 rounded-lg bg-zinc-50 p-4">
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-zinc-500">
-              {compact(submission.current_view_count)} views · {submission.current_conversions} orders
+              {compact(submission.current_view_count)} views
             </span>
             <span className="font-medium tabular-nums">
               {usd(submission.payout_earned)} <span className="text-zinc-400">/ {usd(campaign.cpm_cap)}</span>

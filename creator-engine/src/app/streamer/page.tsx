@@ -45,7 +45,7 @@ export default async function BrandDashboardPage() {
           { label: 'Escrow held', value: usd(sum((c) => c.escrow_balance)) },
           { label: 'Earned by clippers', value: usd(sum((c) => c.budget.committed)) },
           { label: 'Verified views', value: compact(sum((c) => c.views)) },
-          { label: 'Merch orders', value: compact(sum((c) => c.conversions)) },
+          { label: 'Clips', value: compact(sum((c) => c.submissions)) },
         ]}
       />
       <Card flush className="mt-8 overflow-hidden">
