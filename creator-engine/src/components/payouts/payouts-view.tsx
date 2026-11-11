@@ -11,7 +11,7 @@ import { cn } from '../ui/cn';
 import { FormMessage } from '../form-message';
 
 const OPTIONS: { method: PayoutMethod; icon: React.ReactNode; detail: string }[] = [
-  { method: 'stripe', icon: <Landmark />, detail: 'Bank account or debit card, through Stripe.' },
+  { method: 'stripe', icon: <Landmark />, detail: 'Bank account (IBAN) through Stripe. Debit card where Stripe offers it, like the US.' },
   { method: 'paypal', icon: <Mail />, detail: 'Sent to the email on your PayPal account.' },
   { method: 'venmo', icon: <Smartphone />, detail: 'Sent to your Venmo mobile number. US only.' },
 ];
@@ -146,7 +146,7 @@ export function PayoutsView({
       </Card>
       <Card className="space-y-4 text-sm lg:sticky lg:top-6">
         <Point title="Fees that shrink" body="9% comes off each payout at Silver, then 8% at Gold, 6% at Diamond and 4% at Majesty. We cover the transfer costs." />
-        <Point title="Bank or debit card" body="Stripe checks who you are once: name, date of birth, address and your bank details. Sometimes a photo of your ID." />
+        <Point title="Bank account" body="Stripe checks who you are once: name, date of birth, address and your bank details. Sometimes a photo of your ID." />
         {methods.includes('paypal') && <Point title="PayPal or Venmo" body="We only need your email or mobile number. Payouts nobody claims come back after 30 days." />}
       </Card>
     </div>

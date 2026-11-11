@@ -5,7 +5,7 @@ import { z } from 'zod';
 export type PayoutMethod = 'stripe' | 'paypal' | 'venmo';
 export const PAYOUT_METHODS: PayoutMethod[] = ['stripe', 'paypal', 'venmo'];
 
-export const PAYOUT_METHOD_LABEL: Record<PayoutMethod, string> = { stripe: 'Bank or debit card', paypal: 'PayPal', venmo: 'Venmo' };
+export const PAYOUT_METHOD_LABEL: Record<PayoutMethod, string> = { stripe: 'Bank account', paypal: 'PayPal', venmo: 'Venmo' };
 
 export interface PayoutSetup {
   method: PayoutMethod;

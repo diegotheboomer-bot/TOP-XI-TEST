@@ -74,7 +74,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             done: subs.length > 0,
             action: firstOpen ? <ButtonLink href={`/clipper/campaigns/${firstOpen.campaign.id}`} size="sm">Open campaign</ButtonLink> : undefined,
           },
-          { label: 'Set up payouts', detail: 'Choose a bank, debit card, PayPal or Venmo so you can be paid.', done: d.payoutsEnabled, action: payoutsButton },
+          { label: 'Set up payouts', detail: 'Add your bank account so you can be paid.', done: d.payoutsEnabled, action: payoutsButton },
         ]}
       />
 
