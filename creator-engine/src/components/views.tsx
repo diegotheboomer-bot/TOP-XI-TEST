@@ -341,14 +341,13 @@ export function SubmissionTable({
                 {/* Avatar carries the tier as a small corner mark, so the text lines stay clean. */}
                 <span className="relative shrink-0">
                   <StreamerAvatar name={s.creator_name} size="md" src={s.creator_avatar} />
-                  {s.creator_tier && <TierBadge tier={s.creator_tier} iconOnly className="absolute -bottom-0.5 -right-0.5" />}
+                  {s.creator_tier && <TierBadge tier={s.creator_tier} founder={s.creator_founder} iconOnly className="absolute -bottom-0.5 -right-0.5" />}
                 </span>
                 <div className="min-w-0">
                   <p className="flex min-w-0 items-baseline gap-1.5 text-sm">
                     <a href={s.creator_id ? `/streamer/clippers/${s.creator_id}` : undefined} className="truncate font-semibold hover:underline">
                       {s.creator_name}
                     </a>
-                    {s.creator_verified && <VerifiedMark className="self-center" />}
                     {s.creator_profile && (
                       <a href={s.creator_profile.url} target="_blank" rel="noreferrer" className="truncate text-xs text-zinc-500 hover:text-zinc-900">
                         {s.creator_profile.handle}

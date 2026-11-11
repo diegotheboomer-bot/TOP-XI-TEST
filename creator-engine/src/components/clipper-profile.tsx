@@ -5,7 +5,8 @@ import { compact, usd, usdCompact } from '@/lib/format';
 import { TIER_LABEL, TIER_RULES, approvalRate, nextTierProgress } from '@/lib/tiers';
 import type { Platform } from '@/lib/types';
 import { PlatformIcon } from './platform-icon';
-import { StreamerAvatar, VerifiedMark } from './views';
+import { StreamerAvatar } from './views';
+import { ClipperCard } from './clipper-card';
 import { TierBadge, TierEmblem } from './tier-badge';
 import { NextTierBar } from './tier-progress';
 import { TierGuideButton } from './tier-guide';
@@ -24,15 +25,17 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
           <span className="relative w-fit shrink-0">
             <StreamerAvatar name={p.name} size="lg" src={p.avatar} />
             <span className="absolute -bottom-2 -right-3 scale-75">
-              <TierEmblem tier={p.tier} size={40} />
+              <TierEmblem tier={p.tier} size={40} founder={p.founder} />
             </span>
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-2xl font-semibold tracking-tight">{p.name}</h1>
-              {p.verified && <VerifiedMark />}
-              <TierBadge tier={p.tier} />
             </div>
+            <p className="text-sm font-medium" style={{ color: p.founder ? '#10b981' : undefined }}>
+              {p.founder ? `Founding clipper #${String(p.founder).padStart(3, '0')} · ` : ''}
+              {TIER_LABEL[p.tier]}
+            </p>
             {p.bio && <p className="mt-1 max-w-prose text-sm text-zinc-600">{p.bio}</p>}
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
               {p.handles.length ? (
@@ -69,6 +72,11 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
             </div>
           ))}
         </dl>
+      </section>
+
+      <section className="mx-auto w-full max-w-sm">
+        <ClipperCard name={p.name} tier={p.tier} founder={p.founder} views={p.record.views} clips={p.record.approved} joinedAt={p.joinedAt} />
+        {own && !p.founder && <p className="mt-2 text-center text-xs text-zinc-500">Your card levels up with your tier.</p>}
       </section>
 
       {own && (

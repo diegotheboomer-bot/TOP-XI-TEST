@@ -6,7 +6,7 @@ import { compact, timeAgo, usdCompact } from '@/lib/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { Empty } from '@/components/ui/empty';
 import { PlatformIcon } from '@/components/platform-icon';
-import { StreamerAvatar, VerifiedMark } from '@/components/views';
+import { StreamerAvatar } from '@/components/views';
 import { cn } from '@/components/ui/cn';
 import type { Platform } from '@/lib/types';
 
@@ -54,7 +54,7 @@ export default async function CreatorsPage() {
                   </span>
                   <div className="min-w-0">
                     <Link href={`/streamer/clippers/${c.id}`} className="flex min-w-0 items-center gap-1.5 py-0.5 font-semibold tracking-tight hover:underline">
-                      <span className="truncate">{c.name}</span> {c.verified && <VerifiedMark />} {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
+                      <span className="truncate">{c.name}</span> {c.tier && <TierBadge tier={c.tier} founder={c.founder} iconOnly className="shrink-0" />}
                     </Link>
                     <Handles handles={c.handles} />
                   </div>
@@ -90,7 +90,7 @@ export default async function CreatorsPage() {
                     <StreamerAvatar name={c.name} size="md" src={c.avatar} />
                     <div className="min-w-0">
                       <Link href={`/streamer/clippers/${c.id}`} className="flex min-w-0 items-center gap-1.5 py-0.5 text-sm font-medium hover:underline">
-                        <span className="truncate">{c.name}</span> {c.verified && <VerifiedMark />} {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
+                        <span className="truncate">{c.name}</span> {c.tier && <TierBadge tier={c.tier} founder={c.founder} iconOnly className="shrink-0" />}
                       </Link>
                       <Handles handles={c.handles} />
                     </div>

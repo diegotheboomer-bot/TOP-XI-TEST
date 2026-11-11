@@ -19,8 +19,8 @@ const GOLD_TEXT = 'linear-gradient(180deg, #fff7cc 0%, #fcd34d 45%, #d97706 100%
 const gradient = (stops: string[], angle = 135) => `linear-gradient(${angle}deg, ${stops.map((c, i) => `${c} ${Math.round((i / (stops.length - 1)) * 100)}%`).join(', ')})`;
 
 /** A small shiny pill: metal gradient, bevel highlight, soft glow and a light sweep. Majesty gets its own treatment. */
-export function TierBadge({ tier, size = 'sm', className, iconOnly }: { tier: Tier; size?: 'sm' | 'lg'; className?: string; iconOnly?: boolean }) {
-  if (iconOnly) return <TierDot tier={tier} className={className} />;
+export function TierBadge({ tier, size = 'sm', className, iconOnly, founder }: { tier: Tier; size?: 'sm' | 'lg'; className?: string; iconOnly?: boolean; /** Founder number (1–100): the emerald founder hexagon. */ founder?: number | null }) {
+  if (iconOnly) return founder ? <FounderEmblem tier={tier} size={20} number={founder} className={className} /> : <TierDot tier={tier} className={className} />;
   const sizing = size === 'sm' ? 'px-2 py-0.5 text-[10px] [&_svg]:size-3' : 'px-3.5 py-1.5 text-sm [&_svg]:size-4';
   if (tier === 'majesty') {
     return (
@@ -61,7 +61,8 @@ const hex = (r: number) =>
   }).join(' ');
 
 /** A big faceted emblem for profiles: a bevelled hexagon in the tier's metal with a glowing icon. */
-export function TierEmblem({ tier, size = 72, icon }: { tier: Tier; size?: number; /** Swap the symbol (design previews). */ icon?: React.ElementType }) {
+export function TierEmblem({ tier, size = 72, icon, founder }: { tier: Tier; size?: number; /** Swap the symbol (design previews). */ icon?: React.ElementType; founder?: number | null }) {
+  if (founder) return <FounderEmblem tier={tier} size={size} number={founder} />;
   if (tier === 'majesty') return <MajestyEmblem size={size} icon={icon} />;
   const m = { ...METAL[tier], icon: icon ?? METAL[tier].icon };
   const id = `tier-${tier}`;
@@ -175,6 +176,55 @@ function TierDot({ tier, className }: { tier: Tier; className?: string }) {
       }
     >
       <Icon className="size-2.5" strokeWidth={2.8} />
+    </span>
+  );
+}
+
+const TIER_ICON: Record<Tier, [React.ElementType, string]> = {
+  silver: [Shield, '#e4e4e7'],
+  gold: [Star, '#fcd34d'],
+  platinum: [Medal, '#5eead4'],
+  diamond: [Gem, '#67e8f9'],
+  majesty: [Crown, '#fcd34d'],
+};
+const EMERALD = ['#022c22', '#047857', '#34d399', '#d1fae5', '#10b981', '#065f46', '#022c22'];
+
+/**
+ * Founding clipper (first 100): the clipper's own tier icon on dark emerald glass,
+ * with a light that travels around the rim. Hover shows the founder number.
+ */
+export function FounderEmblem({ tier, size = 72, number, className }: { tier: Tier; size?: number; number?: number; className?: string }) {
+  const [Icon, color] = TIER_ICON[tier];
+  const id = `founder-${tier}-${size}`;
+  return (
+    <span
+      title={number ? `Founder #${String(number).padStart(3, '0')} · ${TIER_LABEL[tier]}` : `Founder · ${TIER_LABEL[tier]}`}
+      className={cn('relative inline-grid shrink-0 place-items-center', className)}
+      style={{ width: size, height: size, filter: `drop-shadow(0 ${size > 30 ? 6 : 2}px ${size > 30 ? 14 : 5}px rgba(16,185,129,0.45))` }}
+    >
+      <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
+        <defs>
+          <linearGradient id={`${id}-rim`} x1="0" y1="0" x2="1" y2="1">
+            {EMERALD.map((c, i) => (
+              <stop key={i} offset={`${(i / (EMERALD.length - 1)) * 100}%`} stopColor={c} />
+            ))}
+            <animateTransform attributeName="gradientTransform" type="rotate" from="0 0.5 0.5" to="360 0.5 0.5" dur="5s" repeatCount="indefinite" />
+          </linearGradient>
+          <radialGradient id={`${id}-face`} cx="50%" cy="15%" r="90%">
+            <stop offset="0%" stopColor="#064e3b" />
+            <stop offset="55%" stopColor="#03241c" />
+            <stop offset="100%" stopColor="#010f0b" />
+          </radialGradient>
+          <linearGradient id={`${id}-gloss`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.28" />
+            <stop offset="50%" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={hex(48)} fill={`url(#${id}-rim)`} />
+        <polygon points={hex(40)} fill={`url(#${id}-face)`} />
+        <polygon points={hex(40)} fill={`url(#${id}-gloss)`} />
+      </svg>
+      <Icon className="relative" style={{ width: size * 0.4, height: size * 0.4, color, filter: `drop-shadow(0 0 ${size > 30 ? 6 : 3}px ${color})` }} strokeWidth={2.4} />
     </span>
   );
 }

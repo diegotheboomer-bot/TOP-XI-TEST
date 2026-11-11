@@ -27,6 +27,8 @@ export type SubmissionRow = Submission & {
   creator_tier?: Tier;
   creator_avatar?: string | null;
   creator_verified?: boolean;
+  /** Founding clipper number (1–100), if any. */
+  creator_founder?: number | null;
   /** Share of the clipper's reviewed clips that were approved, 0–1. */
   creator_approval?: number;
 };
@@ -109,6 +111,8 @@ export interface CreatorDashboard {
   openCampaigns: MarketCampaign[];
   /** What they said they like clipping and where they post (from the welcome questions). */
   interests?: string[];
+  /** Founding clipper number (1–100), if any. */
+  founder?: number | null;
   /** Tier and the record it's based on (missing in the demo: Silver). */
   tier?: Tier;
   record?: ClipperRecord;
@@ -203,6 +207,7 @@ export interface StreamerCreator {
   tier?: Tier;
   avatar?: string | null;
   verified?: boolean;
+  founder?: number | null;
 }
 
 /** Everyone who has clipped this streamer's campaigns, ranked by views. */
@@ -230,6 +235,7 @@ export async function getStreamerCreators(): Promise<StreamerCreator[]> {
         name: names.get(id)?.name ?? 'Clipper',
         avatar: names.get(id)?.avatar ?? null,
         verified: !!names.get(id)?.verified,
+        founder: names.get(id)?.founder ?? null,
         handles: (socials ?? []).filter((x) => x.creator_id === id).map((x) => ({ platform: x.platform as string, username: x.username as string | null })),
         views: 0,
         earned: 0,
@@ -274,12 +280,12 @@ export interface CreatorCampaignDetail {
  * Clipper display names by id. Looked up separately: submissions reference
  * campaign_creators, not creators, so PostgREST can't embed creators directly.
  */
-async function creatorNames(ids: string[]): Promise<Map<string, { name: string; avatar: string | null; verified: boolean }>> {
+async function creatorNames(ids: string[]): Promise<Map<string, { name: string; avatar: string | null; verified: boolean; founder: number | null }>> {
   const unique = [...new Set(ids)];
   if (!unique.length) return new Map();
   const admin = createAdminClient();
-  const { data } = await selectAllIn(unique, (chunk) => admin.from('creators').select('id, display_name, avatar_url, verified').in('id', chunk).order('id'));
-  return new Map((data ?? []).map((c) => [c.id as string, { name: c.display_name as string, avatar: (c.avatar_url as string | null) ?? null, verified: !!c.verified }]));
+  const { data } = await selectAllIn(unique, (chunk) => admin.from('creators').select('id, display_name, avatar_url, verified, founder_number').in('id', chunk).order('id'));
+  return new Map((data ?? []).map((c) => [c.id as string, { name: c.display_name as string, avatar: (c.avatar_url as string | null) ?? null, verified: !!c.verified, founder: (c.founder_number as number | null) ?? null }]));
 }
 
 /** Track records (for tiers) of the given clippers. */
@@ -405,6 +411,7 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
       creator_name: names.get(s.creator_id as string)?.name ?? 'Clipper',
       creator_avatar: names.get(s.creator_id as string)?.avatar ?? null,
       creator_verified: !!names.get(s.creator_id as string)?.verified,
+      creator_founder: names.get(s.creator_id as string)?.founder ?? null,
       creator_profile: acct ? profileUrl(acct.platform as string, acct.username as string | null, acct.platform_user_id as string | null) : null,
       creator_tier: rec ? tierFor(rec) : ('silver' as Tier),
       creator_approval: rec ? approvalRate(rec) : 1,
@@ -443,7 +450,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const creatorId = await requireRole('creator');
   const db = createClient();
   const [{ data: creator }, { data: account }, { data: enrollments }, { data: open }, { data: subs }] = await Promise.all([
-    db.from('creators').select('display_name, payouts_enabled, interests').eq('id', creatorId).single(),
+    db.from('creators').select('display_name, payouts_enabled, interests, founder_number').eq('id', creatorId).single(),
     createAdminClient().from('social_accounts').select('platform, username, follower_count').eq('creator_id', creatorId),
     db.from('campaign_creators').select('*, campaigns(*, brands(name, avatar_url, verified), conversion_pixels(shop_domain))').eq('creator_id', creatorId),
     db.from('campaigns').select('*, brands(name, avatar_url, verified)').eq('status', 'active').order('created_at', { ascending: false }),
@@ -466,6 +473,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   return {
     name: creator?.display_name ?? '',
     interests: ((creator as { interests?: string[] } | null)?.interests ?? []) as string[],
+    founder: ((creator as { founder_number?: number | null } | null)?.founder_number ?? null) as number | null,
     tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count } : null,
     youtube: youtube ? { channel: youtube.username, subscribers: youtube.follower_count } : null,
     instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
@@ -571,6 +579,8 @@ export interface ClipperProfile {
   avatar: string | null;
   bio: string | null;
   verified: boolean;
+  /** Founding clipper number (1–100), if any. */
+  founder: number | null;
   interests: string[];
   joinedAt: string | null;
   handles: { platform: string; handle: string; url: string }[];
@@ -585,7 +595,7 @@ export interface ClipperProfile {
 async function loadClipperProfile(creatorId: string, onlyBrand?: string): Promise<ClipperProfile | null> {
   const admin = createAdminClient();
   const [{ data: creator }, { data: socials }, { data: subs }] = await Promise.all([
-    admin.from('creators').select('id, display_name, created_at, avatar_url, bio, verified, interests').eq('id', creatorId).maybeSingle(),
+    admin.from('creators').select('id, display_name, created_at, avatar_url, bio, verified, interests, founder_number').eq('id', creatorId).maybeSingle(),
     admin.from('social_accounts').select('platform, username, platform_user_id').eq('creator_id', creatorId),
     selectAll(() => admin.from('submissions').select('campaign_id, status, current_view_count, fraud_score, created_at, payout_earned').eq('creator_id', creatorId).order('id')),
   ]);
@@ -603,6 +613,7 @@ async function loadClipperProfile(creatorId: string, onlyBrand?: string): Promis
     avatar: (creator.avatar_url as string | null) ?? null,
     bio: (creator.bio as string | null) ?? null,
     verified: !!creator.verified,
+    founder: ((creator as { founder_number?: number | null }).founder_number ?? null) as number | null,
     interests: (creator.interests as string[] | null) ?? [],
     joinedAt: (creator.created_at as string) ?? null,
     handles: (socials ?? [])
@@ -731,6 +742,7 @@ export interface ScoutClipper {
   avatar: string | null;
   bio: string | null;
   verified: boolean;
+  founder: number | null;
   interests: string[];
   /** Niches they've actually clipped (from the campaigns they posted in), stated or not. */
   clipped: string[];
@@ -749,7 +761,7 @@ export async function getScoutClippers(topic?: string): Promise<ScoutClipper[]> 
   if (isDemo) return [];
   await requireRole('brand');
   const admin = createAdminClient();
-  const { data: creators } = await admin.from('creators').select('id, display_name, avatar_url, bio, verified, interests').order('created_at', { ascending: false }).limit(500);
+  const { data: creators } = await admin.from('creators').select('id, display_name, avatar_url, bio, verified, interests, founder_number').order('created_at', { ascending: false }).limit(500);
   const ids = (creators ?? []).map((c) => c.id as string);
   if (!ids.length) return [];
   const [records, { data: socials }, { data: posted }] = await Promise.all([
@@ -778,6 +790,7 @@ export async function getScoutClippers(topic?: string): Promise<ScoutClipper[]> 
         avatar: (c.avatar_url as string | null) ?? null,
         bio: (c.bio as string | null) ?? null,
         verified: !!c.verified,
+        founder: (c.founder_number as number | null) ?? null,
         interests: ((c.interests as string[] | null) ?? []).filter((i) => !i.includes(':')),
         clipped: [...(clipped.get(c.id as string) ?? [])],
         tier: tierFor(rec),

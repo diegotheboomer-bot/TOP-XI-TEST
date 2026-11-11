@@ -8,7 +8,7 @@ import { compact } from '@/lib/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { Empty } from '@/components/ui/empty';
 import { PlatformIcon } from '@/components/platform-icon';
-import { StreamerAvatar, VerifiedMark } from '@/components/views';
+import { StreamerAvatar } from '@/components/views';
 import { TierBadge } from '@/components/tier-badge';
 import { InviteButton } from '@/components/invite-button';
 import { InviteAllButton } from '@/components/invite-all-button';
@@ -92,12 +92,11 @@ export default async function ScoutPage({ searchParams: sp }: { searchParams: Se
               <div className="flex items-center gap-3">
                 <span className="relative">
                   <StreamerAvatar name={c.name} size="md" src={c.avatar} />
-                  <TierBadge tier={c.tier} iconOnly className="absolute -bottom-0.5 -right-0.5" />
+                  <TierBadge tier={c.tier} founder={c.founder} iconOnly className="absolute -bottom-0.5 -right-0.5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 font-semibold tracking-tight hover:underline">
                     <span className="truncate">{c.name}</span>
-                    {c.verified && <VerifiedMark />}
                   </Link>
                   <p className="flex flex-wrap gap-x-2 text-xs text-zinc-500">
                     {c.handles.slice(0, 2).map((h) => (

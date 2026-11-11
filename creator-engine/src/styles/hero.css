@@ -145,3 +145,11 @@
 @media (prefers-reduced-motion: reduce) {
   .hero-reveal, .hero-float { animation: none; }
 }
+
+/* Founder card: a border that slowly flows emerald, and a soft sheen sweeping across. */
+.emerald-flow { background: linear-gradient(120deg, #022c22, #047857, #34d399, #d1fae5, #10b981, #065f46, #022c22); background-size: 300% 300%; animation: emerald-flow 6s linear infinite; }
+@keyframes emerald-flow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+.card-sheen { position: relative; overflow: hidden; }
+.card-sheen::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.12) 50%, transparent 65%); transform: translateX(-100%); animation: card-sheen 4.5s ease-in-out infinite; }
+@keyframes card-sheen { 0%, 30% { transform: translateX(-100%); } 70%, 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .emerald-flow, .card-sheen::after { animation: none; } }
