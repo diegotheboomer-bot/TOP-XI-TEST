@@ -49,7 +49,7 @@ function TierGraphic() {
 /** Assistant first; a ticket to a person when it can't help or they ask. */
 export function SupportChat({ audience = 'clipper' }: { audience?: 'clipper' | 'business' }) {
   const [turns, setTurns] = useState<(ChatTurn & { graphic?: 'tiers' })[]>([
-    { role: 'assistant', text: 'Hi! I’m the Atlas assistant. Ask me anything about campaigns, clips, payouts or tiers.' },
+    { role: 'assistant', text: 'Hi, I’m Nova, an automated help bot. I can answer general questions about campaigns, clips, payouts and tiers. I can’t see or change accounts; for that, tap “Talk to a person”.' },
   ]);
   const [options, setOptions] = useState<string[]>(STARTERS[audience]);
   const [input, setInput] = useState('');

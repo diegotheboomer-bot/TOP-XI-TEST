@@ -34,7 +34,7 @@ describe('pool', () => {
 describe('campaign form', () => {
   const form = (extra: Record<string, string | string[]>) => {
     const f = new FormData();
-    const base: Record<string, string | string[]> = { title: 'Test run', code_prefix: 'TEST', asset_folder_url: '', cps_commission_pct: '0', platforms: ['tiktok'], ...extra };
+    const base: Record<string, string | string[]> = { title: 'Test run', code_prefix: 'TEST', asset_folder_url: '', cps_commission_pct: '0', platforms: ['tiktok'], content_types: ['clipping'], ...extra };
     for (const [k, v] of Object.entries(base)) for (const x of [v].flat()) f.append(k, x);
     return CampaignSchema.safeParse(campaignInput(f));
   };

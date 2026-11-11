@@ -53,7 +53,7 @@ export const CampaignSchema = z
       })
       .pipe(z.array(ReferenceSchema).max(REF_MAX, `Up to ${REF_MAX} references`)),
     platforms: z.array(z.enum(['tiktok', 'youtube', 'instagram'])).min(1, 'Pick at least one platform for clippers').max(3),
-    content_types: z.array(z.enum(CONTENT_TYPE_IDS)).max(8).default([]),
+    content_types: z.array(z.enum(CONTENT_TYPE_IDS)).min(1, 'Pick at least one kind of video').max(8),
     category: z.enum(CATEGORY_IDS).optional(),
   })
   .refine((c) => c.cpm_cap >= c.base_payout, { message: 'The cap must be at least the base payout.' })

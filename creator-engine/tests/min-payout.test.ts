@@ -11,7 +11,7 @@ describe('min payout', () => {
 });
 
 describe('references', () => {
-  const base = { title: 'Test', payout_model: 'pure_cpm', base_payout: '0', cpm_rate: '2', cpm_cap: '100', cps_commission_pct: '0', code_prefix: 'TEST', asset_folder_url: '', platforms: ['tiktok'] };
+  const base = { title: 'Test', payout_model: 'pure_cpm', base_payout: '0', cpm_rate: '2', cpm_cap: '100', cps_commission_pct: '0', code_prefix: 'TEST', asset_folder_url: '', platforms: ['tiktok'], content_types: ['clipping'] };
   it('accepts links and files', () => {
     const r = CampaignSchema.safeParse({ ...base, reference_items: JSON.stringify([{ kind: 'video', url: 'https://x.co/a.mp4', name: 'a.mp4' }]) });
     expect(r.success && r.data.reference_items).toHaveLength(1);

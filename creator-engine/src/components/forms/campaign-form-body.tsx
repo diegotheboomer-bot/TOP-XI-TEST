@@ -112,8 +112,8 @@ export function CampaignFormBody({ brandName, footer, uploadUrl, agency = false 
   const [cap, setCap] = useState('500');
   const [perPlatform, setPerPlatform] = useState(false);
   const [platRates, setPlatRates] = useState<Partial<Record<Platform, string>>>({});
-  const [platforms, setPlatforms] = useState<Platform[]>(['tiktok', 'youtube', 'instagram']);
-  const [types, setTypes] = useState<string[]>(['clipping']);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
   const [category, setCategory] = useState<string>('Gaming');
 
   // With per-platform rates, the base rate is the lowest one (used for estimates and the card).
@@ -449,6 +449,21 @@ export function CampaignFormBody({ brandName, footer, uploadUrl, agency = false 
           </p>
         </Step>
 
+        {/* What's still missing, so nobody hits an error after filling everything in. */}
+        {(() => {
+          const missing = [
+            !thumb && 'a thumbnail',
+            title.trim().length < 3 && 'a title',
+            types.length === 0 && 'at least one kind of video',
+            platforms.length === 0 && 'at least one platform',
+            (Number(budget) || 0) < 50 && 'a budget of $50 or more',
+          ].filter(Boolean) as string[];
+          return missing.length ? (
+            <p className="rounded-xl border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600">
+              Still needed: <span className="font-medium text-zinc-900">{missing.join(', ')}</span>.
+            </p>
+          ) : null;
+        })()}
         {footer}
       </div>
 

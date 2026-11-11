@@ -54,7 +54,7 @@ export default async function CreatorsPage() {
                   </span>
                   <div className="min-w-0">
                     <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate font-semibold tracking-tight hover:underline">
-                      {c.name} {c.tier && <TierBadge tier={c.tier} />}
+                      <span className="truncate">{c.name}</span> {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
                     </Link>
                     <Handles handles={c.handles} />
                   </div>
@@ -90,7 +90,7 @@ export default async function CreatorsPage() {
                     <StreamerAvatar name={c.name} size="md" />
                     <div className="min-w-0">
                       <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate text-sm font-medium hover:underline">
-                        {c.name} {c.tier && <TierBadge tier={c.tier} />}
+                        <span className="truncate">{c.name}</span> {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
                       </Link>
                       <Handles handles={c.handles} />
                     </div>
