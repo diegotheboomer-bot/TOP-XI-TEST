@@ -20,7 +20,15 @@ export default async function SupportPage() {
   const tickets = (data ?? []) as Ticket[];
   return (
     <AppLayout role={role}>
-      <PageHeader title="Support" description="Ask the assistant first. If it can’t help, open a ticket and a person from the Atlas team will reply." />
+      <PageHeader
+        title="Support"
+        description="Ask the assistant first. If it can’t help, open a ticket and a person from the Atlas team will reply."
+        actions={
+          <a href="https://discord.gg/WGcD2UUUHA" target="_blank" rel="noreferrer" className="inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
+            Join our Discord
+          </a>
+        }
+      />
       <SupportChat audience={role === 'clipper' ? 'clipper' : 'business'} />
       {tickets.length > 0 && (
         <section className="mt-8">
