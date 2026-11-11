@@ -40,6 +40,13 @@ async function insert(db: SupabaseClient, table: string, all: Row[], size = 500)
   }
 }
 
+/** Runs `fn` over `items`, `size` at a time, so hundreds of calls finish quickly. */
+async function inBatches<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += size) out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
+  return out;
+}
+
 async function user(db: SupabaseClient, email: string) {
   const { data, error } = await db.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true });
   if (error) throw new Error(`${email}: ${error.message}`);
@@ -92,21 +99,26 @@ export async function seedTestData(db: SupabaseClient): Promise<string> {
     { id: uid(), owner_id: accounts.agency, name: 'Peak Agency', kind: 'agency', verified: true, early_partner: true, interests: ['Music', 'Brands & products'], heard_from: 'A friend', onboarded_at: ago(800), created_at: ago(2000) },
     { id: uid(), owner_id: accounts.newbrand, name: 'Fresh Brand', kind: 'streamer', early_partner: true, created_at: ago(1) },
   ];
+  // Every other login, created 20 at a time.
+  const N = 320;
+  const emails = [...BRAND_NAMES.map((_, i) => `brand${i + 1}@atlas.test`), ...Array.from({ length: N }, (_, i) => `clipper${i + 1}@atlas.test`).filter((_, i) => i !== 0 && i !== 30)];
+  const made = new Map(emails.map((e, i) => [e, i]));
+  const userIds = await inBatches(emails, 20, (e) => user(db, e));
+  const idOf = (email: string) => userIds[made.get(email)!];
   for (let i = 0; i < BRAND_NAMES.length; i++) {
-    brands.push({ id: uid(), owner_id: await user(db, `brand${i + 1}@atlas.test`), name: BRAND_NAMES[i], kind: BRAND_KIND(i), verified: i % 3 === 0, early_partner: true, interests: [pick(TOPICS)], onboarded_at: ago(500), created_at: ago(int(300, 3000)) });
+    brands.push({ id: uid(), owner_id: idOf(`brand${i + 1}@atlas.test`), name: BRAND_NAMES[i], kind: BRAND_KIND(i), verified: i % 3 === 0, early_partner: true, interests: [pick(TOPICS)], onboarded_at: ago(500), created_at: ago(int(300, 3000)) });
   }
   await insert(db, 'brands', brands);
   const [mainBrand, agencyBrand] = brands;
   const otherBrands = brands.slice(3);
 
   // ── clippers (320) ──
-  const N = 320;
   const creators: Row[] = [];
   const tierPlan = (i: number) => (i < 6 ? 'majesty' : i < 21 ? 'diamond' : i < 51 ? 'platinum' : i < 121 ? 'gold' : 'silver');
   for (let i = 0; i < N; i++) {
     const special = i === 0 ? 'majesty' : i === 30 ? 'clipper' : null; // majesty@ is a Majesty, clipper@ a Platinum
     const name = i === 0 ? 'Majesty Max' : i === 30 ? 'Diggy' : clipperName(i);
-    const userId = special ? accounts[special] : await user(db, `clipper${i + 1}@atlas.test`);
+    const userId = special ? accounts[special] : idOf(`clipper${i + 1}@atlas.test`);
     const posts = some(['post:TikTok', 'post:YouTube Shorts', 'post:Instagram Reels'], int(1, 3));
     creators.push({
       id: uid(),
@@ -418,10 +430,10 @@ export async function removeTestData(db: SupabaseClient): Promise<string> {
       if (error) throw new Error(`escrow_ledger: ${error.message}`);
     }
   }
-  for (const id of users) {
+  await inBatches(users, 20, async (id) => {
     const { error } = await db.auth.admin.deleteUser(id);
     // Already gone (e.g. Remove tapped twice) is fine.
     if (error && !/not found/i.test(error.message)) throw new Error(`delete user: ${error.message}`);
-  }
+  });
   return `Removed ${users.length} test accounts and everything they made.`;
 }
