@@ -94,3 +94,12 @@ export function recordFrom(subs: { status: string; current_view_count: number; f
     recentFraud: subs.filter((s) => s.status === 'flagged' && Number(s.fraud_score) >= 70 && new Date(s.created_at).getTime() >= ninety).length,
   };
 }
+
+/** Overall progress toward the next tier, 0–1: the average of each requirement's progress. */
+export function tierProgress(r: ClipperRecord): { tier: Tier; next: Tier | null; pct: number } {
+  const tier = tierFor(r);
+  const p = nextTierProgress(r);
+  if (!p) return { tier, next: null, pct: 1 };
+  const parts = p.items.map((it) => (it.need ? Math.min(1, it.have / it.need) : 1));
+  return { tier, next: p.next, pct: parts.reduce((a, b) => a + b, 0) / parts.length };
+}

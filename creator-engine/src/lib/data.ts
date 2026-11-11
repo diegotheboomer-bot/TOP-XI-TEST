@@ -591,6 +591,14 @@ async function loadClipperProfile(creatorId: string, onlyBrand?: string): Promis
   };
 }
 
+/** The signed-in clipper's tier, for the menu badge (null in the demo or when signed out). */
+export async function getMyTier(): Promise<Tier | null> {
+  if (isDemo) return null;
+  const viewer = await getViewer();
+  if (!viewer?.creatorId) return null;
+  return tierFor((await clipperRecords([viewer.creatorId])).get(viewer.creatorId)!);
+}
+
 /** The signed-in clipper's own profile. */
 export async function getMyClipperProfile(): Promise<ClipperProfile | null> {
   if (isDemo) return null;

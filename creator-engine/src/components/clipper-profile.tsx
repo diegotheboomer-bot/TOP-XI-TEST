@@ -7,6 +7,7 @@ import type { Platform } from '@/lib/types';
 import { PlatformIcon } from './platform-icon';
 import { StreamerAvatar } from './views';
 import { TierBadge, TierEmblem } from './tier-badge';
+import { TierLadder } from './tier-progress';
 import { cn } from './ui/cn';
 
 const perkLines = (t: Tier) => {
@@ -48,6 +49,9 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
               )}
             </div>
           </div>
+        </div>
+        <div className="relative mt-6">
+          <TierLadder record={p.record} />
         </div>
         <dl className="relative mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-100 bg-zinc-100 sm:grid-cols-4">
           {[

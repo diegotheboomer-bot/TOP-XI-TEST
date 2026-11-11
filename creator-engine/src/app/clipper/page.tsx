@@ -15,6 +15,7 @@ import { Empty } from '@/components/ui/empty';
 import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { CreatorSwitcher } from '@/components/creator-switcher';
+import { TierCard } from '@/components/tier-progress';
 import { Checklist, ConnectionCard, EnrollmentCard, MarketCard } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,8 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
         description="Your campaigns, clips and earnings."
         actions={isDemo ? <CreatorSwitcher creators={demoCreators()} current={currentCreatorId()} /> : undefined}
       />
+
+      {d.record && <TierCard record={d.record} />}
 
       {notice && <p className={`rounded-lg px-4 py-3 text-sm ${notice[1] ? 'bg-accent-50 text-accent-700' : 'bg-rose-50 text-rose-700'}`}>{notice[0]}</p>}
 

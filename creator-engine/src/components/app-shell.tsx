@@ -12,6 +12,8 @@ export interface NavItem {
   count?: number;
   /** The main action (e.g. New campaign): a volt button, raised in the phone tab bar. */
   primary?: boolean;
+  /** Shown after the label in the sidebar, e.g. the clipper's tier. */
+  badge?: React.ReactNode;
 }
 export interface NavSection {
   title: string;
@@ -85,6 +87,7 @@ export function AppShell({
       >
         {item.icon}
         <span className="truncate">{item.label}</span>
+        {item.badge && <span className="ml-auto">{item.badge}</span>}
         {!!item.count && <span className={cn('ml-auto rounded px-1.5 text-xs tabular-nums', on ? 'bg-brand-a/25' : 'bg-amber-50 text-amber-700')}>{item.count}</span>}
       </Link>
     );
@@ -146,6 +149,13 @@ export function AppShell({
           <Logo link={Link} href={homeHref} />
           <div className="flex items-center gap-1">
             {demo && <Badge tone="amber">Demo</Badge>}
+            {items
+              .filter((i) => i.badge)
+              .map((i) => (
+                <Link key={i.href} href={i.href} aria-label={i.label} className="mr-1">
+                  {i.badge}
+                </Link>
+              ))}
             {footer}
           </div>
         </div>
