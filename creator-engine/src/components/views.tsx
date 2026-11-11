@@ -78,7 +78,7 @@ function CoverPattern({ seed }: { seed: string }) {
   );
 }
 
-const ASPECT = { card: 'aspect-[16/9]', banner: 'aspect-[16/9] sm:aspect-[3/1]', thumb: 'aspect-square' } as const;
+const ASPECT = { card: 'aspect-[16/9]', banner: 'aspect-[2/1] sm:aspect-[7/2]', thumb: 'aspect-square' } as const;
 
 /** An older campaign's uploaded thumbnail, or the designed Atlas cover (dark, volt glow). */
 export function CampaignCover({
@@ -197,69 +197,47 @@ export function ReferenceList({ campaign }: { campaign: Pick<Campaign, 'asset_fo
 export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; href: string; link?: LinkLike }) {
   const r = rateParts(c);
   const days = budgetDaysLabel(c.budget);
-  const tags = [...(c.category ? [c.category] : []), ...(c.content_types ?? []).map(contentTypeLabel)];
+  const pool = c.payout_model === 'pool';
   return (
     <Link
       href={href}
       aria-label={`${c.title} by ${c.brandName}, ${r.rate} ${r.unit}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card transition duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-[0_18px_40px_-18px_rgb(var(--brand-b)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
     >
-      {/* The thumbnail stays fully visible; everything else sits below it. */}
       <div className="overflow-hidden">
-        <CampaignCover campaign={c} brandName="" showTitle={false} className="transition duration-500 group-hover:scale-[1.04]" />
+        <CampaignCover campaign={c} brandName="" showTitle={false} className="transition duration-500 group-hover:scale-[1.03]" />
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <div className="flex items-start justify-between gap-2">
-          <span className="min-w-0">
-            {c.payout_model === 'pool' ? (
-              // Pools look different: the whole budget, shared by views.
-              <span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold ring-1 ring-inset" style={{ backgroundColor: 'rgba(56,189,248,0.12)', color: '#38bdf8', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.35)' }}>
-                <PieChart className="size-3.5" /> {usdCompact(c.budget.deposited)} pool
-              </span>
-            ) : (
-              <span className="inline-flex items-baseline gap-1 rounded-lg bg-brand-a/10 px-2 py-1 ring-1 ring-inset ring-brand-a/30">
-                <span className="text-base font-semibold tabular-nums text-[rgb(var(--brand-ta))]">{r.rate}</span>
-                <span className="text-xs font-medium text-zinc-600">{c.payout_model === 'per_post' ? '/ clip' : '/ 1K views'}</span>
-              </span>
-            )}
-            <span className="mt-1 block truncate text-[11px] text-zinc-500">{c.payout_model === 'pool' ? 'Split by share of views · paid when it ends' : r.terms}</span>
-          </span>
-          <span className="flex shrink-0 gap-1">
+      <div className="flex flex-1 flex-col gap-1 p-3">
+        <div className="flex items-center justify-between gap-2 text-sm">
+          {pool ? (
+            <span className="inline-flex items-center gap-1 font-semibold" style={{ color: '#38bdf8' }}>
+              <PieChart className="size-3.5" /> {usdCompact(c.budget.deposited)} pool
+            </span>
+          ) : (
+            <span className="font-semibold tabular-nums text-[rgb(var(--brand-ta))]">
+              {r.rate} <span className="font-normal text-zinc-500">{c.payout_model === 'per_post' ? '/ clip' : '/ 1K views'}</span>
+            </span>
+          )}
+          <span className="flex shrink-0 gap-1 text-zinc-400">
             {PLATFORM_ORDER.filter((p) => c.platforms.includes(p)).map((p) => (
-              <span key={p} className="grid size-6 place-items-center rounded-md bg-zinc-100 text-zinc-600" title={PLATFORM_LABEL[p]}>
-                <PlatformIcon platform={p} className="size-3" />
-              </span>
+              <PlatformIcon key={p} platform={p} className="size-3" />
             ))}
           </span>
         </div>
-        <h3 className="mt-3 line-clamp-2 min-h-[2.5rem] font-semibold leading-5 tracking-tight">{c.title}</h3>
-        <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm text-zinc-600">
-          <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
+        <h3 className="truncate text-sm font-medium">{c.title}</h3>
+        <p className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
           <span className="truncate">{c.brandName}</span>
-          {c.brandVerified && <VerifiedMark />}
-          {c.agencyName && <span className="shrink-0 truncate text-xs text-zinc-400">via {c.agencyName}</span>}
+          {c.brandVerified && <VerifiedMark className="size-3" />}
+          {c.min_tier && c.min_tier !== 'silver' && <span className="shrink-0">· {c.min_tier[0].toUpperCase() + c.min_tier.slice(1)}+</span>}
         </p>
-        {/* One line of tags, so every card is the same height. */}
-        <div className="mt-3 flex h-5 gap-1.5 overflow-hidden">
-          {days.urgent && <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: "#fbbf24", color: "#451a03" }}>{days.text}</span>}
-          {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
-          {tags.slice(0, 2).map((t, i) => (
-            <span key={t} className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px]', i === 0 && c.category ? 'bg-brand font-medium text-brand-ink' : 'bg-zinc-100 text-zinc-600')}>
-              {t}
-            </span>
-          ))}
-          {tags.length > 2 && <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-500">+{tags.length - 2}</span>}
-        </div>
-        <div className="mt-auto pt-4">
-          <Progress value={c.budget.committed} max={c.budget.deposited} tone={c.budget.usedShare > 0.85 ? 'amber' : 'brand'} />
-          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-zinc-500">
-            <span>
-              <span className="font-semibold text-zinc-900">{usdCompact(c.budget.available)}</span> left to earn
-            </span>
-            <span>
-              {c.creators} {c.creators === 1 ? 'clipper' : 'clippers'}
-            </span>
+        <div className="mt-auto pt-2">
+          <div className="h-1 overflow-hidden rounded-full bg-zinc-100">
+            <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.budget.usedShare * 100)}%`, backgroundColor: days.urgent ? '#fbbf24' : 'rgb(var(--brand-b))' }} />
           </div>
+          <p className="mt-1.5 flex justify-between text-[11px] text-zinc-500">
+            <span className={days.urgent ? 'font-medium text-amber-600' : ''}>{days.urgent ? days.text : `${usdCompact(c.budget.available)} left`}</span>
+            <span>{c.creators} clippers</span>
+          </p>
         </div>
       </div>
     </Link>

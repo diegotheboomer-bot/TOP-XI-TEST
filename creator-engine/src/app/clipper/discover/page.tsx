@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Compass, Flame, Sparkles, Timer, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, Compass, Flame, Sparkles, Timer, TrendingUp } from 'lucide-react';
 import { getCreatorDashboard, type MarketCampaign } from '@/lib/data';
 import { rateParts, usdCompact } from '@/lib/format';
 import { rateFor } from '@/lib/payout';
@@ -46,14 +46,14 @@ function Row({ title, icon, items }: { title: string; icon: React.ReactNode; ite
   if (!items.length) return null;
   return (
     <section>
-      <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold tracking-tight [&>svg]:size-5 [&>svg]:text-[rgb(var(--brand-ta))]">
+      <h2 className="mb-3 flex items-center gap-2 font-semibold tracking-tight [&>svg]:size-4 [&>svg]:text-[rgb(var(--brand-ta))]">
         {icon}
         {title}
         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">{items.length}</span>
       </h2>
       <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
         {items.map((c) => (
-          <div key={c.id} className="w-[78%] shrink-0 snap-start sm:w-72">
+          <div key={c.id} className="w-[62%] shrink-0 snap-start sm:w-56">
             <MarketCard c={c} href={`/clipper/campaigns/${c.id}`} link={Link} />
           </div>
         ))}
@@ -69,18 +69,18 @@ function Featured({ c }: { c: MarketCampaign }) {
     <Link href={`/clipper/campaigns/${c.id}`} className="group relative block overflow-hidden rounded-3xl border border-zinc-200/80 shadow-card">
       <CampaignCover campaign={c} brandName="" variant="banner" showTitle={false} className="transition duration-500 group-hover:scale-[1.02]" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25) 55%, rgba(0,0,0,0) 80%)' }} />
-      <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7" style={{ color: '#fff' }}>
+      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6" style={{ color: '#fff' }}>
         <p className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
           <Flame className="size-3.5" /> Featured
         </p>
-        <h2 className="balance mt-3 text-2xl font-semibold tracking-tight sm:text-4xl">{c.title}</h2>
+        <h2 className="balance mt-2 text-xl font-semibold tracking-tight sm:text-3xl">{c.title}</h2>
         <p className="mt-2 flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
           <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
           {c.brandName}
           {c.brandVerified && <VerifiedMark />}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-brand px-3 py-1.5 text-sm font-semibold text-brand-ink">
+          <span className="rounded-full bg-brand px-2.5 py-1 text-xs font-semibold text-brand-ink">
             {r.rate} {r.unit}
           </span>
           <span className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -126,21 +126,11 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
       ) : (
         <div className="space-y-10">
           {!filtering && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {(
-                [
-                  [Compass, String(openCampaigns.length), openCampaigns.length === 1 ? 'campaign open' : 'campaigns open'],
-                  [Wallet, usdCompact(openCampaigns.reduce((n, c) => n + c.budget.available, 0)), 'up for grabs'],
-                  [Flame, String(fresh.length), 'new this week'],
-                ] as const
-              ).map(([Icon, v, k]) => (
-                <div key={k} className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-card sm:p-4">
-                  <Icon className="size-4 text-[rgb(var(--brand-ta))]" />
-                  <p className="mt-2 text-lg font-semibold tabular-nums tracking-tight sm:text-2xl">{v}</p>
-                  <p className="text-[11px] text-zinc-500 sm:text-xs">{k}</p>
-                </div>
-              ))}
-            </div>
+            <p className="-mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
+              <span><b className="font-semibold text-zinc-900">{openCampaigns.length}</b> open</span>
+              <span><b className="font-semibold text-zinc-900">{usdCompact(openCampaigns.reduce((n, c) => n + c.budget.available, 0))}</b> up for grabs</span>
+              <span><b className="font-semibold text-zinc-900">{fresh.length}</b> new this week</span>
+            </p>
           )}
           {!filtering && featured && <Featured c={featured} />}
           {!filtering && openCampaigns.length > 1 && (
@@ -185,7 +175,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
             {shown.length === 0 ? (
               <Empty icon={<Compass />} title="Nothing matches those filters" body="Try another niche or video type." />
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
                 {shown.map((c) => (
                   <MarketCard key={c.id} c={c} href={`/clipper/campaigns/${c.id}`} link={Link} />
                 ))}
