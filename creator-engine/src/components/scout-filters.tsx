@@ -242,7 +242,7 @@ function MobileFilters({ filters, params, go }: { filters: FilterDef[]; params: 
       )}
 
       <Dialog open={open} onClose={() => setOpen(false)} title="Filters">
-        <div className="space-y-5">
+        <div className="space-y-2.5">
           {filters
             .filter((f) => f.key !== 'sort')
             .map((f) => {
@@ -250,21 +250,27 @@ function MobileFilters({ filters, params, go }: { filters: FilterDef[]; params: 
               const cur = picked[f.key] ?? '';
               return (
                 <section key={f.key}>
-                  <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-                    <Icon className="size-4 text-[rgb(var(--brand-ta))]" /> {f.label}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[...f.options, ...(f.custom ? ([[CUSTOM, 'Custom']] as [string, string][]) : [])].map(([v, l]) => (
-                      <button
-                        key={v || 'any'}
-                        type="button"
-                        onClick={() => setPicked((p) => ({ ...p, [f.key]: v }))}
-                        className={cn('rounded-full border px-3 py-1.5 text-sm transition', cur === v ? 'border-transparent bg-brand font-medium text-brand-ink' : 'border-zinc-200 bg-white text-zinc-600')}
-                      >
-                        {l}
-                      </button>
-                    ))}
-                  </div>
+                  <label className="relative flex h-12 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3.5 focus-within:ring-2 focus-within:ring-[rgb(var(--brand-a))]">
+                    <Icon className="size-4 shrink-0 text-[rgb(var(--brand-ta))]" />
+                    <span className="text-sm text-zinc-500">{f.label}</span>
+                    <span className={cn('ml-auto truncate text-sm font-semibold', !cur && 'font-medium text-zinc-500')}>
+                      {cur === CUSTOM ? 'Custom' : (f.options.find(([v]) => v === cur)?.[1] ?? (f.custom && cur ? customLabel(f.custom, Number(cur)) : f.options[0][1]))}
+                    </span>
+                    <ChevronDown className="size-4 shrink-0 text-zinc-400" />
+                    <select
+                      value={cur && cur !== CUSTOM && !f.options.some(([v]) => v === cur) ? CUSTOM : cur}
+                      onChange={(e) => setPicked((p) => ({ ...p, [f.key]: e.target.value }))}
+                      aria-label={f.label}
+                      className="absolute inset-0 cursor-pointer opacity-0"
+                    >
+                      {f.options.map(([v, l]) => (
+                        <option key={v} value={v}>
+                          {l}
+                        </option>
+                      ))}
+                      {f.custom && <option value={CUSTOM}>Custom…</option>}
+                    </select>
+                  </label>
                   {cur === CUSTOM && f.custom && (
                     <div className="relative mt-2">
                       <input
