@@ -87,7 +87,26 @@ export default async function CampaignPage({ params, searchParams }: { params: {
 
       {searchParams.saved && <p className="rounded-xl bg-brand-a/10 px-4 py-3 text-sm ring-1 ring-inset ring-brand-a/30">Changes saved. Clippers see them now.</p>}
       {searchParams.funded && <p className="rounded-xl bg-brand-a/10 px-4 py-3 text-sm ring-1 ring-inset ring-brand-a/30">Payment received. Your budget updates as soon as Stripe confirms it.</p>}
-      {c.status === 'draft' && <LaunchChecklist campaign={c} funded={c.escrow_balance > 0} />}
+      {c.status === 'draft' && (
+        <LaunchChecklist
+          campaign={c}
+          funded={c.escrow_balance > 0}
+          addBudget={
+            publishableKey === '' ? null : (
+              <AppAddBudget
+                bankTransfer={achEnabled()}
+                campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate, status: c.status }}
+                feePercent={feePercent}
+                feeFixed={plan.fixed}
+                early={plan.early}
+                publishableKey={publishableKey}
+                createIntent={createDepositIntent}
+                payDemo={payDemoDeposit}
+              />
+            )
+          }
+        />
+      )}
 
       <StatGrid
         items={[
@@ -225,7 +244,7 @@ function topClippers(rows: SubmissionRow[]) {
 }
 
 /** Shown while a campaign is a draft: what's done, what's left, and the launch button. */
-function LaunchChecklist({ campaign, funded }: { campaign: Campaign; funded: boolean }) {
+function LaunchChecklist({ campaign, funded, addBudget }: { campaign: Campaign; funded: boolean; addBudget: React.ReactNode }) {
   const steps: [string, string, boolean][] = [
     ['Set up the campaign', 'Title, thumbnail, pay and rules', true],
     ['Add a budget', funded ? `${usd(campaign.escrow_balance)} ready for clippers` : 'Use “Add budget” below. Clippers can only join funded campaigns', funded],
@@ -234,8 +253,8 @@ function LaunchChecklist({ campaign, funded }: { campaign: Campaign; funded: boo
   return (
     <section className="relative overflow-hidden rounded-2xl border border-amber-300/60 bg-white p-5 shadow-card sm:p-6">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-20" style={{ background: 'radial-gradient(70% 100% at 10% 0%, rgb(245 158 11 / 0.14), transparent 70%)' }} />
-      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="min-w-0 flex-1">
+      <div className="relative">
+        <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold text-amber-700">
             <span className="size-2 animate-pulse rounded-full" style={{ backgroundColor: "#f59e0b" }} /> Not live yet
           </p>
@@ -259,13 +278,14 @@ function LaunchChecklist({ campaign, funded }: { campaign: Campaign; funded: boo
             ))}
           </ol>
         </div>
-        <div className="sm:w-56">
+        <div className="mt-5 flex flex-col gap-2 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between [&_button]:w-full sm:[&_button]:w-auto">
+          <p className="text-sm text-zinc-500">{funded ? 'All set. Launch when you’re ready.' : 'Next: add a budget, then launch.'}</p>
           {funded ? (
             <ActionButton variant="primary" action={setCampaignStatus.bind(null, campaign.id, 'active')}>
               <Rocket className="size-4" /> Launch campaign
             </ActionButton>
           ) : (
-            <p className="rounded-xl bg-zinc-50 px-4 py-3 text-center text-sm text-zinc-500">Add a budget to unlock launch</p>
+            addBudget
           )}
         </div>
       </div>

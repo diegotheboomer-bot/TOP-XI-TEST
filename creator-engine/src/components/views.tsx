@@ -332,11 +332,11 @@ export function SubmissionTable({
           const act = actions(s);
           return (
             <li key={s.id} className={cn('px-5 py-4 sm:px-6', CLIP_COLS)}>
-              <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+              <div className="flex min-w-0 items-center gap-3">
                 {/* Avatar carries the tier as a small corner mark, so the text lines stay clean. */}
                 <span className="relative shrink-0">
                   <StreamerAvatar name={s.creator_name} size="md" />
-                  {s.creator_tier && <TierBadge tier={s.creator_tier} iconOnly className="absolute -bottom-1 -right-1" />}
+                  {s.creator_tier && <TierBadge tier={s.creator_tier} iconOnly className="absolute -bottom-0.5 -right-0.5" />}
                 </span>
                 <div className="min-w-0">
                   <p className="flex min-w-0 items-baseline gap-1.5 text-sm">
