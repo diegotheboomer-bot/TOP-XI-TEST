@@ -23,7 +23,9 @@ export function SupportChat() {
   const [human, setHuman] = useState(false);
   const [suggest, setSuggest] = useState(false);
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), [turns, human]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [turns, human]);
 
   const ask = async (text: string) => {
     const q = text.trim();
@@ -33,11 +35,17 @@ export function SupportChat() {
     setInput('');
     setOptions([]);
     setBusy(true);
-    const r = await sendSupportMessage(next);
-    setTurns([...next, { role: 'assistant', text: r.answer }]);
-    setOptions(r.options);
-    setSuggest(r.suggestHuman);
-    setBusy(false);
+    try {
+      const r = await sendSupportMessage(next);
+      setTurns([...next, { role: 'assistant', text: String(r?.answer ?? 'Sorry, something went wrong.') }]);
+      setOptions(Array.isArray(r?.options) ? r.options.map(String) : []);
+      setSuggest(!!r?.suggestHuman);
+    } catch {
+      setTurns([...next, { role: 'assistant', text: 'Sorry, I couldn’t reach the assistant. Reload the page and try again, or talk to a person.' }]);
+      setSuggest(true);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -60,8 +68,8 @@ export function SupportChat() {
         )}
         {!busy && options.length > 0 && (
           <div className="flex flex-wrap gap-2 pl-10">
-            {options.map((o) => (
-              <button key={o} type="button" onClick={() => ask(o)} className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50">
+            {options.map((o, i) => (
+              <button key={`${i}-${o}`} type="button" onClick={() => ask(o)} className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50">
                 {o}
               </button>
             ))}
