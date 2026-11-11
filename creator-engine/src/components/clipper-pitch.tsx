@@ -5,19 +5,19 @@ import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { PlatformTile } from './platform-icon';
 
-const RATE = 2; // example $ per 1K views; each campaign sets its own
+const RATE = 1; // example $ per 1K views; each campaign sets its own
 const MAX = 1_000_000;
 const STEP = 1_000;
 
 const compact = (n: number) => (n >= 1_000_000 ? '1M' : n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));
 
 const POINTS = [
-  'Free to join. Level up to cut your payout fee from 9% to 4%.',
+  'Free to join. Only a 9% payout fee, down to 4% as you level up.',
   'No follower minimum. Views are what count.',
   'Rate and cap shown before you join.',
   'Post on TikTok, YouTube Shorts or Instagram Reels.',
   'Clips keep earning while they get views.',
-  'Cash out anytime to your bank, PayPal or Venmo.',
+  'Cash out straight to your bank account.',
 ];
 
 

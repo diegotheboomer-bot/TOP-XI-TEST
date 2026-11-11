@@ -4,7 +4,7 @@
 // numbers tick up live, you can switch platforms and hover/drag to read any day.
 // Illustrative numbers, not real campaign data.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, Eye, TrendingUp } from 'lucide-react';
 import { PlatformIcon } from './platform-icon';
 import { cn } from './ui/cn';
 
@@ -59,7 +59,7 @@ export function ViewsChartHero() {
   const growth = Math.round(((data[DAYS - 1] - data[DAYS - 15]) / Math.max(1, data[DAYS - 15])) * 100);
   const shown = hover ?? DAYS - 1;
   const [hx, hy] = pts[shown];
-  const earned = (total / 1000) * 2; // $2 per 1K views, the example rate
+  const earned = total / 1000; // $1 per 1K views, the example rate
 
   const onMove = (e: React.PointerEvent) => {
     const r = svg.current!.getBoundingClientRect();
@@ -84,7 +84,10 @@ export function ViewsChartHero() {
             <p className="flex items-center gap-2 text-xs font-medium text-zinc-500">
               <span className="hero-pulse size-2 rounded-full bg-brand-b" /> Live views · example campaign
             </p>
-            <p className="mt-1 text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">{hover == null ? fmt(total) : fmt(data[shown])}</p>
+            <p className="mt-1 flex items-center gap-2.5 text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">
+              <Eye className="size-8 shrink-0 text-[rgb(var(--brand-ta))] sm:size-10" strokeWidth={2.2} aria-label="Views" />
+              {hover == null ? fmt(total) : fmt(data[shown])}
+            </p>
             <p className="mt-1 flex items-center gap-1.5 text-sm">
               <span className="inline-flex items-center gap-0.5 rounded-md bg-brand-a/15 px-1.5 py-0.5 font-semibold text-[rgb(var(--brand-ta))]">
                 <ArrowUpRight className="size-3.5" /> {growth}%
@@ -94,7 +97,7 @@ export function ViewsChartHero() {
           </div>
           <div className="text-right">
             <p className="text-xs text-zinc-500">Paid to clippers</p>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-brand">${Math.round(hover == null ? earned : (data[shown] / 1000) * 2).toLocaleString('en-US')}</p>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight text-brand">${Math.round(hover == null ? earned : data[shown] / 1000).toLocaleString('en-US')}</p>
           </div>
         </div>
 
@@ -161,7 +164,7 @@ export function ViewsChartHero() {
           {[
             ['Clips posted', (1248 + Math.floor(live / 900)).toLocaleString('en-US')],
             ['Clippers', '214'],
-            ['Cost per 1K views', '$2.00'],
+            ['Per 1K views', '$1.00'],
           ].map(([k, v]) => (
             <div key={k} className="rounded-xl bg-zinc-50 px-2 py-2.5">
               <p className="text-base font-semibold tabular-nums sm:text-lg">{v}</p>

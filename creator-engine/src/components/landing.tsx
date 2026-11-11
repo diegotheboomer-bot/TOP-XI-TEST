@@ -72,7 +72,7 @@ export function Landing({
           {[
             [BadgeCheck, 'Verified views only'],
             [ShieldCheck, 'You approve every clip'],
-            [Percent, feePercent ? `${feePercent}% service fee` : 'No service fee'],
+            [Percent, 'Low fees'],
           ].map(([Icon, text]) => {
             const I = Icon as React.ElementType;
             return (
