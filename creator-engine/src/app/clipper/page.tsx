@@ -18,7 +18,9 @@ import { Empty } from '@/components/ui/empty';
 import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { CreatorSwitcher } from '@/components/creator-switcher';
-import { TierCard } from '@/components/tier-progress';
+import { NextTierBar } from '@/components/tier-progress';
+import { TierGuideButton } from '@/components/tier-guide';
+import { ClipperCard } from '@/components/clipper-card';
 import { Checklist, ConnectionCard, EnrollmentCard, MarketCard, StreamerAvatar } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
@@ -59,7 +61,20 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
         actions={isDemo ? <CreatorSwitcher creators={demoCreators()} current={currentCreatorId()} /> : undefined}
       />
 
-      {d.record && <TierCard record={d.record} />}
+      {d.record && (
+        <section className="grid grid-cols-1 items-center gap-5 md:grid-cols-[20rem_minmax(0,1fr)]">
+          <TierGuideButton record={d.record} className="mx-auto max-w-[16rem] md:max-w-none">
+            <ClipperCard name={d.name} tier={d.tier ?? 'silver'} founder={d.founder ?? null} views={d.record.views} clips={d.record.approved} joinedAt={d.joinedAt ?? null} />
+          </TierGuideButton>
+          <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
+            <NextTierBar record={d.record} />
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-4">
+              <p className="text-xs text-zinc-500">Tap your card to see every tier and its perks.</p>
+              <TierGuideButton record={d.record} />
+            </div>
+          </div>
+        </section>
+      )}
 
       {invites.length > 0 && (
         <section className="rounded-2xl border border-brand-b/40 bg-white p-5 shadow-card sm:p-6">

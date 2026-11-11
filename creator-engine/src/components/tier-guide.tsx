@@ -9,14 +9,20 @@ import { TierBadge } from './tier-badge';
 import { cn } from './ui/cn';
 
 /** "All tiers" button: a popup with every tier's requirements and perks. */
-export function TierGuideButton({ record }: { record?: ClipperRecord }) {
+export function TierGuideButton({ record, children, className }: { record?: ClipperRecord; /** Custom trigger, e.g. the clipper's card. */ children?: React.ReactNode; className?: string }) {
   const [open, setOpen] = useState(false);
   const mine = record ? tierFor(record) : null;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition hover:text-zinc-900">
-        <Layers className="size-4" /> All tiers and perks
-      </button>
+      {children ? (
+        <button type="button" onClick={() => setOpen(true)} aria-label="See all tiers and perks" className={cn('block w-full text-left transition hover:-translate-y-0.5 active:scale-[0.99]', className)}>
+          {children}
+        </button>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition hover:text-zinc-900">
+          <Layers className="size-4" /> All tiers and perks
+        </button>
+      )}
       <Dialog open={open} onClose={() => setOpen(false)} title="Clipper tiers" description="Tiers go up automatically as your record grows. Higher tiers keep more of each payout and get paid sooner.">
         <ul className="space-y-3">
           {TIERS.map((t) => {

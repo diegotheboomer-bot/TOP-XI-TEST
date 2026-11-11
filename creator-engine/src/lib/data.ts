@@ -113,6 +113,7 @@ export interface CreatorDashboard {
   interests?: string[];
   /** Founding clipper number (1–100), if any. */
   founder?: number | null;
+  joinedAt?: string | null;
   /** Tier and the record it's based on (missing in the demo: Silver). */
   tier?: Tier;
   record?: ClipperRecord;
@@ -450,7 +451,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const creatorId = await requireRole('creator');
   const db = createClient();
   const [{ data: creator }, { data: account }, { data: enrollments }, { data: open }, { data: subs }] = await Promise.all([
-    db.from('creators').select('display_name, payouts_enabled, interests, founder_number').eq('id', creatorId).single(),
+    db.from('creators').select('display_name, payouts_enabled, interests, founder_number, created_at').eq('id', creatorId).single(),
     createAdminClient().from('social_accounts').select('platform, username, follower_count').eq('creator_id', creatorId),
     db.from('campaign_creators').select('*, campaigns(*, brands(name, avatar_url, verified), conversion_pixels(shop_domain))').eq('creator_id', creatorId),
     db.from('campaigns').select('*, brands(name, avatar_url, verified)').eq('status', 'active').order('created_at', { ascending: false }),
@@ -474,6 +475,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     name: creator?.display_name ?? '',
     interests: ((creator as { interests?: string[] } | null)?.interests ?? []) as string[],
     founder: ((creator as { founder_number?: number | null } | null)?.founder_number ?? null) as number | null,
+    joinedAt: ((creator as { created_at?: string } | null)?.created_at ?? null) as string | null,
     tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count } : null,
     youtube: youtube ? { channel: youtube.username, subscribers: youtube.follower_count } : null,
     instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
