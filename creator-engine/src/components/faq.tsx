@@ -3,7 +3,7 @@
 export const FAQ: [string, string][] = [
   [
     'How do I make money clipping streams?',
-    'Sign up as a clipper, join a streamer’s campaign and post short clips of their streams to TikTok, YouTube Shorts or Instagram Reels from your own account. You earn a set amount for every 1,000 real views, paid automatically.',
+    'Sign up as a clipper, join a campaign and post short clips of the content (streams, music, trailers, videos) to TikTok, YouTube Shorts or Instagram Reels from your own account. You earn for every 1,000 real views.',
   ],
   [
     'Is clipping passive income?',
@@ -22,8 +22,8 @@ export const FAQ: [string, string][] = [
     'Once a clip is approved and its short hold has passed, you can cash out to your bank account (or a debit card in countries where Stripe supports it, like the US). A 9% fee comes off each payout. As you grow through Gold, Diamond and Majesty, the fee drops to 4%, you get paid sooner and you can cash out more often.',
   ],
   [
-    'What do streamers get?',
-    'Streamers fund a campaign, pin the moments worth clipping and only pay for real views on clips posted across TikTok, Shorts and Reels, plus Stripe’s card processing, shown before paying. There’s currently no service fee.',
+    'What do campaign owners get?',
+    'Streamers, brands, musicians and studios fund a campaign, share their content and rules, approve every clip and only pay for real views across TikTok, Shorts and Reels, plus Stripe’s card processing, shown before paying. There’s currently no service fee.',
   ],
 ];
 

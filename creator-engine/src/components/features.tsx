@@ -6,7 +6,7 @@ import { useRef } from 'react';
 import { cn } from './ui/cn';
 
 const FEATURES: [string, string, () => React.ReactNode][] = [
-  ['Verified clippers', 'Every clip is checked against the clipper’s own TikTok, Instagram or YouTube.', CodeArt],
+  ['Verified clippers', 'Every clip is checked against the clipper’s own TikTok, Instagram or YouTube, and you approve each one.', CodeArt],
   ['Fake views don’t pay', 'Bot spikes and re-uploads are caught and held before any money moves.', SpikeArt],
   ['Clippers level up', 'Proven clippers reach Gold, Diamond and Majesty: lower fees, faster pay. Streamers pay {feeText} on top.', KeepArt],
 ];

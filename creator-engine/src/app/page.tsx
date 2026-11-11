@@ -13,7 +13,7 @@ const jsonLd = [
     alternateName: 'Atlas Clips',
     url: 'https://atlasclipping.com',
     logo: 'https://atlasclipping.com/brand/app-icon-1024.png',
-    description: 'Clipping marketplace: streamers fund campaigns, clippers get paid per 1,000 real views on TikTok, YouTube Shorts and Instagram Reels.',
+    description: 'Clipping marketplace: streamers, brands, musicians and studios fund campaigns; clippers get paid per 1,000 real views on TikTok, YouTube Shorts and Instagram Reels.',
   },
   {
     '@context': 'https://schema.org',

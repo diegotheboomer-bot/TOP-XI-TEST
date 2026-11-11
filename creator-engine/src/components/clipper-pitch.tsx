@@ -31,10 +31,10 @@ export function ClipperPitch({ link: Link = 'a', href }: { link?: React.ElementT
         <div>
           <p className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">For clippers</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Get paid to <span className="text-brand">clip streams.</span>
+            Get paid to <span className="text-brand">clip.</span>
           </h2>
           <p className="mt-4 max-w-md text-base leading-relaxed text-zinc-600">
-            Pick a campaign, post clips from your own account, and earn for every 1,000 views. Clips keep earning while they get views.
+            Pick a campaign (a streamer, a brand, an artist or a game), post clips from your own account and earn for every 1,000 views. Clips keep earning while they get views.
           </p>
           <ul className="mt-6 grid gap-x-6 gap-y-2.5 text-sm sm:grid-cols-2">
             {POINTS.map((t) => (
