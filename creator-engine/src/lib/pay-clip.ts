@@ -1,5 +1,6 @@
 import { clipperTier } from './clipper-records';
 import { payoutFee } from './tiers';
+import { isTestClip } from './test-data';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { stripe } from './stripe';
 import { sendPayPalPayout, paypalConfigured } from './paypal';
@@ -17,10 +18,11 @@ export type PayResult = { ok: true; gross: number; via: string; campaignId: stri
 export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 0.01, maxGross?: number): Promise<PayResult> {
   const { data: sub } = await admin
     .from('submissions')
-    .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, campaigns(cpm_cap, payout_model, status)')
+    .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, social_platform_video_id, campaigns(cpm_cap, payout_model, status)')
     .eq('id', submissionId)
     .single();
   if (!sub) return { ok: false, error: 'Submission not found.' };
+  if (isTestClip(sub)) return { ok: false, error: 'This is test data, so nothing is paid out.' };
 
   // Looked up on its own: submissions reference campaign_creators, so creators can't be embedded.
   const { data: creatorRow } = await admin.from('creators').select('stripe_account_id, payouts_enabled').eq('id', sub.creator_id).maybeSingle();

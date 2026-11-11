@@ -26,7 +26,8 @@ const ago = (h) => new Date(Date.now() - h * HOUR).toISOString();
 const cents = (n) => Math.floor(n * 100 + 1e-6) / 100;
 const uid = () => crypto.randomUUID();
 const code = (n = 8) => Array.from({ length: n }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[int(0, 31)]).join('');
-const vid = () => Array.from({ length: 19 }, () => int(0, 9)).join('');
+// The prefix marks test clips: the live sync and payouts skip them (src/lib/test-data.ts).
+const vid = () => 'atlastest' + Array.from({ length: 12 }, () => int(0, 9)).join('');
 
 async function insert(table, all, size = 500) {
   // Rows in one request must share the same columns, or missing ones become NULL.
@@ -229,7 +230,7 @@ async function main() {
     const platform = pick(c.platforms);
     join(c, cr, ago(ageH + int(1, 48)));
     const id = vid();
-    const url = platform === 'tiktok' ? `https://www.tiktok.com/@${cr._handle}/video/${id}` : platform === 'youtube' ? `https://www.youtube.com/shorts/${id.slice(0, 11)}` : `https://www.instagram.com/reel/${id.slice(0, 11)}/`;
+    const url = platform === 'tiktok' ? `https://www.tiktok.com/@${cr._handle}/video/${id}` : platform === 'youtube' ? `https://www.youtube.com/shorts/${id}` : `https://www.instagram.com/reel/${id}/`;
     subs.push({
       id: uid(),
       campaign_id: c.id,
@@ -248,7 +249,7 @@ async function main() {
       last_synced_at: ago(int(1, 4)),
       has_disclosure: true,
       engagement_cleared: true,
-      cover_url: `https://picsum.photos/seed/${id.slice(0, 8)}/360/640`,
+      cover_url: `https://picsum.photos/seed/${id.slice(-8)}/360/640`,
       payout_earned: 0,
       payout_transferred: 0,
       _tier: cr._tier,

@@ -1,4 +1,5 @@
 import { selectAll } from './fetch-all';
+import { isTestClip } from './test-data';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, poolShares, type PayoutTerms } from './payout';
 import { detectBotVelocity, detectLowEngagement, hashSimilarity, DUPLICATE_THRESHOLD, LOW_ENGAGEMENT_REASON } from './fraud';
@@ -42,7 +43,7 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
   const report: SyncReport = { synced: 0, flagged: 0, paid: 0, failed: [] };
-  const all = (data ?? []) as SubmissionWithCampaign[];
+  const all = ((data ?? []) as SubmissionWithCampaign[]).filter((s) => !isTestClip(s));
   const byCreator = new Map<string, SubmissionWithCampaign[]>();
   const igByCreator = new Map<string, SubmissionWithCampaign[]>();
   for (const s of all) {
@@ -133,12 +134,12 @@ async function runAutoPayouts(admin: SupabaseClient, report: SyncReport) {
   const { data } = await selectAll(() =>
     admin
       .from('submissions')
-      .select('id, creator_id, status, approved_at, payout_earned, payout_transferred, campaigns!inner(status)')
+      .select('id, creator_id, status, approved_at, payout_earned, payout_transferred, social_platform_video_id, campaigns!inner(status)')
       .eq('status', 'live_tracking')
       .not('approved_at', 'is', null)
       .order('id'),
   );
-  const rows = (data ?? []) as unknown as { id: string; creator_id: string; status: 'live_tracking'; approved_at: string; payout_earned: number; payout_transferred: number; campaigns: { status: string } }[];
+  const rows = ((data ?? []) as unknown as { id: string; creator_id: string; status: 'live_tracking'; approved_at: string; payout_earned: number; payout_transferred: number; social_platform_video_id: string; campaigns: { status: string } }[]).filter((r) => !isTestClip(r));
   const records = await clipperRecords(admin, rows.map((r) => r.creator_id));
   for (const row of rows) {
     const owed = Number(row.payout_earned) - Number(row.payout_transferred);
