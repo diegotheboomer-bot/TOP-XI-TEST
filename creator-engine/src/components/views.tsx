@@ -1,6 +1,6 @@
 // Presentational building blocks shared by the Next.js pages and the standalone demo.
 // No Next.js imports: callers pass their link component, links and action buttons in.
-import { ArrowUpRight, Check, Clock, FileText, Film, Link2, Play, Store } from 'lucide-react';
+import { ArrowUpRight, Check, Clock, FileText, Film, Link2, PieChart, Play, Store } from 'lucide-react';
 import type { CampaignSummary, MarketCampaign, MomentRow, SubmissionRow } from '@/lib/data';
 import type { BudgetStats } from '@/lib/budget';
 import type { Campaign, Enrollment, Platform, Submission } from '@/lib/types';
@@ -211,10 +211,18 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-2">
           <span className="min-w-0">
-            <span className="block text-2xl font-semibold leading-none tracking-tight tabular-nums text-brand">{r.rate}</span>
-            <span className="mt-1 block truncate text-[11px] text-zinc-500">
-              {r.unit} · {r.terms}
-            </span>
+            {c.payout_model === 'pool' ? (
+              // Pools look different: the whole budget, shared by views.
+              <span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold ring-1 ring-inset" style={{ backgroundColor: 'rgba(56,189,248,0.12)', color: '#38bdf8', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.35)' }}>
+                <PieChart className="size-3.5" /> {usdCompact(c.budget.deposited)} pool
+              </span>
+            ) : (
+              <span className="inline-flex items-baseline gap-1 rounded-lg bg-brand-a/10 px-2 py-1 ring-1 ring-inset ring-brand-a/30">
+                <span className="text-base font-semibold tabular-nums text-[rgb(var(--brand-ta))]">{r.rate}</span>
+                <span className="text-xs font-medium text-zinc-600">{c.payout_model === 'per_post' ? '/ clip' : '/ 1K views'}</span>
+              </span>
+            )}
+            <span className="mt-1 block truncate text-[11px] text-zinc-500">{c.payout_model === 'pool' ? 'Split by share of views · paid when it ends' : r.terms}</span>
           </span>
           <span className="flex shrink-0 gap-1">
             {PLATFORM_ORDER.filter((p) => c.platforms.includes(p)).map((p) => (

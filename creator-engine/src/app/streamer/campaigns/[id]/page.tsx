@@ -209,6 +209,8 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             </div>
           </Card>
 
+          {c.payout_model === 'pool' && <PoolSplit rows={submissions} pool={c.escrow_balance + paidOut} ended={ended} />}
+
           {top.length > 0 && (
             <Card>
               <div className="mb-3 flex items-baseline justify-between">
@@ -291,6 +293,62 @@ function topClippers(rows: SubmissionRow[]) {
     by.set(s.creator_name, t);
   }
   return [...by.values()].sort((a, b) => b.views - a.views);
+}
+
+/**
+ * Pool campaigns: the whole budget is shared by approved views. Each clipper's
+ * share = their approved views ÷ all approved views, times the pool.
+ */
+function PoolSplit({ rows, pool, ended }: { rows: SubmissionRow[]; pool: number; ended: boolean }) {
+  const by = new Map<string, { name: string; views: number; clips: number }>();
+  for (const s of rows) {
+    if (s.status !== 'live_tracking' && s.status !== 'paid') continue;
+    const t = by.get(s.creator_name) ?? { name: s.creator_name, views: 0, clips: 0 };
+    t.views += s.current_view_count;
+    t.clips++;
+    by.set(s.creator_name, t);
+  }
+  const list = [...by.values()].sort((a, b) => b.views - a.views);
+  const total = list.reduce((n, t) => n + t.views, 0);
+  const waiting = rows.filter((s) => s.status === 'pending_review').length;
+  return (
+    <Card>
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-semibold tracking-tight">Pool split</h2>
+        <span className="text-xs text-zinc-500">{usd(pool)} pool</span>
+      </div>
+      <p className="mt-1 text-xs text-zinc-500">
+        Each clipper gets their share of all approved views. {compact(total)} views so far{ended ? '' : '; shares move as views come in and are paid when the campaign ends'}.
+      </p>
+      {list.length === 0 ? (
+        <p className="mt-4 text-sm text-zinc-500">No approved clips yet.</p>
+      ) : (
+        <ol className="mt-4 space-y-3">
+          {list.slice(0, 10).map((t) => {
+            const pct = total > 0 ? t.views / total : 0;
+            return (
+              <li key={t.name}>
+                <div className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="truncate font-medium">{t.name}</span>
+                  <span className="shrink-0 tabular-nums">
+                    <span className="font-semibold">{(pct * 100).toFixed(1)}%</span> <span className="text-zinc-500">· {usd(Math.floor(pool * pct * 100) / 100)}</span>
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                  <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, backgroundColor: '#38bdf8' }} />
+                </div>
+                <p className="mt-0.5 text-[11px] text-zinc-500">
+                  {compact(t.views)} views · {t.clips} {t.clips === 1 ? 'clip' : 'clips'}
+                </p>
+              </li>
+            );
+          })}
+          {list.length > 10 && <li className="text-xs text-zinc-500">+{list.length - 10} more clippers share {(list.slice(10).reduce((n, t) => n + t.views, 0) / total * 100).toFixed(1)}%</li>}
+        </ol>
+      )}
+      {waiting > 0 && <p className="mt-3 text-xs text-amber-700">{waiting} clips waiting for your review aren’t counted until you approve them.</p>}
+    </Card>
+  );
 }
 
 /** Shown while a campaign is a draft: what's done, what's left, and the launch button. */

@@ -211,10 +211,11 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
             payoutsReady={d.payoutsEnabled}
             blocked={left <= 0 ? `${TIER_LABEL[tier]} clippers can cash out ${perks.cashoutsPerWeek === 1 ? 'once' : `${perks.cashoutsPerWeek} times`} a week. Reach a higher tier to cash out more often.` : undefined}
             nextUnlock={nextUnlock}
+            tier={tier}
           />
           <p className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-zinc-500">
             <TierBadge tier={tier} />
-            {perks.feePct}% fee · {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · unlocks {holdLabel(perks.holdHours)} after approval
+            {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · unlocks {holdLabel(perks.holdHours)} after approval
           </p>
         </div>
       </div>

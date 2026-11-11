@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { cashOut } from '@/actions/creator';
 import type { ActionState } from '@/actions/result';
 import { cn } from './ui/cn';
+import { TierBadge } from './tier-badge';
+import { TIER_LABEL, TIER_PERKS, type Tier } from '@/lib/tiers';
 
 const cents = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -99,7 +101,9 @@ export function OneTapCashOut({
   payoutsReady,
   blocked,
   nextUnlock,
+  tier,
 }: {
+  tier: Tier;
   balance: number;
   feePct: number;
   payoutsReady: boolean;
@@ -110,6 +114,7 @@ export function OneTapCashOut({
 }) {
   const router = useRouter();
   const [custom, setCustom] = useState(false);
+  const [confirm, setConfirm] = useState(false);
   const [state, setState] = useState<ActionState>();
   const [pending, start] = useTransition();
   const fee = Math.round(balance * feePct) / 100;
@@ -134,29 +139,67 @@ export function OneTapCashOut({
       </div>
     );
   if (custom) return <CashOutForm balance={balance} feePct={feePct} />;
+  if (confirm) {
+    const silverFee = Math.round(balance * TIER_PERKS.silver.feePct) / 100;
+    return (
+      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50 p-4">
+        <dl className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <dt className="text-zinc-500">Cash out</dt>
+            <dd className="tabular-nums">{cents(balance)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <dt className="flex items-center gap-1.5 text-zinc-500">
+              Platform fee <TierBadge tier={tier} /> {feePct}%
+            </dt>
+            <dd className="tabular-nums">−{cents(fee)}</dd>
+          </div>
+          <div className="flex justify-between border-t border-zinc-200 pt-2 text-base font-semibold">
+            <dt>You receive</dt>
+            <dd className="tabular-nums text-brand">{cents(net)}</dd>
+          </div>
+        </dl>
+        {tier !== 'silver' && silverFee > fee && (
+          <p className="mt-3 rounded-lg bg-brand-a/10 px-3 py-2 text-xs font-medium text-[rgb(var(--brand-ta))] ring-1 ring-inset ring-brand-a/30">
+            Your {TIER_LABEL[tier]} tier saves you {cents(silverFee - fee)} on this cash-out.
+          </p>
+        )}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            start(async () => {
+              const r = await cashOut();
+              setState(r);
+              if (r?.success) router.refresh();
+            })
+          }
+          className={cn(big, 'mt-4 bg-brand text-brand-ink hover:brightness-110 disabled:opacity-60')}
+        >
+          {pending ? 'Sending…' : `Confirm · get ${cents(net)}`}
+        </button>
+        <button type="button" onClick={() => setConfirm(false)} className="mt-2 w-full text-center text-xs text-zinc-500 hover:text-zinc-900">
+          Cancel
+        </button>
+        {state?.error && <p className="mt-2 text-center text-sm text-rose-600">{state.error}</p>}
+      </div>
+    );
+  }
   return (
     <div>
       <button
         type="button"
-        disabled={pending}
-        onClick={() =>
-          start(async () => {
-            const r = await cashOut();
-            setState(r);
-            if (r?.success) router.refresh();
-          })
-        }
-        className={cn(big, 'bg-brand text-brand-ink shadow-[0_10px_30px_-12px_rgb(var(--brand-b)/0.8)] hover:brightness-110 active:scale-[0.99] disabled:opacity-60')}
+        onClick={() => setConfirm(true)}
+        className={cn(big, 'bg-brand text-brand-ink shadow-[0_10px_30px_-12px_rgb(var(--brand-b)/0.8)] hover:brightness-110 active:scale-[0.99]')}
       >
-        {pending ? 'Sending…' : `Cash out ${cents(net)}`}
+        Cash out {cents(balance)}
       </button>
       <p className="mt-2 text-center text-xs text-zinc-500">
-        {cents(balance)} minus the {feePct}% fee, straight to your payout account ·{' '}
+        Straight to your payout account ·{' '}
         <button type="button" onClick={() => setCustom(true)} className="font-medium text-zinc-700 underline">
           Choose an amount
         </button>
       </p>
-      {state?.error && <p className="mt-2 text-center text-sm text-rose-600">{state.error}</p>}
     </div>
   );
 }
