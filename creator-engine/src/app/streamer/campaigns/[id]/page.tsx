@@ -68,9 +68,9 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           </p>
           <PlatformChips platforms={c.platforms} className="mt-3" />
         </div>
-        <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch [&>*]:flex-1 sm:[&>*]:flex-none">
+        <div className="grid shrink-0 grid-cols-3 gap-2 sm:w-44 sm:grid-cols-1 [&>*]:w-full [&_button]:h-9 [&_button]:w-full">
           {!ended && (
-            <Link href={`/streamer/campaigns/${c.id}/edit`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium transition hover:bg-zinc-50">
+            <Link href={`/streamer/campaigns/${c.id}/edit`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium transition hover:bg-zinc-50">
               <Pencil className="size-3.5" /> Edit
             </Link>
           )}
@@ -110,6 +110,24 @@ export default async function CampaignPage({ params, searchParams }: { params: {
               <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
             ) : (
               <SubmissionTable rows={submissions} cap={c.cpm_cap} actions={(s) => <SubmissionActions s={s} ended={ended} />} />
+            )}
+          </Card>
+          <Card>
+            <div className="mb-3 flex items-baseline justify-between">
+              <h2 className="font-semibold tracking-tight">Brief</h2>
+              {!ended && (
+                <Link href={`/streamer/campaigns/${c.id}/edit`} className="text-xs font-medium text-zinc-500 hover:text-zinc-900">
+                  Edit
+                </Link>
+              )}
+            </div>
+            {c.brief && <p className="mb-4 whitespace-pre-line leading-relaxed text-zinc-600">{c.brief}</p>}
+            <RequirementList items={c.requirements} />
+            {(c.asset_folder_url || (c.reference_items?.length ?? 0) > 0) && (
+              <div className="mt-5 border-t border-zinc-100 pt-5">
+                <p className="mb-2 text-[13px] font-medium text-zinc-700">References</p>
+                <ReferenceList campaign={c} />
+              </div>
             )}
           </Card>
           {c.moments_enabled && (
@@ -186,17 +204,6 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             </Card>
           )}
 
-          <Card>
-            <h2 className="mb-3 font-semibold tracking-tight">Brief</h2>
-            {c.brief && <p className="mb-4 text-sm leading-relaxed text-zinc-600">{c.brief}</p>}
-            <RequirementList items={c.requirements} />
-            {(c.asset_folder_url || (c.reference_items?.length ?? 0) > 0) && (
-              <div className="mt-5">
-                <p className="mb-2 text-[13px] font-medium text-zinc-700">References</p>
-                <ReferenceList campaign={c} />
-              </div>
-            )}
-          </Card>
 
           <details className="group rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 shadow-card">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">

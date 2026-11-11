@@ -84,13 +84,20 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
 
   const { data: enrollment } = await admin
     .from('campaign_creators')
-    .select('id, discount_code, joined_at, campaigns(status, platforms)')
+    .select('id, discount_code, joined_at, campaigns(status, platforms, max_clips_per_clipper)')
     .eq('campaign_id', campaignId)
     .eq('creator_id', creatorId)
     .maybeSingle();
-  const campaign = enrollment?.campaigns as unknown as { status: string; platforms: string[] } | null;
+  const campaign = enrollment?.campaigns as unknown as { status: string; platforms: string[]; max_clips_per_clipper: number | null } | null;
   if (!enrollment) return fail('You’re in this campaign', 'Join the campaign before submitting.');
   if (campaign?.status !== 'active') return fail('Campaign is open', 'This campaign is not accepting clips right now.');
+  if (campaign.max_clips_per_clipper) {
+    const { count } = await admin.from('submissions').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId).eq('creator_id', creatorId);
+    if ((count ?? 0) >= campaign.max_clips_per_clipper) {
+      const n = campaign.max_clips_per_clipper;
+      return fail('Room for another clip', `This campaign allows ${n} ${n === 1 ? 'clip' : 'clips'} per clipper, and you’ve posted ${n === 1 ? 'yours' : 'them all'}.`);
+    }
+  }
 
   const parsed = await parseVideoUrlResolving(videoUrl);
   if (!parsed.ok) {
@@ -170,7 +177,7 @@ export async function submitVideo(_prev: SubmitState, form: FormData): Promise<S
     .single();
   if (error) {
     if (error.code === '23505') {
-      return fail('Not submitted before', error.message.includes('creator_id') ? 'You already have a clip in this campaign.' : 'This video was already submitted to this campaign.');
+      return fail('Not submitted before', 'This video was already submitted to this campaign.');
     }
     return fail('Saved', 'Couldn’t save the clip. Try again.');
   }

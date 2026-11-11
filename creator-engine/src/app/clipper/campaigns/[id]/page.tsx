@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, BadgeCheck, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, ExternalLink, Users, Wallet } from 'lucide-react';
+import { SubmissionBadge } from '@/components/status';
 import { getCreatorCampaign } from '@/lib/data';
-import { platformRates, rateParts, usd, usdCents, usdCompact } from '@/lib/format';
+import { compact, platformRates, rateParts, usd, usdCents, usdCompact } from '@/lib/format';
 import { contentTypeLabel } from '@/lib/campaign-tags';
 import { PlatformIcon } from '@/components/platform-icon';
 import type { Platform } from '@/lib/types';
@@ -28,6 +29,9 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
   const merchLink = d.enrollment ? trackingLink(d.shopDomain, d.enrollment.ref_param) : null;
 
   const split = platformRates(c);
+  const mine = d.submissions ?? (d.submission ? [d.submission] : []);
+  const limit = c.max_clips_per_clipper ?? null;
+  const canPostMore = !limit || mine.length < limit;
   const used = c.budget.deposited > 0 ? Math.min(100, (c.budget.committed / c.budget.deposited) * 100) : 0;
 
   return (
@@ -161,12 +165,36 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
             </div>
           </section>
 
+          {mine.length > 0 && (
+            <Card>
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="font-semibold tracking-tight">Your clips</h2>
+                <span className="text-xs text-zinc-500">{limit ? `${mine.length} of ${limit}` : `${mine.length} posted`}</span>
+              </div>
+              <ul className="divide-y divide-zinc-100">
+                {mine.map((s) => (
+                  <li key={s.id} className="flex items-center gap-3 py-2.5">
+                    <PlatformIcon platform={s.platform} className="size-4 shrink-0 text-zinc-400" />
+                    <div className="min-w-0 flex-1">
+                      <SubmissionBadge status={s.status} />
+                      <p className="mt-0.5 text-xs text-zinc-500">{compact(s.current_view_count)} views</p>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums">{usd(s.payout_earned)}</span>
+                    <a href={s.video_url} target="_blank" rel="noreferrer" aria-label="Watch" className="grid size-8 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900">
+                      <ExternalLink className="size-4" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card>
+            {mine.length > 0 && canPostMore && <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[rgb(var(--brand-ta))]">Post another clip</p>}
             <NextStep
               campaign={c}
               brandName={c.brandName}
               enrollment={d.enrollment}
-              submission={d.submission}
+              submission={canPostMore ? null : d.submission}
               claimedMoment={d.moments.find((m) => m.mine)?.title ?? null}
               join={
                 <ActionButton variant="primary" block action={joinCampaign.bind(null, c.id)}>

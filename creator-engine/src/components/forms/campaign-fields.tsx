@@ -2,7 +2,7 @@
 
 // Instructions, rules, moments switch and references: shared by the create and edit campaign forms.
 import { useState } from 'react';
-import { Check, FileText, Film, Image as ImageIcon, Link2, ListChecks, Loader2, MapPin, Paperclip, Plus, Upload, X } from 'lucide-react';
+import { Check, Copy, FileText, Film, Image as ImageIcon, Link2, ListChecks, Loader2, MapPin, Paperclip, Plus, Upload, X } from 'lucide-react';
 import { Field, Input } from '../ui/field';
 import { cn } from '../ui/cn';
 import { REF_MAX, REF_MAX_BYTES, kindOf, linkName, type Reference } from '@/lib/references';
@@ -20,7 +20,9 @@ export function InstructionsFields({
   initialRefs = [],
   assetFolderUrl = '',
   momentsEnabled = false,
+  maxClips = null,
 }: {
+  maxClips?: number | null;
   uploadUrl: UploadUrl;
   brief?: string;
   initialRules?: string[];
@@ -132,7 +134,26 @@ export function InstructionsFields({
             )}
             <p className="mt-2 text-xs text-zinc-500">Clippers tick these off before they submit. You check them when you approve.</p>
           </div>
-          <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
+          <label className="mt-6 flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
+            <Copy className="size-4 shrink-0 text-zinc-400" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">Clips per clipper</span>
+              <span className="block text-xs text-zinc-500">How many videos one clipper can post for this campaign.</span>
+            </span>
+            <select
+              name="max_clips_per_clipper"
+              defaultValue={maxClips ? String(maxClips) : ''}
+              className="h-9 rounded-lg border border-zinc-200 bg-white px-2.5 text-sm focus:outline-none focus:ring-4 focus:ring-zinc-900/5"
+            >
+              <option value="">Unlimited</option>
+              {[1, 2, 3, 5, 10, 20].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
             <MapPin className="size-4 shrink-0 text-zinc-400" />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">Pin stream moments</span>

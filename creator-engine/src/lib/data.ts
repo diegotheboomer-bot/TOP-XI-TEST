@@ -17,7 +17,20 @@ export type CampaignSummary = Campaign & {
   earned: number;
   budget: BudgetStats;
 };
-export type SubmissionRow = Submission & { creator_name: string };
+export type SubmissionRow = Submission & {
+  creator_name: string;
+  /** The clipper's account on the clip's platform, when connected. */
+  creator_profile?: { handle: string; url: string } | null;
+};
+
+/** Public profile URL for a connected account. */
+function profileUrl(platform: string, username: string | null, platformUserId: string | null): { handle: string; url: string } | null {
+  const u = username?.replace(/^@/, '');
+  if (platform === 'tiktok' && u) return { handle: `@${u}`, url: `https://www.tiktok.com/@${encodeURIComponent(u)}` };
+  if (platform === 'instagram' && u) return { handle: `@${u}`, url: `https://www.instagram.com/${encodeURIComponent(u)}/` };
+  if (platform === 'youtube' && platformUserId) return { handle: username ?? 'YouTube channel', url: `https://www.youtube.com/channel/${encodeURIComponent(platformUserId)}` };
+  return null;
+}
 /** A moment with who claimed it (display names) and whether the viewer did. */
 export type MomentRow = Moment & { claimers: string[]; mine: boolean };
 
@@ -210,6 +223,8 @@ export interface CreatorCampaignDetail {
   youtubeCode: string;
   payoutsEnabled: boolean;
   moments: MomentRow[];
+  /** All of this clipper's clips on the campaign, newest first. */
+  submissions?: Submission[];
   /** Clips the streamer has approved on this campaign, from everyone. */
   approvedClips?: number;
 }
@@ -327,11 +342,21 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
   const sum = (type: string) => (ledger ?? []).filter((l) => l.entry_type === type).reduce((a, l) => a + Number(l.amount), 0);
   const { conversion_pixels, ...rest } = campaign;
   const c = num(rest as Campaign, CAMPAIGN_NUMS);
-  const names = await creatorNames((subs ?? []).map((s) => s.creator_id as string));
-  const rows = (subs ?? []).map((s) => ({
-    ...num(s as Submission, SUB_NUMS),
-    creator_name: names.get(s.creator_id as string) ?? 'Clipper',
-  }));
+  const creatorIds = [...new Set((subs ?? []).map((s) => s.creator_id as string))];
+  const [names, { data: socials }] = await Promise.all([
+    creatorNames(creatorIds),
+    creatorIds.length
+      ? createAdminClient().from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', creatorIds)
+      : Promise.resolve({ data: [] as { creator_id: string; platform: string; username: string | null; platform_user_id: string | null }[] }),
+  ]);
+  const rows = (subs ?? []).map((s) => {
+    const acct = (socials ?? []).find((a) => a.creator_id === s.creator_id && a.platform === s.platform);
+    return {
+      ...num(s as Submission, SUB_NUMS),
+      creator_name: names.get(s.creator_id as string) ?? 'Clipper',
+      creator_profile: acct ? profileUrl(acct.platform as string, acct.username as string | null, acct.platform_user_id as string | null) : null,
+    };
+  });
   const owed = rows.filter((s) => s.status === 'live_tracking').reduce((a, s) => a + s.payout_earned - s.payout_transferred, 0);
   return {
     campaign: c,
@@ -411,7 +436,7 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
   const [{ data: campaign }, { data: enrollment }, { data: sub }, { data: creator }, { data: account }] = await Promise.all([
     db.from('campaigns').select('*, brands(name), conversion_pixels(shop_domain)').eq('id', id).maybeSingle(),
     db.from('campaign_creators').select('*').eq('campaign_id', id).eq('creator_id', creatorId).maybeSingle(),
-    db.from('submissions').select('*').eq('campaign_id', id).eq('creator_id', creatorId).maybeSingle(),
+    db.from('submissions').select('*').eq('campaign_id', id).eq('creator_id', creatorId).order('created_at', { ascending: false }),
     db.from('creators').select('payouts_enabled').eq('id', creatorId).single(),
     createAdminClient().from('social_accounts').select('platform').eq('creator_id', creatorId),
   ]);
@@ -423,7 +448,8 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     campaign: { ...c, brandName: (brands as { name: string } | null)?.name ?? '', budget, creators },
     shopDomain: (conversion_pixels as { shop_domain: string | null } | null)?.shop_domain ?? null,
     enrollment: (enrollment as Enrollment | null) ?? null,
-    submission: sub ? num(sub as Submission, SUB_NUMS) : null,
+    submission: sub?.[0] ? num(sub[0] as Submission, SUB_NUMS) : null,
+    submissions: (sub ?? []).map((x) => num(x as Submission, SUB_NUMS)),
     tiktokConnected: !!account?.some((a) => a.platform === 'tiktok'),
     youtubeVerified: !!account?.some((a) => a.platform === 'youtube'),
     instagramConnected: !!account?.some((a) => a.platform === 'instagram'),
@@ -437,7 +463,8 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
 
 export interface JoinedCampaign {
   campaign: MarketCampaign;
-  submission: Submission | null;
+  /** This clipper's clips on the campaign, newest first. */
+  submissions: Submission[];
 }
 
 /** Campaigns this clipper has joined, newest first, with their own clip on each. */
@@ -446,14 +473,14 @@ export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
     const d = demo.creatorDashboard();
     return d.enrollments.map((e) => ({
       campaign: { ...e.campaign, brandName: e.brandName, creators: 0, budget: { deposited: 0, committed: 0, available: 0, usedShare: 0, daysLeft: null } },
-      submission: e.submission,
+      submissions: e.submission ? [e.submission] : [],
     }));
   }
   const creatorId = await requireRole('creator');
   const db = createClient();
   const [{ data: enrollments }, { data: subs }] = await Promise.all([
     db.from('campaign_creators').select('joined_at, campaigns(*, brands(name))').eq('creator_id', creatorId).order('joined_at', { ascending: false }),
-    db.from('submissions').select('*').eq('creator_id', creatorId),
+    db.from('submissions').select('*').eq('creator_id', creatorId).order('created_at', { ascending: false }),
   ]);
   const camps = (enrollments ?? []).map((e) => {
     const { brands, ...c } = e.campaigns as unknown as Record<string, unknown>;
@@ -462,7 +489,7 @@ export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
   const budgets = await loadBudgets(camps);
   return camps.map((c) => {
     const { creators, ...budget } = budgets.get(c.id)!;
-    const sub = (subs ?? []).find((s) => s.campaign_id === c.id);
-    return { campaign: { ...c, budget, creators }, submission: sub ? num(sub as Submission, SUB_NUMS) : null };
+    const mine = (subs ?? []).filter((s) => s.campaign_id === c.id).map((s) => num(s as Submission, SUB_NUMS));
+    return { campaign: { ...c, budget, creators }, submissions: mine };
   });
 }

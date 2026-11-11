@@ -24,6 +24,7 @@ export const CampaignSchema = z
       .transform((t) => t.split('\n').map((l) => l.trim()).filter(Boolean))
       .pipe(z.array(z.string().max(120, 'Keep each requirement under 120 characters')).max(12, 'Up to 12 requirements')),
     min_payout: money(99_999).default(0),
+    max_clips_per_clipper: z.preprocess((v) => (v === '' || v == null || v === '0' ? null : v), z.coerce.number().int().min(1).max(100).nullable()).default(null),
     moments_enabled: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(false),
     platform_rates: z
       .string()
@@ -70,6 +71,7 @@ export const CampaignEditSchema = z.object({
     .pipe(z.array(z.string().max(120, 'Keep each requirement under 120 characters')).max(12, 'Up to 12 requirements')),
   asset_folder_url: z.union([z.literal(''), z.string().url()]),
   moments_enabled: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()).default(false),
+  max_clips_per_clipper: z.preprocess((v) => (v === '' || v == null || v === '0' ? null : v), z.coerce.number().int().min(1).max(100).nullable()).default(null),
   reference_items: z
     .string()
     .default('[]')

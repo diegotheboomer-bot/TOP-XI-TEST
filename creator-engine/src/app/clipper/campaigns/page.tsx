@@ -27,7 +27,10 @@ export default async function MyCampaignsPage() {
         />
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {joined.map(({ campaign: c, submission: s }) => {
+          {joined.map(({ campaign: c, submissions: clips }) => {
+            const s = clips[0] ?? null;
+            const earned = clips.reduce((n, x) => n + x.payout_earned, 0);
+            const views = clips.reduce((n, x) => n + x.current_view_count, 0);
             const r = rateParts(c);
             const used = c.budget.deposited > 0 ? Math.min(100, (c.budget.committed / c.budget.deposited) * 100) : 0;
             return (
@@ -53,11 +56,13 @@ export default async function MyCampaignsPage() {
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <SubmissionBadge status={s.status} />
-                            <p className="mt-1 text-xs text-zinc-500">{compact(s.current_view_count)} views</p>
+                            <p className="mt-1 text-xs text-zinc-500">
+                              {clips.length} {clips.length === 1 ? 'clip' : 'clips'} · {compact(views)} views
+                            </p>
                           </div>
                           <div className="text-right">
                             <p className="text-[11px] text-zinc-500">Earned</p>
-                            <p className="font-semibold tabular-nums">{usd(s.payout_earned)}</p>
+                            <p className="font-semibold tabular-nums">{usd(earned)}</p>
                           </div>
                         </div>
                       ) : (

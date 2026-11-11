@@ -1,6 +1,6 @@
 // Presentational building blocks shared by the Next.js pages and the standalone demo.
 // No Next.js imports: callers pass their link component, links and action buttons in.
-import { ArrowUpRight, Check, Clock, FileText, Film, Link2, Store } from 'lucide-react';
+import { ArrowUpRight, Check, Clock, FileText, Film, Link2, Play, Store } from 'lucide-react';
 import type { CampaignSummary, MarketCampaign, MomentRow, SubmissionRow } from '@/lib/data';
 import type { BudgetStats } from '@/lib/budget';
 import type { Campaign, Enrollment, Platform, Submission } from '@/lib/types';
@@ -302,7 +302,7 @@ export function submissionNote(s: Submission, now = Date.now()): { text: string;
 
 const NOTE_TONE = { muted: 'text-zinc-500', warn: 'text-amber-700', bad: 'text-rose-600' } as const;
 /** Clips on a fixed grid so numbers and buttons line up: who, views, earned, actions. */
-const CLIP_COLS = 'md:grid md:grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_10.5rem] md:items-center md:gap-4';
+const CLIP_COLS = 'md:grid md:grid-cols-[minmax(0,1fr)_4rem_5.5rem_10.5rem] md:items-center md:gap-4';
 
 export function SubmissionTable({
   rows,
@@ -328,16 +328,30 @@ export function SubmissionTable({
           const act = actions(s);
           return (
             <li key={s.id} className={cn('px-5 py-4 sm:px-6', CLIP_COLS)}>
-              <div className="flex min-w-0 items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                 <StreamerAvatar name={s.creator_name} size="md" />
                 <div className="min-w-0">
-                  <a href={s.video_url} target="_blank" rel="noreferrer" className="block truncate text-sm font-semibold hover:underline">
-                    {s.creator_name}
-                  </a>
+                  <p className="flex min-w-0 items-baseline gap-2">
+                    <span className="truncate text-sm font-semibold">{s.creator_name}</span>
+                    {s.creator_profile && (
+                      <a href={s.creator_profile.url} target="_blank" rel="noreferrer" className="truncate text-xs text-zinc-500 hover:text-zinc-900 hover:underline">
+                        {s.creator_profile.handle}
+                      </a>
+                    )}
+                  </p>
                   <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
                     <SubmissionBadge status={s.status} />
-                    <PlatformIcon platform={s.platform} className="size-3 shrink-0" />
-                    <span className={cn('truncate md:hidden xl:inline', NOTE_TONE[note.tone])} title={note.text}>
+                    <a
+                      href={s.video_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`Watch on ${PLATFORM_LABEL[s.platform]}`}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-1.5 py-0.5 font-medium text-zinc-700 transition hover:bg-zinc-200 hover:text-zinc-900"
+                    >
+                      <PlatformIcon platform={s.platform} className="size-3" />
+                      Watch
+                    </a>
+                    <span className={cn('truncate md:hidden', NOTE_TONE[note.tone])} title={note.text}>
                       {note.text}
                     </span>
                   </p>
@@ -347,7 +361,9 @@ export function SubmissionTable({
               <div className="mt-3 flex items-center justify-between gap-3 text-sm md:contents">
                 <div className="md:text-right">
                   <p className="font-semibold tabular-nums">{compact(s.current_view_count)}</p>
-                  <p className="whitespace-nowrap text-[11px] text-zinc-500">{percent(ratio)} engaged</p>
+                  <p className="whitespace-nowrap text-[11px] text-zinc-500" title="Likes and comments per view">
+                    {percent(ratio)}<span className="md:hidden"> engaged</span>
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold tabular-nums">{usd(s.payout_earned)}</p>

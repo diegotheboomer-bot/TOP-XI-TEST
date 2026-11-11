@@ -61,6 +61,7 @@ export function EditCampaignForm({ campaign: c }: { campaign: Campaign }) {
           initialRefs={c.reference_items ?? []}
           assetFolderUrl={c.asset_folder_url ?? ''}
           momentsEnabled={!!c.moments_enabled}
+          maxClips={c.max_clips_per_clipper ?? null}
         />
       </Card>
       <p className="text-xs text-zinc-500">Pay terms can’t change once a campaign exists, so clippers always get what they signed up for.</p>

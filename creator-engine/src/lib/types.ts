@@ -29,6 +29,8 @@ export interface Campaign {
   reference_items?: import('./references').Reference[];
   /** Clips earning less than this aren't paid (Per 1K views). */
   min_payout?: number;
+  /** Most clips one clipper may post; null = unlimited. */
+  max_clips_per_clipper?: number | null;
   /** Pinned stream moments for clippers to claim. */
   moments_enabled?: boolean;
   /** Rate per 1K views by platform; a missing platform uses cpm_rate. */
