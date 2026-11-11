@@ -136,3 +136,12 @@
 @media (prefers-reduced-motion: reduce) {
   .majesty-ring, .majesty-halo, .majesty-orbit { animation: none; }
 }
+
+/* Home hero chart: the chart sweeps in left to right, badges float. */
+.hero-reveal { transform-box: fill-box; transform-origin: left; animation: hero-reveal 1.6s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+@keyframes hero-reveal { from { transform: scaleX(0); } }
+.hero-float { animation: hero-float-y 4s ease-in-out infinite; }
+@keyframes hero-float-y { 50% { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-reveal, .hero-float { animation: none; }
+}

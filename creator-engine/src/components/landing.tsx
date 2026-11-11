@@ -1,6 +1,6 @@
 // Landing page content, shared by the Next app and the standalone demo.
 import { type LinkLike } from './views';
-import { HeroFlow } from './hero-flow';
+import { ViewsChartHero } from './views-chart-hero';
 import { PlatformTile } from './platform-icon';
 import { BadgeCheck, Gamepad2, Megaphone, Music, Percent, Radio, ShieldCheck } from 'lucide-react';
 import { Features } from './features';
@@ -49,43 +49,43 @@ export function Landing({
   return (
     <main className="gutter mx-auto max-w-6xl">
       {/* Hero */}
-      <section className="relative isolate grid grid-cols-1 items-center gap-12 pb-20 pt-12 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
+      <section className="relative isolate pb-16 pt-14 text-center sm:pb-24 sm:pt-20">
         <div className="hero-grid pointer-events-none absolute inset-x-0 -top-16 bottom-0 -z-10" aria-hidden />
-        <div className="min-w-0">
-          <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-600 backdrop-blur">
-            <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> The clipping marketplace
-          </p>
-          <h1 className="balance mt-5 text-[2.6rem] font-semibold leading-[1.04] tracking-tight sm:text-6xl">
-            Turn your content into <span className="text-brand">short&#8209;form reach.</span>
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
-            Fund a campaign, and clippers turn your streams, music, trailers or videos into TikToks, Shorts and Reels. You pay only for verified views.
-          </p>
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:flex">
-            <Link href={startHref} className={buttonClass('primary', 'md', 'h-11 px-5')}>
-              Launch a campaign
-            </Link>
-            <Link href={clipperStartHref} className={buttonClass('secondary', 'md', 'h-11 px-5')}>
-              Start clipping
-            </Link>
-          </div>
-          <ul className="mt-8 grid grid-cols-1 gap-2 text-sm text-zinc-600 sm:grid-cols-3 sm:gap-4">
-            {[
-              [BadgeCheck, 'Verified views only'],
-              [ShieldCheck, 'You approve every clip'],
-              [Percent, feePercent ? `${feePercent}% service fee` : 'No service fee'],
-            ].map(([Icon, text]) => {
-              const I = Icon as React.ElementType;
-              return (
-                <li key={text as string} className="flex items-center gap-2">
-                  <I className="size-4 shrink-0 text-[rgb(var(--brand-ta))]" />
-                  {text as string}
-                </li>
-              );
-            })}
-          </ul>
+        <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-600 backdrop-blur">
+          <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> The clipping marketplace
+        </p>
+        <h1 className="balance mx-auto mt-6 max-w-4xl text-[3.25rem] font-semibold leading-[0.98] tracking-tight sm:text-7xl lg:text-8xl">
+          Content in. <span className="text-brand">Views out.</span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
+          Fund a campaign and a network of clippers turns your streams, music, trailers or videos into TikToks, Shorts and Reels. You pay only for verified views.
+        </p>
+        <div className="mx-auto mt-8 grid max-w-sm grid-cols-2 gap-3 sm:flex sm:max-w-none sm:justify-center">
+          <Link href={startHref} className={buttonClass('primary', 'md', 'h-12 px-6')}>
+            Launch a campaign
+          </Link>
+          <Link href={clipperStartHref} className={buttonClass('secondary', 'md', 'h-12 px-6')}>
+            Start clipping
+          </Link>
         </div>
-        <HeroFlow />
+        <ul className="mx-auto mt-6 flex max-w-2xl flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-zinc-600">
+          {[
+            [BadgeCheck, 'Verified views only'],
+            [ShieldCheck, 'You approve every clip'],
+            [Percent, feePercent ? `${feePercent}% service fee` : 'No service fee'],
+          ].map(([Icon, text]) => {
+            const I = Icon as React.ElementType;
+            return (
+              <li key={text as string} className="flex items-center gap-2">
+                <I className="size-4 shrink-0 text-[rgb(var(--brand-ta))]" />
+                {text as string}
+              </li>
+            );
+          })}
+        </ul>
+        <div className="mt-12 text-left sm:mt-16">
+          <ViewsChartHero />
+        </div>
       </section>
 
       {/* Platforms */}
