@@ -18,7 +18,7 @@ const ROLES = [
     title: 'I clip',
     lead: 'Clip streamers you like, post on TikTok, Shorts or Reels, and get paid for the views.',
     photo: 'couch-coop.jpg',
-    points: ['Pick a streamer’s campaign', 'Clip a moment and post it', 'Get paid per 1,000 views, with no fees'],
+    points: ['Pick a streamer’s campaign', 'Clip a moment and post it', 'Get paid per 1,000 views, and level up for lower fees'],
     cta: 'Continue as a clipper',
   },
 ] as const;

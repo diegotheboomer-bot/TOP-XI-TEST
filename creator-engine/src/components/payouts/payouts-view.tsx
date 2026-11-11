@@ -79,7 +79,7 @@ export function PayoutsView({
             </div>
           </div>
         )}
-        <p className="relative mt-4 text-sm text-zinc-500">Cash out from Earnings whenever you like, once a clip has been approved for 3 days. One free cash-out a week.</p>
+        <p className="relative mt-4 text-sm text-zinc-500">Cash out from Earnings once a clip is approved and its hold has passed: 3 days at Silver, as little as 12 hours at Majesty.</p>
         {setup.lastFailure && <Failure text={setup.lastFailure} />}
         <div className="relative mt-5 flex flex-wrap gap-2 border-t border-zinc-100 pt-5">
           <Button
@@ -145,7 +145,7 @@ export function PayoutsView({
         )}
       </Card>
       <Card className="space-y-4 text-sm lg:sticky lg:top-6">
-        <Point title="No fees for you" body="You keep 100% of what you earn. We cover the transfer costs." />
+        <Point title="Fees that shrink" body="9% comes off each payout at Silver, then 8% at Gold, 6% at Diamond and 4% at Majesty. We cover the transfer costs." />
         <Point title="Bank or debit card" body="Stripe checks your identity once: name, date of birth, address and the last 4 digits of your SSN." />
         {methods.includes('paypal') && <Point title="PayPal or Venmo" body="We only need your email or mobile number. Payouts nobody claims come back after 30 days." />}
       </Card>

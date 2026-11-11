@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { calculatePayout, type PayoutTerms } from '@/lib/payout';
 import { compact, usd, usdCents } from '@/lib/format';
 import { Input } from './ui/field';
+import { payoutFee } from '@/lib/tiers';
 
 const VIEW_STEPS = [10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000, 2_500_000, 5_000_000];
 
-/** What a clipper would take home for a given result. Clippers pay no fee. */
+/** What a clipper would take home for a given result, after the Silver payout fee (lower tiers pay less). */
 export function EarningsEstimator({ terms }: { terms: PayoutTerms }) {
   const cps = terms.payout_model === 'cps_performance';
   const [step, setStep] = useState(3);
@@ -18,6 +19,7 @@ export function EarningsEstimator({ terms }: { terms: PayoutTerms }) {
   const aov = Math.max(0, Number(orderValue) || 0);
   const gross = calculatePayout(terms, views, cps ? orders * aov : 0);
   const capped = gross >= terms.cpm_cap;
+  const net = gross - payoutFee(gross, 'silver');
 
   return (
     <div className="space-y-5">
@@ -50,10 +52,10 @@ export function EarningsEstimator({ terms }: { terms: PayoutTerms }) {
       <div className="flex items-end justify-between gap-4 rounded-lg bg-zinc-50 px-4 py-3">
         <div>
           <p className="text-xs text-zinc-500">You take home</p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">{usdCents(gross)}</p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums">{usdCents(net)}</p>
         </div>
         <p className="text-right text-xs text-zinc-500">
-          No fees taken
+          After the 9% fee (less as you level up)
           {capped && <span className="block font-medium text-amber-700">Capped at {usd(terms.cpm_cap)}</span>}
         </p>
       </div>

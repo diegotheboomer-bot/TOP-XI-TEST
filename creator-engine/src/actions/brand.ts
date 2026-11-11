@@ -16,6 +16,8 @@ import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaign
 import * as demo from '@/lib/demo';
 import { REF_MAX_BYTES } from '@/lib/references';
 import { LOW_ENGAGEMENT_REASON } from '@/lib/fraud';
+import { clipperTier } from '@/lib/clipper-records';
+import { TIER_PERKS, holdLabel } from '@/lib/tiers';
 import type { ActionState } from './result';
 
 async function requireBrand() {
@@ -241,12 +243,15 @@ export async function connectStore(_prev: ActionState, form: FormData): Promise<
 export async function reviewSubmission(submissionId: string, decision: 'approve' | 'flag'): Promise<ActionState> {
   if (isDemo) return done(demo.reviewSubmission(submissionId, decision));
   const admin = createAdminClient();
-  const { data: sub } = await admin.from('submissions').select('campaign_id, status, approved_at, flag_reason').eq('id', submissionId).single();
+  const { data: sub } = await admin.from('submissions').select('campaign_id, creator_id, status, approved_at, flag_reason').eq('id', submissionId).single();
   if (!sub) return { error: 'Submission not found.' };
   const { campaign } = await requireOwnCampaign(sub.campaign_id);
   if (decision === 'approve' && campaign.status === 'completed') return { error: 'This campaign has ended, so new clips can’t earn.' };
-  if (decision === 'flag' && !streamerCanFlag(sub as { status: 'pending_review'; approved_at: string | null })) {
-    return { error: `Clips can only be flagged for ${HOLD_HOURS / 24} days after approval. This one is locked and will be paid.` };
+  if (decision === 'flag') {
+    const hold = TIER_PERKS[await clipperTier(admin, sub.creator_id as string)].holdHours;
+    if (!streamerCanFlag(sub as { status: 'pending_review'; approved_at: string | null }, Date.now(), hold)) {
+      return { error: `Clips can only be flagged for ${holdLabel(hold)} after approval. This one is locked and will be paid.` };
+    }
   }
 
   const update =

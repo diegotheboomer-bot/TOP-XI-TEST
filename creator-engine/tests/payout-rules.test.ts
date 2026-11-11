@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HOLD_HOURS, autoPayoutDue, cashoutFee, cashoutReady, holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
+import { HOLD_HOURS, autoPayoutDue, cashoutReady, holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
+import { TIER_PERKS, payoutFee } from '@/lib/tiers';
 
 const now = Date.parse('2026-11-10T12:00:00Z');
 const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
@@ -55,10 +56,18 @@ describe('automatic payouts (demo)', () => {
 });
 
 describe('cash-outs', () => {
-  it('first cash-out in 7 days is free, extra ones cost $1', () => {
-    expect(cashoutFee(0)).toBe(0);
-    expect(cashoutFee(1)).toBe(1);
-    expect(cashoutFee(3)).toBe(1);
+  it('takes the tier fee from each payout', () => {
+    expect(payoutFee(100, 'silver')).toBe(9);
+    expect(payoutFee(100, 'gold')).toBe(8);
+    expect(payoutFee(100, 'diamond')).toBe(6);
+    expect(payoutFee(100, 'majesty')).toBe(4);
+    expect(payoutFee(12.34, 'silver')).toBe(1.11);
+  });
+  it('pays higher tiers sooner', () => {
+    const now = Date.parse('2026-11-10T12:00:00Z');
+    const approved = new Date(now - 30 * 3_600_000).toISOString();
+    expect(cashoutReady({ status: 'live_tracking', approved_at: approved }, now, TIER_PERKS.silver.holdHours)).toBe(false);
+    expect(cashoutReady({ status: 'live_tracking', approved_at: approved }, now, TIER_PERKS.diamond.holdHours)).toBe(true);
   });
   it('only approved clips past the 3-day hold can be cashed out', () => {
     const now = Date.parse('2026-11-10T12:00:00Z');

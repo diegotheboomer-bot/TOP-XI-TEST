@@ -25,5 +25,5 @@ export function feeFor(earlyPartner: boolean): { percent: number; fixed: number;
   return earlyPartner || noServiceFee() ? { ...EARLY_PARTNER_FEE, early: true } : { percent: platformFeePercent(), fixed: 0, early: false };
 }
 
-/** Charged to streamers on top of the budget they fund. Clippers pay no fee. */
+/** Charged to streamers on top of the budget they fund. (Clippers pay a tier fee on payouts; see tiers.ts.) */
 export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 9);

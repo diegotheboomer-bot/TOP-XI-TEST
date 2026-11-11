@@ -50,8 +50,8 @@ export default function TermsPage() {
         <ul>
           <li>Post your own edits, follow each campaign’s rules, and only submit clips from accounts you control.</li>
           <li>You’re responsible for following advertising law and each platform’s rules on disclosing paid content (for example TikTok’s content disclosure setting).</li>
-          <li>Earnings are based on views reported by TikTok, YouTube or Instagram. Screenshots and self-reported numbers aren’t accepted. Once a clip has been approved for 3 days you can cash out its earnings whenever you like: one cash-out every 7 days is free, extra ones cost $1 each, taken from the amount sent (you need at least $10 ready; anything left when a campaign ends is sent automatically), and the streamer can’t withdraw money you’ve earned.</li>
-          <li>We don’t charge clippers a fee. Payouts go to a bank account or debit card through Stripe, or to PayPal or Venmo through PayPal; that provider’s own terms apply to your account there. Keep your payout details correct: a payout PayPal can’t deliver, or that isn’t claimed within 30 days, comes back to the campaign until you update them.</li>
+          <li>Earnings are based on views reported by TikTok, YouTube or Instagram. Screenshots and self-reported numbers aren’t accepted. Once a clip is approved and its hold has passed (3 days at Silver, 2 days at Gold, 1 day at Diamond, 12 hours at Majesty), you can cash out its earnings. How often you can cash out depends on your tier (once a week at Silver, 3 times at Gold, 7 times at Diamond, unlimited at Majesty). Anything left when a campaign ends is sent automatically, and the streamer can’t withdraw money you’ve earned.</li>
+          <li>We take a fee from each payout to a clipper, based on their tier: 9% at Silver, 8% at Gold, 6% at Diamond and 4% at Majesty. The fee and the amount you’ll receive are shown before you cash out. Tiers are worked out from your verified views, approved clips and approval rate, and can go down as well as up. Payouts go to a bank account or debit card through Stripe, or to PayPal or Venmo through PayPal; that provider’s own terms apply to your account there. Keep your payout details correct: a payout PayPal can’t deliver, or that isn’t claimed within 30 days, comes back to the campaign until you update them.</li>
           <li>You’re responsible for taxes on what you earn.</li>
           <li>We don’t promise any level of views or income. Examples on the site are illustrations only; most clips earn little or nothing.</li>
         </ul>
@@ -91,8 +91,7 @@ export default function TermsPage() {
         <p>
           We work to keep Atlas Clipping running and accurate, but it’s provided “as is” and “as available”. View counts come from TikTok, YouTube and Instagram,
           and payments from Stripe and PayPal; we aren’t responsible for their errors, outages or decisions. To the extent the law allows, we aren’t liable for
-          indirect or consequential losses or lost profits, and our total liability to you is limited to the fees you paid us in the 12 months before the claim (for
-          clippers, which pay no fees, €100). Nothing in these terms limits liability that can’t be limited by law, or your rights as a consumer.
+          indirect or consequential losses or lost profits, and our total liability to you is limited to the fees you paid us in the 12 months before the claim (or €100 if that is more). Nothing in these terms limits liability that can’t be limited by law, or your rights as a consumer.
         </p>
       </section>
 

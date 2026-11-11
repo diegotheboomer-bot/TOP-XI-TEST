@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import type { CreatorDashboard } from '@/lib/data';
 import type { Submission, SubmissionStatus } from '@/lib/types';
-import { EXTRA_CASHOUT_FEE, cashoutFee, cashoutReady } from '@/lib/payout-rules';
-import { TIER_LABEL, TIER_PERKS } from '@/lib/tiers';
+import { cashoutReady } from '@/lib/payout-rules';
+import { TIER_LABEL, TIER_PERKS, holdLabel, payoutFee } from '@/lib/tiers';
+import { TierBadge } from './tier-badge';
 import { cashOut } from '@/actions/creator';
 import { ActionButton } from './action-button';
 import { compact, usd, usdCents } from '@/lib/format';
@@ -174,11 +175,11 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
   const paid = rows.reduce((n, r) => n + r.sub.payout_transferred, 0);
   const owed = rows.filter((r) => r.sub.status !== 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const held = rows.filter((r) => r.sub.status === 'flagged').reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
-  const ready = rows.filter((r) => !r.openPool && cashoutReady(r.sub)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const tier = d.tier ?? 'silver';
   const perks = TIER_PERKS[tier];
-  const fee = cashoutFee(d.recentCashouts, perks.freeCashouts);
-  const MIN_CASHOUT = perks.minCashout;
+  const ready = rows.filter((r) => !r.openPool && cashoutReady(r.sub, Date.now(), perks.holdHours)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
+  const fee = payoutFee(ready, tier);
+  const left = perks.cashoutsPerWeek === Infinity ? Infinity : Math.max(0, perks.cashoutsPerWeek - d.recentCashouts);
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-8">
@@ -186,24 +187,25 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
         <p className="text-sm text-zinc-500">Ready to cash out</p>
         <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight text-brand">{usdCents(ready)}</p>
         <p className="mt-2 text-sm text-zinc-500">
-          {usdCents(earned)} earned in total{owed > ready ? ` · ${usdCents(owed - ready)} still in the 3-day check` : ''}
+          {usdCents(earned)} earned in total{owed > ready ? ` · ${usdCents(owed - ready)} still in the ${holdLabel(perks.holdHours)} check` : ''}
         </p>
         <div className="mt-5">
-          {ready >= MIN_CASHOUT && d.payoutsEnabled ? (
+          {ready > 0 && d.payoutsEnabled && left > 0 ? (
             <ActionButton variant="primary" block action={cashOut}>
               Cash out {usdCents(Math.max(0, ready - fee))}
             </ActionButton>
           ) : (
             <p className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-              {!d.payoutsEnabled ? 'Set up a payout method to cash out.' : `You can cash out once ${usd(MIN_CASHOUT)} is ready.`}
+              {!d.payoutsEnabled
+                ? 'Set up a payout method to cash out.'
+                : left <= 0
+                  ? `You’ve used this week’s cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'}. Reach a higher tier to cash out more often.`
+                  : 'Nothing ready yet. Approved earnings unlock after the hold.'}
             </p>
           )}
-          <p className="mt-3 text-xs text-zinc-500">
-            {perks.freeCashouts === Infinity
-              ? `${TIER_LABEL[tier]}: unlimited free cash-outs.`
-              : fee
-                ? `You’ve used this week’s free cash-outs. Extra ones cost ${usd(EXTRA_CASHOUT_FEE)}.`
-                : `${TIER_LABEL[tier]}: ${perks.freeCashouts} free cash-out${perks.freeCashouts === 1 ? '' : 's'} every 7 days. Extra ones cost ${usd(EXTRA_CASHOUT_FEE)}.`}
+          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
+            <TierBadge tier={tier} />
+            {perks.feePct}% fee{ready > 0 ? ` (${usdCents(fee)})` : ''} · {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · paid {holdLabel(perks.holdHours)} after approval
           </p>
         </div>
       </div>
@@ -222,7 +224,7 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
           {(
             [
               ['Paid out', paid, 'bg-brand', 'In your account'],
-              ['On the way', owed, 'bg-brand opacity-40', 'In the 3-day check or ready to cash out'],
+              ['On the way', owed, 'bg-brand opacity-40', 'In the hold or ready to cash out'],
               ['Held', held, 'bg-rose-600/70', 'Flagged clips, under review'],
             ] as const
           ).map(([label, v, dot, hint]) => (

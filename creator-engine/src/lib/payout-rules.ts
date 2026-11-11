@@ -9,10 +9,10 @@ export const MIN_AUTO_PAYOUT = 10;
 
 const HOUR = 3_600_000;
 
-/** Hours left in the hold, 0 when it has passed (or the clip isn't approved yet). */
-export function holdHoursLeft(approvedAt: string | null, now = Date.now()): number {
+/** Hours left in the hold, 0 when it has passed (or the clip isn't approved yet). Higher tiers have shorter holds. */
+export function holdHoursLeft(approvedAt: string | null, now = Date.now(), holdHours = HOLD_HOURS): number {
   if (!approvedAt) return 0;
-  return Math.max(0, HOLD_HOURS - (now - new Date(approvedAt).getTime()) / HOUR);
+  return Math.max(0, holdHours - (now - new Date(approvedAt).getTime()) / HOUR);
 }
 
 interface ClipState {
@@ -21,29 +21,23 @@ interface ClipState {
 }
 
 /** The streamer can flag a clip while it's under review, or within the hold after approval. */
-export function streamerCanFlag(c: ClipState, now = Date.now()): boolean {
+export function streamerCanFlag(c: ClipState, now = Date.now(), holdHours = HOLD_HOURS): boolean {
   if (c.status === 'pending_review') return true;
-  if (c.status === 'live_tracking') return holdHoursLeft(c.approved_at, now) > 0;
+  if (c.status === 'live_tracking') return holdHoursLeft(c.approved_at, now, holdHours) > 0;
   return false;
 }
 
 /** Whether the sync should pay this clip now. `owed` is earned minus already transferred. */
-export function autoPayoutDue(c: ClipState & { owed: number; campaignEnded: boolean }, now = Date.now()): boolean {
+export function autoPayoutDue(c: ClipState & { owed: number; campaignEnded: boolean }, now = Date.now(), holdHours = HOLD_HOURS): boolean {
   if (c.status !== 'live_tracking' || !c.approved_at) return false;
-  if (holdHoursLeft(c.approved_at, now) > 0) return false;
+  if (holdHoursLeft(c.approved_at, now, holdHours) > 0) return false;
   return c.owed >= (c.campaignEnded ? 1 : MIN_AUTO_PAYOUT);
 }
 
-// Cash-outs: clippers choose when to get paid. Free cash-outs per 7 days depend on the
-// clipper's tier (see tiers.ts), then a small fee for each extra one (it covers transfer costs).
-export const MIN_CASHOUT = 10;
-export const FREE_CASHOUTS_PER_WEEK = 1;
-export const EXTRA_CASHOUT_FEE = 1;
-
-/** Fee for the next cash-out, given how many the clipper made in the last 7 days. */
-export const cashoutFee = (recentCount: number, freePerWeek = FREE_CASHOUTS_PER_WEEK) => (recentCount >= freePerWeek ? EXTRA_CASHOUT_FEE : 0);
+// Cash-outs: clippers choose when to get paid. The fee, how often they can cash out and
+// how long the hold lasts depend on their tier (see tiers.ts).
 
 /** Approved clips past the hold, with money not yet sent, can be cashed out. */
-export function cashoutReady(c: ClipState, now = Date.now()): boolean {
-  return c.status === 'live_tracking' && !!c.approved_at && holdHoursLeft(c.approved_at, now) <= 0;
+export function cashoutReady(c: ClipState, now = Date.now(), holdHours = HOLD_HOURS): boolean {
+  return c.status === 'live_tracking' && !!c.approved_at && holdHoursLeft(c.approved_at, now, holdHours) <= 0;
 }

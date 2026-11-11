@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Check, Pencil, Rocket, Users } from 'lucide-react';
 import { cn } from '@/components/ui/cn';
+import { TIER_PERKS } from '@/lib/tiers';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
 import { compact, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
@@ -93,7 +94,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           { label: 'Budget left', value: usd(c.escrow_balance), hint: `${usdCompact(budget.available)} free to earn` },
           { label: 'Views', value: compact(views), hint: 'Verified by the platforms' },
           { label: 'Clips', value: String(submissions.length), hint: pending ? `${pending} waiting for you` : 'All reviewed' },
-          { label: 'Paid to clippers', value: usd(paidOut), hint: 'Clippers keep 100%' },
+          { label: 'Paid to clippers', value: usd(paidOut), hint: 'Sent automatically' },
         ]}
       />
 
@@ -102,7 +103,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           <Card>
             <CardHeader
               title={pending ? `Clips · ${pending} to review` : 'Clips'}
-              description="You approve every clip. Approved clips are paid automatically after 3 days; you can flag one until then."
+              description="You approve every clip. Approved clips are paid automatically after a short hold (3 days, less for top-tier clippers); you can flag one until then."
             />
             {submissions.length === 0 ? (
               <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
@@ -287,7 +288,7 @@ function StatusActions({ campaign }: { campaign: Campaign }) {
 }
 
 function SubmissionActions({ s, ended }: { s: SubmissionRow; ended: boolean }) {
-  const kinds = submissionActionKinds(s, ended);
+  const kinds = submissionActionKinds(s, ended, Date.now(), s.creator_tier ? TIER_PERKS[s.creator_tier].holdHours : undefined);
   if (!kinds.length) return null;
   return (
     <>

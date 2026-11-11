@@ -114,7 +114,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   {usd(c.base_payout)} once your clip is approved, plus {r.rate} {r.unit}.
                 </li>
               )}
-              <li>Each clip earns up to {usd(c.cpm_cap)}{Number(c.min_payout) > 0 && <>, and starts paying once it reaches {usd(Number(c.min_payout))}</>}. You keep all of it: there are no fees for clippers.</li>
+              <li>Each clip earns up to {usd(c.cpm_cap)}{Number(c.min_payout) > 0 && <>, and starts paying once it reaches {usd(Number(c.min_payout))}</>}. A payout fee comes off when you cash out: 9% at Silver, down to 4% at Majesty.</li>
               <li>{c.brandName} reviews and approves every clip. Once approved, you’re paid automatically.</li>
             </ul>
           </section>

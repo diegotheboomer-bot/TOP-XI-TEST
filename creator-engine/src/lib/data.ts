@@ -1,6 +1,7 @@
 import { payoutReady, type PayoutSetup } from './payout-methods';
 import { redirect } from 'next/navigation';
 import { youtubeVerifyCode } from './youtube-verify';
+import { clipperRecords as loadRecords } from './clipper-records';
 import { approvalRate, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
 import { isDemo } from './env';
 import { getViewer } from './session';
@@ -259,15 +260,8 @@ async function creatorNames(ids: string[]): Promise<Map<string, string>> {
   return new Map((data ?? []).map((c) => [c.id as string, c.display_name as string]));
 }
 
-/** Track records (for tiers) of the given clippers, from all their clips. */
-export async function clipperRecords(ids: string[]): Promise<Map<string, ClipperRecord>> {
-  const unique = [...new Set(ids)];
-  const out = new Map<string, ClipperRecord>();
-  if (!unique.length) return out;
-  const { data } = await createAdminClient().from('submissions').select('creator_id, status, current_view_count, fraud_score, created_at').in('creator_id', unique);
-  for (const id of unique) out.set(id, recordFrom((data ?? []).filter((s) => s.creator_id === id) as { status: string; current_view_count: number; fraud_score: number; created_at: string }[]));
-  return out;
-}
+/** Track records (for tiers) of the given clippers. */
+export const clipperRecords = (ids: string[]) => loadRecords(createAdminClient(), ids);
 
 async function requireRole(role: 'brand' | 'creator') {
   const viewer = await getViewer();
@@ -366,10 +360,11 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
   const [{ data: campaign }, { data: subs }, { data: ledger }] = await Promise.all([
     db.from('campaigns').select('*, conversion_pixels(shop_domain)').eq('id', id).maybeSingle(),
     db.from('submissions').select('*').eq('campaign_id', id).order('current_view_count', { ascending: false }),
-    db.from('escrow_ledger').select('entry_type, amount').eq('campaign_id', id),
+    db.from('escrow_ledger').select('entry_type, amount, submission_id').eq('campaign_id', id),
   ]);
   if (!campaign) return null;
-  const sum = (type: string) => (ledger ?? []).filter((l) => l.entry_type === type).reduce((a, l) => a + Number(l.amount), 0);
+  // Platform fees on a clip payout (submission_id set) come out of the clipper's share, not the streamer's deposit.
+  const sum = (type: string) => (ledger ?? []).filter((l) => l.entry_type === type && !(type === 'platform_fee' && l.submission_id)).reduce((a, l) => a + Number(l.amount), 0);
   const { conversion_pixels, ...rest } = campaign;
   const c = num(rest as Campaign, CAMPAIGN_NUMS);
   const creatorIds = [...new Set((subs ?? []).map((s) => s.creator_id as string))];

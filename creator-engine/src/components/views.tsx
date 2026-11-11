@@ -14,6 +14,7 @@ import { cn } from './ui/cn';
 import { PlatformIcon } from './platform-icon';
 import { CampaignBadge, FraudBadge, SubmissionBadge } from './status';
 import { TierBadge } from './tier-badge';
+import { TIER_PERKS } from '@/lib/tiers';
 
 // `a`, or a router link component such as next/link.
 export type LinkLike = React.ElementType;
@@ -290,13 +291,13 @@ function Metric({ label, value, className }: { label: string; value: string; cla
 
 // ─── Streamer: submissions ────────────────────────────────────────────────────
 /** One-line state for a submission: review deadline, flag or sync time. */
-export function submissionNote(s: Submission, now = Date.now()): { text: string; tone: 'muted' | 'warn' | 'bad' } {
+export function submissionNote(s: Submission, now = Date.now(), holdHours?: number): { text: string; tone: 'muted' | 'warn' | 'bad' } {
   if (s.status === 'flagged') return { text: s.flag_reason ?? 'Flagged', tone: 'bad' };
   if (s.status === 'paid') return { text: 'Paid in full', tone: 'muted' };
   if (s.status === 'pending_review') {
     return { text: 'Waiting for the streamer to review', tone: 'warn' };
   }
-  const hold = holdHoursLeft(s.approved_at, now);
+  const hold = holdHoursLeft(s.approved_at, now, holdHours);
   if (hold > 0) return { text: `Pays automatically in ${hoursLabel(hold * 3_600_000)}`, tone: 'muted' };
   return { text: `Locked. Paid automatically · synced ${timeAgo(s.last_synced_at)}`, tone: 'muted' };
 }
@@ -324,7 +325,7 @@ export function SubmissionTable({
       </div>
       <ul className="divide-y divide-zinc-100 md:border-t md:border-zinc-100">
         {rows.map((s) => {
-          const note = submissionNote(s);
+          const note = submissionNote(s, Date.now(), s.creator_tier ? TIER_PERKS[s.creator_tier].holdHours : undefined);
           const ratio = s.current_view_count > 0 ? s.current_comment_count / s.current_view_count : 0;
           const act = actions(s);
           return (
@@ -402,8 +403,8 @@ function Cell({ label, value }: { label: string; value: string }) {
  * A streamer can flag a clip only under review or during the payout hold after approval;
  * after that it is locked and paid automatically.
  */
-export function submissionActionKinds(s: Submission, ended = false, now = Date.now()): ('approve' | 'flag' | 'pay' | 'clear')[] {
-  const flag = streamerCanFlag(s, now) ? (['flag'] as const) : [];
+export function submissionActionKinds(s: Submission, ended = false, now = Date.now(), holdHours?: number): ('approve' | 'flag' | 'pay' | 'clear')[] {
+  const flag = streamerCanFlag(s, now, holdHours) ? (['flag'] as const) : [];
   if (s.status === 'pending_review') return ended ? [...flag] : ['approve', ...flag];
   // Payouts are automatic once the hold ends, so streamers only approve or flag.
   if (s.status === 'live_tracking') return [...flag];

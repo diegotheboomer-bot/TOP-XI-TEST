@@ -1,3 +1,5 @@
+import { clipperTier } from './clipper-records';
+import { payoutFee } from './tiers';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { stripe } from './stripe';
 import { sendPayPalPayout, paypalConfigured } from './paypal';
@@ -12,7 +14,7 @@ export type PayResult = { ok: true; gross: number; via: string; campaignId: stri
  * Each failed step reverses the ones before it. Used by the streamer's Pay button
  * and by the automatic payouts in the sync. `minimum` is the smallest amount to send.
  */
-export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 1, fee = 0): Promise<PayResult> {
+export async function payClip(admin: SupabaseClient, submissionId: string, minimum = 0.01): Promise<PayResult> {
   const { data: sub } = await admin
     .from('submissions')
     .select('id, campaign_id, creator_id, status, payout_earned, payout_transferred, campaigns(cpm_cap, payout_model, status)')
@@ -39,7 +41,10 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   const gross = Math.round((Number(sub.payout_earned) - Number(sub.payout_transferred)) * 100) / 100;
   if (gross < minimum) return { ok: false, error: 'Nothing to pay out yet.' };
 
-  if (fee >= gross) return { ok: false, error: 'Amount is too small to cover the cash-out fee.' };
+  // The platform's fee depends on the clipper's tier (9% Silver down to 4% Majesty).
+  const tier = await clipperTier(admin, sub.creator_id as string);
+  const fee = payoutFee(gross, tier);
+  if (fee >= gross) return { ok: false, error: 'Amount is too small to pay out.' };
   const sent = Math.round((gross - fee) * 100) / 100;
   const before = Number(sub.payout_transferred);
   const after = Math.round((before + gross) * 100) / 100;
@@ -56,13 +61,12 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
     return { ok: false, error: 'Not enough escrow. Top up the campaign first.' };
   }
 
-  // 3. Send it the clipper's chosen way. No fee, except an extra cash-out's small fee
-  // (kept by the platform from this amount).
+  // 3. Send it the clipper's chosen way, minus the tier fee (kept by the platform).
   let externalId: string;
   try {
     if (setup.method === 'stripe') {
       const transfer = await stripe().transfers.create(
-        { amount: Math.round(sent * 100), currency: 'usd', destination: creator.stripe_account_id!, transfer_group: `campaign_${sub.campaign_id}`, metadata: { submission_id: sub.id, cashout_fee: String(fee) } },
+        { amount: Math.round(sent * 100), currency: 'usd', destination: creator.stripe_account_id!, transfer_group: `campaign_${sub.campaign_id}`, metadata: { submission_id: sub.id, platform_fee: String(fee), tier } },
         { idempotencyKey: `payout_${sub.id}_${before}` },
       );
       externalId = transfer.id;
@@ -81,6 +85,7 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
 
   // 4. Ledger + close out once the cap is fully paid.
   await admin.from('escrow_ledger').insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'creator_payout', amount: gross, stripe_object_id: externalId });
+  if (fee > 0) await admin.from('escrow_ledger').insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'platform_fee', amount: fee, stripe_object_id: externalId });
   if (after >= Number((sub.campaigns as unknown as { cpm_cap: number }).cpm_cap)) {
     await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
   }

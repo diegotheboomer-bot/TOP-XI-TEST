@@ -110,3 +110,19 @@
 @media (prefers-reduced-motion: reduce) {
   .sheet-backdrop, .sheet-up, .sheet-item, .sheet-out, .viz-bar, .viz-float, .viz-spin, .pick-pop, .glow-border::before { animation: none; }
 }
+
+/* Tier badges: a light sweep across the metal; emblems float and sparkle. */
+.tier-shine::after {
+  content: ''; position: absolute; inset: -50%;
+  background: linear-gradient(110deg, transparent 42%, rgb(255 255 255 / 0.7) 50%, transparent 58%);
+  transform: translateX(-70%); animation: tier-sweep 3.6s ease-in-out infinite;
+}
+@keyframes tier-sweep { 0%, 60% { transform: translateX(-70%); } 90%, 100% { transform: translateX(70%); } }
+.tier-float { animation: tier-float 4s ease-in-out infinite; }
+@keyframes tier-float { 50% { transform: translateY(-3px); } }
+.tier-sparkle { box-shadow: 0 0 8px 2px rgb(255 255 255 / 0.8); animation: tier-twinkle 2.4s ease-in-out infinite; }
+@keyframes tier-twinkle { 0%, 100% { opacity: 0; transform: scale(0.4); } 50% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .tier-shine::after, .tier-float, .tier-sparkle { animation: none; }
+  .tier-shine::after { opacity: 0; }
+}

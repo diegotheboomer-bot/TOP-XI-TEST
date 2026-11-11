@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Check } from 'lucide-react';
 import type { ClipperProfile } from '@/lib/data';
 import { compact, usd, usdCompact } from '@/lib/format';
-import { TIERS, TIER_LABEL, TIER_PERKS, TIER_RULES, approvalRate, nextTierProgress, tierRank, type Tier } from '@/lib/tiers';
+import { TIERS, TIER_LABEL, TIER_PERKS, holdLabel, TIER_RULES, approvalRate, nextTierProgress, tierRank, type Tier } from '@/lib/tiers';
 import type { Platform } from '@/lib/types';
 import { PlatformIcon } from './platform-icon';
 import { StreamerAvatar } from './views';
@@ -12,8 +12,9 @@ import { cn } from './ui/cn';
 const perkLines = (t: Tier) => {
   const p = TIER_PERKS[t];
   return [
-    p.freeCashouts === Infinity ? 'Unlimited free cash-outs' : `${p.freeCashouts} free cash-out${p.freeCashouts === 1 ? '' : 's'} a week`,
-    `Cash out from ${usd(p.minCashout)}`,
+    `${p.feePct}% payout fee`,
+    p.cashoutsPerWeek === Infinity ? 'Unlimited cash-outs' : `${p.cashoutsPerWeek} cash-out${p.cashoutsPerWeek === 1 ? '' : 's'} a week`,
+    `Paid ${holdLabel(p.holdHours)} after approval`,
     ...(t === 'silver' ? ['Join any open campaign'] : [`${TIER_LABEL[t]}-only campaigns`, 'Reviewed first by streamers']),
   ];
 };

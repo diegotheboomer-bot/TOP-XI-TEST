@@ -31,17 +31,26 @@ export const TIER_RULES: Record<Tier, TierRule> = {
 };
 
 export interface TierPerks {
-  /** Free cash-outs per 7 days; Infinity = unlimited. */
-  freeCashouts: number;
-  minCashout: number;
+  /** Platform fee taken from each payout, in percent. */
+  feePct: number;
+  /** Cash-outs allowed per 7 days; Infinity = unlimited. */
+  cashoutsPerWeek: number;
+  /** Hours after approval before earnings can be paid (also the streamer's window to flag). */
+  holdHours: number;
 }
 
 export const TIER_PERKS: Record<Tier, TierPerks> = {
-  silver: { freeCashouts: 1, minCashout: 10 },
-  gold: { freeCashouts: 3, minCashout: 5 },
-  diamond: { freeCashouts: 7, minCashout: 5 },
-  majesty: { freeCashouts: Infinity, minCashout: 1 },
+  silver: { feePct: 9, cashoutsPerWeek: 1, holdHours: 72 },
+  gold: { feePct: 8, cashoutsPerWeek: 3, holdHours: 48 },
+  diamond: { feePct: 6, cashoutsPerWeek: 7, holdHours: 24 },
+  majesty: { feePct: 4, cashoutsPerWeek: Infinity, holdHours: 12 },
 };
+
+/** The platform's cut of a payout, rounded to the cent. */
+export const payoutFee = (gross: number, tier: Tier) => Math.round(gross * TIER_PERKS[tier].feePct) / 100;
+
+/** "3 days", "12 hours" */
+export const holdLabel = (hours: number) => (hours >= 48 ? `${hours / 24} days` : hours === 24 ? '1 day' : `${hours} hours`);
 
 export const TIER_LABEL: Record<Tier, string> = { silver: 'Silver', gold: 'Gold', diamond: 'Diamond', majesty: 'Majesty' };
 

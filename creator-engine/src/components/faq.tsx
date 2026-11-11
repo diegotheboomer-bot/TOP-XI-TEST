@@ -19,7 +19,7 @@ export const FAQ: [string, string][] = [
   ],
   [
     'How do I get paid, and are there fees?',
-    'Once a clip has been approved for 3 days, its earnings are yours to cash out whenever you like, to your bank or debit card, PayPal or Venmo. One cash-out a week is free; extra ones cost $1. Clippers pay no fees and keep 100% of what they earn.',
+    'Once a clip is approved and its short hold has passed, you can cash out to your bank or debit card, PayPal or Venmo. A 9% fee comes off each payout. As you grow through Gold, Diamond and Majesty, the fee drops to 4%, you get paid sooner and you can cash out more often.',
   ],
   [
     'What do streamers get?',
