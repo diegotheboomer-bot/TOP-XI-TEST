@@ -70,6 +70,7 @@ export function EditCampaignForm({ campaign: c }: { campaign: Campaign }) {
           momentsEnabled={!!c.moments_enabled}
           maxClips={c.max_clips_per_clipper ?? null}
           minTier={c.min_tier ?? 'silver'}
+          inviteOnly={!!c.invite_only}
         />
       </Card>
       <p className="text-xs text-zinc-500">Pay terms can’t change once a campaign exists, so clippers always get what they signed up for.</p>

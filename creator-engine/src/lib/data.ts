@@ -770,12 +770,37 @@ export async function getScoutClippers(topic?: string): Promise<ScoutClipper[]> 
     .sort((a, b) => Number(b.verified) - Number(a.verified) || tierRank(b.tier) - tierRank(a.tier) || b.views - a.views);
 }
 
-/** The signed-in business's live campaigns (invites need a campaign clippers can join). */
-export async function getInvitableCampaigns(): Promise<{ id: string; title: string }[]> {
+export interface InvitableCampaign {
+  id: string;
+  title: string;
+  draft: boolean;
+  inviteOnly: boolean;
+  /** Clippers already in the campaign (no invite needed). */
+  joined: string[];
+  /** Clippers with an invite already sent. */
+  invited: string[];
+}
+
+/** The signed-in business's live and draft campaigns, with who's already in or invited. */
+export async function getInvitableCampaigns(): Promise<InvitableCampaign[]> {
   if (isDemo) return [];
   const brandId = await requireRole('brand');
-  const { data } = await createAdminClient().from('campaigns').select('id, title').eq('brand_id', brandId).eq('status', 'active').order('created_at', { ascending: false });
-  return (data ?? []).map((c) => ({ id: c.id as string, title: c.title as string }));
+  const admin = createAdminClient();
+  const { data } = await admin.from('campaigns').select('id, title, status, invite_only').eq('brand_id', brandId).in('status', ['active', 'draft']).order('created_at', { ascending: false });
+  const ids = (data ?? []).map((c) => c.id as string);
+  if (!ids.length) return [];
+  const [{ data: members }, { data: invites }] = await Promise.all([
+    admin.from('campaign_creators').select('campaign_id, creator_id').in('campaign_id', ids),
+    admin.from('campaign_invites').select('campaign_id, creator_id').in('campaign_id', ids),
+  ]);
+  return (data ?? []).map((c) => ({
+    id: c.id as string,
+    title: c.title as string,
+    draft: c.status === 'draft',
+    inviteOnly: !!c.invite_only,
+    joined: (members ?? []).filter((m) => m.campaign_id === c.id).map((m) => m.creator_id as string),
+    invited: (invites ?? []).filter((m) => m.campaign_id === c.id).map((m) => m.creator_id as string),
+  }));
 }
 
 export interface InviteRow {
@@ -795,11 +820,13 @@ export async function getMyInvites(): Promise<InviteRow[]> {
   const admin = createAdminClient();
   const { data } = await admin
     .from('campaign_invites')
-    .select('id, message, campaign_id, campaigns(title, client_name, brands(name, avatar_url))')
+    .select('id, message, campaign_id, campaigns(title, status, client_name, brands(name, avatar_url))')
     .eq('creator_id', viewer.creatorId)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
-  return (data ?? []).map((r) => {
+  // Invites to a draft show up once the campaign launches.
+  const live = (data ?? []).filter((r) => (r.campaigns as unknown as { status?: string } | null)?.status === 'active');
+  return live.map((r) => {
     const c = r.campaigns as unknown as { title: string; client_name: string | null; brands: { name: string; avatar_url: string | null } | null } | null;
     return {
       id: r.id as string,

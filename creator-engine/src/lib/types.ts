@@ -35,6 +35,8 @@ export interface Campaign {
   min_tier?: import('./tiers').Tier;
   /** Most clips one clipper may post; null = unlimited. */
   max_clips_per_clipper?: number | null;
+  /** Private: hidden from Discover, only invited clippers can see and join. */
+  invite_only?: boolean;
   /** Pinned stream moments for clippers to claim. */
   moments_enabled?: boolean;
   /** Rate per 1K views by platform; a missing platform uses cpm_rate. */

@@ -117,6 +117,10 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
   const { admin, campaign } = await requireOwnCampaign(campaignId);
   if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
   if (status === 'active' && Number(campaign.escrow_balance) <= 0) return { error: 'Add a budget before launching.' };
+  if (status === 'active' && campaign.invite_only) {
+    const { count } = await admin.from('campaign_invites').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId);
+    if (!count) return { error: 'This campaign is invite only. Invite at least one clipper from Scout first.' };
+  }
   await admin.from('campaigns').update({ status }).eq('id', campaignId);
   revalidatePath(`/streamer/campaigns/${campaignId}`);
   return { success: status === 'active' ? 'Your campaign is live.' : status === 'paused' ? 'Campaign paused.' : 'Campaign ended.' };
@@ -320,12 +324,14 @@ function done(result: ActionState, campaignId?: string): ActionState {
 export async function inviteClipper(creatorId: string, campaignId: string, message: string): Promise<ActionState> {
   if (isDemo) return { error: 'Invites are off in the demo.' };
   const { admin, campaign } = await requireOwnCampaign(campaignId);
-  if (campaign.status !== 'active') return { error: 'Launch the campaign first, so the clipper can join it.' };
+  if (campaign.status !== 'active' && campaign.status !== 'draft') return { error: 'This campaign has ended or is paused.' };
   const { data: joined } = await admin.from('campaign_creators').select('id').eq('campaign_id', campaignId).eq('creator_id', creatorId).maybeSingle();
   if (joined) return { error: 'They’re already in this campaign.' };
   const { error } = await admin
     .from('campaign_invites')
     .upsert({ campaign_id: campaignId, creator_id: creatorId, message: message.trim().slice(0, 500) || null, status: 'pending' }, { onConflict: 'campaign_id,creator_id' });
   if (error) return { error: 'Couldn’t send the invite. Try again.' };
-  return { success: 'Invite sent. They’ll see it on their home page.' };
+  revalidatePath('/streamer/scout');
+  revalidatePath(`/streamer/campaigns/${campaignId}`);
+  return { success: campaign.status === 'draft' ? 'Invite saved. They’ll see it on their home page once you launch.' : 'Invite sent. They’ll see it on their home page.' };
 }

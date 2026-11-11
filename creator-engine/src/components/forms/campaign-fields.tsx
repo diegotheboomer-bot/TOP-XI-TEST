@@ -2,7 +2,7 @@
 
 // Instructions, rules, moments switch and references: shared by the create and edit campaign forms.
 import { useState } from 'react';
-import { Check, Copy, FileText, Film, Image as ImageIcon, Link2, ListChecks, Loader2, MapPin, Paperclip, Plus, Upload, X } from 'lucide-react';
+import { Check, Copy, FileText, Film, Globe, Image as ImageIcon, Link2, ListChecks, Loader2, Lock, MapPin, Paperclip, Plus, Upload, X } from 'lucide-react';
 import { Field, Input } from '../ui/field';
 import { cn } from '../ui/cn';
 import type { Tier } from '@/lib/tiers';
@@ -23,7 +23,9 @@ export function InstructionsFields({
   momentsEnabled = false,
   maxClips = null,
   minTier = 'silver',
+  inviteOnly = false,
 }: {
+  inviteOnly?: boolean;
   minTier?: Tier;
   maxClips?: number | null;
   uploadUrl: UploadUrl;
@@ -41,6 +43,7 @@ export function InstructionsFields({
   const [refError, setRefError] = useState('');
   const [moments, setMoments] = useState(momentsEnabled);
   const [tier] = useState<Tier>(minTier);
+  const [priv, setPriv] = useState(inviteOnly);
   const [limitOn, setLimitOn] = useState(!!maxClips);
   const [limit, setLimit] = useState(String(maxClips ?? 3));
 
@@ -94,6 +97,7 @@ export function InstructionsFields({
       <input type="hidden" name="reference_items" value={JSON.stringify(refs)} />
       <input type="hidden" name="moments_enabled" value={moments ? 'true' : 'false'} />
       <input type="hidden" name="min_tier" value={tier} />
+      <input type="hidden" name="invite_only" value={priv ? 'true' : 'false'} />
           <Field label="What you want">
             <textarea
               id="brief"
@@ -141,7 +145,37 @@ export function InstructionsFields({
             )}
             <p className="mt-2 text-xs text-zinc-500">Clippers tick these off before they submit. You check them when you approve.</p>
           </div>
-          <div className="mt-6 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
+          <div className="mt-6">
+            <p className="mb-2 text-[13px] font-medium text-zinc-700">Who can join</p>
+            <div role="radiogroup" aria-label="Who can join" className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  [false, Globe, 'Public', 'Shows on Discover. Any clipper can join.'],
+                  [true, Lock, 'Invite only', 'Private. Only clippers you invite see it.'],
+                ] as const
+              ).map(([v, Icon, title, body]) => (
+                <button
+                  key={title}
+                  type="button"
+                  role="radio"
+                  aria-checked={priv === v}
+                  onClick={() => setPriv(v)}
+                  className={cn(
+                    'relative flex flex-col items-start gap-1.5 rounded-xl border px-3.5 py-3 text-left transition',
+                    priv === v ? 'border-transparent bg-brand-a/10 ring-2 ring-[rgb(var(--brand-a))]' : 'border-zinc-200 bg-white hover:border-zinc-300',
+                  )}
+                >
+                  <span className={cn('grid size-8 place-items-center rounded-lg', priv === v ? 'bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-500')}>
+                    <Icon className="size-4" />
+                  </span>
+                  <span className="text-sm font-semibold">{title}</span>
+                  <span className="text-xs leading-snug text-zinc-500">{body}</span>
+                </button>
+              ))}
+            </div>
+            {priv && <p className="mt-2 text-xs text-zinc-500">You’ll invite clippers from Scout before you launch.</p>}
+          </div>
+          <div className="mt-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
             <input type="hidden" name="max_clips_per_clipper" value={limitOn ? String(Math.max(1, Math.round(Number(limit) || 1))) : ''} />
             <label className="flex cursor-pointer items-center gap-3">
               <Copy className="size-4 shrink-0 text-zinc-400" />

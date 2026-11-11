@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { Telescope } from 'lucide-react';
-import { getInvitableCampaigns, getScoutClippers } from '@/lib/data';
+import { Check, Lock, Telescope } from 'lucide-react';
+import { getInvitableCampaigns, getScoutClippers, type InvitableCampaign } from '@/lib/data';
+import { TIERS, TIER_LABEL, atLeast, tierRank, type Tier } from '@/lib/tiers';
+import { ScoutFilters, type FilterDef } from '@/components/scout-filters';
 import { compact } from '@/lib/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { Empty } from '@/components/ui/empty';
@@ -8,35 +10,66 @@ import { PlatformIcon } from '@/components/platform-icon';
 import { StreamerAvatar, VerifiedMark } from '@/components/views';
 import { TierBadge } from '@/components/tier-badge';
 import { InviteButton } from '@/components/invite-button';
-import { cn } from '@/components/ui/cn';
 import type { Platform } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
 const TOPICS = ['Gaming', 'IRL', 'Just Chatting', 'Esports', 'Music', 'Sports', 'Comedy', 'Education', 'Movies & TV', 'Brands & products', 'Podcasts'];
 
-export default async function ScoutPage({ searchParams }: { searchParams: { topic?: string } }) {
-  const topic = TOPICS.includes(searchParams.topic ?? '') ? searchParams.topic : undefined;
-  const [clippers, campaigns] = await Promise.all([getScoutClippers(topic), getInvitableCampaigns()]);
+type Search = { topic?: string; tier?: string; approval?: string; views?: string; approved?: string; sort?: string; campaign?: string };
+
+const FILTERS: FilterDef[] = [
+  { key: 'sort', label: 'Sort by', icon: 'sort', options: [['', 'Best match'], ['views', 'All-time views'], ['approved', 'Clips approved'], ['approval', 'Approval rate'], ['tier', 'Tier']] },
+  { key: 'topic', label: 'Niche', icon: 'topic', options: [['', 'Any niche'], ...TOPICS.map((t) => [t, t] as [string, string])] },
+  { key: 'tier', label: 'Tier', icon: 'tier', options: [['', 'Any tier'], ...TIERS.slice(1).map((t) => [t, `${TIER_LABEL[t]}+`] as [string, string])] },
+  { key: 'approval', label: 'Approval', icon: 'approval', options: [['', 'Any rate'], ['80', '80%+'], ['90', '90%+'], ['95', '95%+']] },
+  { key: 'views', label: 'Views', icon: 'views', options: [['', 'Any views'], ['10000', '10K+ views'], ['100000', '100K+ views'], ['1000000', '1M+ views'], ['10000000', '10M+ views']] },
+  { key: 'approved', label: 'Approved', icon: 'approved', options: [['', 'Any clips'], ['5', '5+ clips'], ['20', '20+ clips'], ['50', '50+ clips'], ['120', '120+ clips']] },
+];
+
+export default async function ScoutPage({ searchParams: sp }: { searchParams: Search }) {
+  const topic = TOPICS.includes(sp.topic ?? '') ? sp.topic : undefined;
+  const minTier = (TIERS as readonly string[]).includes(sp.tier ?? '') ? (sp.tier as Tier) : undefined;
+  const [all, campaigns] = await Promise.all([getScoutClippers(topic), getInvitableCampaigns()]);
+  const focus = campaigns.find((c) => c.id === sp.campaign);
+  const clippers = all
+    .filter(
+      (c) =>
+        (!minTier || atLeast(c.tier, minTier)) &&
+        c.approval * 100 >= (Number(sp.approval) || 0) &&
+        c.views >= (Number(sp.views) || 0) &&
+        c.approved >= (Number(sp.approved) || 0),
+    )
+    .sort((a, b) =>
+      sp.sort === 'views'
+        ? b.views - a.views
+        : sp.sort === 'approved'
+          ? b.approved - a.approved
+          : sp.sort === 'approval'
+            ? b.approval - a.approval || b.approved - a.approved
+            : sp.sort === 'tier'
+              ? tierRank(b.tier) - tierRank(a.tier) || b.views - a.views
+              : 0,
+    );
   return (
     <>
       <PageHeader title="Scout clippers" description="Find clippers with a proven record and invite them to your campaigns." />
-      <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-        {[undefined, ...TOPICS].map((t) => (
-          <Link
-            key={t ?? 'all'}
-            href={t ? `/streamer/scout?topic=${encodeURIComponent(t)}` : '/streamer/scout'}
-            className={cn(
-              'shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition',
-              topic === t ? 'border-transparent bg-brand text-brand-ink' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300',
-            )}
-          >
-            {t ?? 'Everyone'}
+      {focus && (
+        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl bg-brand-a/10 px-4 py-3 text-sm ring-1 ring-inset ring-brand-a/30">
+          <Lock className="size-4 text-[rgb(var(--brand-ta))]" />
+          Inviting to <b>{focus.title}</b> · {focus.invited.length} invited so far
+          <Link href={`/streamer/campaigns/${focus.id}`} className="ml-auto font-medium underline">
+            Back to campaign
           </Link>
-        ))}
-      </div>
+        </div>
+      )}
+      <ScoutFilters filters={FILTERS} />
       {clippers.length === 0 ? (
-        <Empty icon={<Telescope />} title="No clippers here yet" body="As clippers sign up and post, they show up here with their record." />
+        all.length === 0 ? (
+          <Empty icon={<Telescope />} title="No clippers here yet" body="As clippers sign up and post, they show up here with their record." />
+        ) : (
+          <Empty icon={<Telescope />} title="No one matches those filters" body="Try a lower minimum or another niche." />
+        )
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {clippers.map((c) => (
@@ -85,7 +118,7 @@ export default async function ScoutPage({ searchParams }: { searchParams: { topi
               )}
               <div className="mt-4 flex items-center justify-between gap-2 border-t border-zinc-100 pt-3">
                 <TierBadge tier={c.tier} />
-                <InviteButton creatorId={c.id} name={c.name} campaigns={campaigns} />
+                <Invite clipperId={c.id} name={c.name} campaigns={campaigns} preselect={focus?.id} />
               </div>
             </li>
           ))}
@@ -93,4 +126,31 @@ export default async function ScoutPage({ searchParams }: { searchParams: { topi
       )}
     </>
   );
+}
+
+/** Invite, but only to campaigns the clipper isn't already in. */
+function Invite({ clipperId, name, campaigns, preselect }: { clipperId: string; name: string; campaigns: InvitableCampaign[]; preselect?: string }) {
+  const open = campaigns.filter((c) => !c.joined.includes(clipperId)).map((c) => ({ id: c.id, title: c.title, draft: c.draft, invited: c.invited.includes(clipperId) }));
+  if (campaigns.length > 0 && open.length === 0) {
+    return (
+      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-100 px-3 text-sm font-medium text-zinc-600">
+        <Check className="size-3.5" /> In your campaigns
+      </span>
+    );
+  }
+  if (preselect && campaigns.find((c) => c.id === preselect)?.joined.includes(clipperId)) {
+    return (
+      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-100 px-3 text-sm font-medium text-zinc-600">
+        <Check className="size-3.5" /> Already in
+      </span>
+    );
+  }
+  if (preselect && open.find((c) => c.id === preselect)?.invited) {
+    return (
+      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-a/15 px-3 text-sm font-medium text-[rgb(var(--brand-ta))]">
+        <Check className="size-3.5" /> Invited
+      </span>
+    );
+  }
+  return <InviteButton creatorId={clipperId} name={name} campaigns={open} preselect={preselect} />;
 }

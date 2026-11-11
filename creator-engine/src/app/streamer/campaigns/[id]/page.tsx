@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Check, Pencil, Rocket, Users } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Pencil, Rocket, Send, Users } from 'lucide-react';
 import { cn } from '@/components/ui/cn';
 import { TIER_PERKS } from '@/lib/tiers';
 import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
@@ -30,6 +30,8 @@ export default async function CampaignPage({ params, searchParams }: { params: {
   const ended = c.status === 'completed';
   const { data: brandRow } = isDemo ? { data: null } : await createAdminClient().from('brands').select('early_partner').eq('id', c.brand_id).single();
   const plan = feeFor(!!brandRow?.early_partner);
+  const { count: invites } =
+    isDemo || !c.invite_only ? { count: 0 } : await createAdminClient().from('campaign_invites').select('id', { count: 'exact', head: true }).eq('campaign_id', c.id);
   const feePercent = plan.percent;
   const cancel: CancelSummary = {
     refund: budget.available,
@@ -58,6 +60,11 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           <div className="flex flex-wrap items-center gap-2">
             <CampaignBadge status={c.status} />
             {c.category && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-ink">{c.category}</span>}
+            {c.invite_only && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-900 px-2 py-0.5 text-[11px] font-medium" style={{ color: '#fff' }}>
+                <Lock className="size-3" /> Invite only
+              </span>
+            )}
           </div>
           <h1 className="balance mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
           <p className="mt-1 text-sm text-zinc-500">
@@ -69,6 +76,11 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           <PlatformChips platforms={c.platforms} className="mt-3" />
         </div>
         <div className="grid shrink-0 grid-cols-3 gap-2 sm:w-44 sm:grid-cols-1 [&>*]:w-full [&_button]:h-9 [&_button]:w-full">
+          {c.invite_only && !ended && c.status !== 'draft' && (
+            <Link href={`/streamer/scout?campaign=${c.id}`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium transition hover:bg-zinc-50">
+              <Send className="size-3.5" /> Invite
+            </Link>
+          )}
           {!ended && (
             <Link href={`/streamer/campaigns/${c.id}/edit`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium transition hover:bg-zinc-50">
               <Pencil className="size-3.5" /> Edit
@@ -91,6 +103,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
         <LaunchChecklist
           campaign={c}
           funded={c.escrow_balance > 0}
+          invites={invites ?? 0}
           addBudget={
             publishableKey === '' ? null : (
               <AppAddBudget
@@ -244,12 +257,43 @@ function topClippers(rows: SubmissionRow[]) {
 }
 
 /** Shown while a campaign is a draft: what's done, what's left, and the launch button. */
-function LaunchChecklist({ campaign, funded, addBudget }: { campaign: Campaign; funded: boolean; addBudget: React.ReactNode }) {
-  const steps: [string, string, boolean][] = [
+function LaunchChecklist({ campaign, funded, invites, addBudget }: { campaign: Campaign; funded: boolean; invites: number; addBudget: React.ReactNode }) {
+  const priv = !!campaign.invite_only;
+  const invited = invites > 0;
+  const inviteLink = (
+    <Link href={`/streamer/scout?campaign=${campaign.id}`} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-ink transition hover:brightness-110">
+      <Send className="size-4" /> Invite clippers
+    </Link>
+  );
+  const steps: [string, React.ReactNode, boolean][] = [
     ['Set up the campaign', 'Title, thumbnail, pay and rules', true],
     ['Add a budget', funded ? `${usd(campaign.escrow_balance)} ready for clippers` : 'Use “Add budget” below. Clippers can only join funded campaigns', funded],
-    ['Launch', 'Clippers see it in Discover and can start posting', false],
+    ...(priv
+      ? ([
+          [
+            'Invite clippers',
+            invited ? (
+              <>
+                {invites} invited ·{' '}
+                <Link href={`/streamer/scout?campaign=${campaign.id}`} className="font-medium underline">
+                  invite more
+                </Link>
+              </>
+            ) : (
+              <>
+                Invite only, so pick who can join.{' '}
+                <Link href={`/streamer/scout?campaign=${campaign.id}`} className="font-medium underline">
+                  Find clippers in Scout
+                </Link>
+              </>
+            ),
+            invited,
+          ],
+        ] as [string, React.ReactNode, boolean][])
+      : []),
+    ['Launch', priv ? 'Invited clippers can join and start posting' : 'Clippers see it in Discover and can start posting', false],
   ];
+  const ready = funded && (!priv || invited);
   return (
     <section className="relative overflow-hidden rounded-2xl border border-amber-300/60 bg-white p-5 shadow-card sm:p-6">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-20" style={{ background: 'radial-gradient(70% 100% at 10% 0%, rgb(245 158 11 / 0.14), transparent 70%)' }} />
@@ -279,13 +323,15 @@ function LaunchChecklist({ campaign, funded, addBudget }: { campaign: Campaign; 
           </ol>
         </div>
         <div className="mt-5 flex flex-col gap-2 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between [&_button]:w-full sm:[&_button]:w-auto">
-          <p className="text-sm text-zinc-500">{funded ? 'All set. Launch when you’re ready.' : 'Next: add a budget, then launch.'}</p>
-          {funded ? (
+          <p className="text-sm text-zinc-500">{ready ? 'All set. Launch when you’re ready.' : !funded ? 'Next: add a budget, then launch.' : 'Next: invite at least one clipper, then launch.'}</p>
+          {ready ? (
             <ActionButton variant="primary" action={setCampaignStatus.bind(null, campaign.id, 'active')}>
               <Rocket className="size-4" /> Launch campaign
             </ActionButton>
-          ) : (
+          ) : !funded ? (
             addBudget
+          ) : (
+            inviteLink
           )}
         </div>
       </div>

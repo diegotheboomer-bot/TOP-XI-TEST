@@ -38,8 +38,12 @@ export async function joinCampaign(campaignId: string): Promise<ActionState> {
   const creatorId = await requireCreator();
   const admin = createAdminClient();
 
-  const { data: campaign } = await admin.from('campaigns').select('id, status, code_prefix, min_tier').eq('id', campaignId).maybeSingle();
+  const { data: campaign } = await admin.from('campaigns').select('id, status, code_prefix, min_tier, invite_only').eq('id', campaignId).maybeSingle();
   if (!campaign || campaign.status !== 'active') return { error: 'This campaign is not accepting creators.' };
+  if (campaign.invite_only) {
+    const { data: invite } = await admin.from('campaign_invites').select('id').eq('campaign_id', campaignId).eq('creator_id', creatorId).maybeSingle();
+    if (!invite) return { error: 'This campaign is invite only.' };
+  }
   const minTier = (campaign.min_tier ?? 'silver') as Tier;
   if (minTier !== 'silver') {
     const tier = tierFor((await clipperRecords([creatorId])).get(creatorId)!);
