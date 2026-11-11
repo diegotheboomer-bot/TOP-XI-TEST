@@ -72,12 +72,20 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                 <StreamerAvatar name={i.brandName} size="md" src={i.brandAvatar} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm">
-                    <span className="font-semibold">{i.brandName}</span> invited you to <Link href={`/clipper/campaigns/${i.campaignId}`} className="font-semibold underline-offset-2 hover:underline">{i.campaignTitle}</Link>
+                    <span className="font-semibold">{i.brandName}</span> invited you to{' '}
+                    {i.live ? (
+                      <Link href={`/clipper/campaigns/${i.campaignId}`} className="font-semibold underline-offset-2 hover:underline">
+                        {i.campaignTitle}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold">{i.campaignTitle}</span>
+                    )}
                   </p>
+                  {!i.live && <p className="mt-0.5 text-xs font-medium text-amber-700">Launching soon. You can join as soon as it goes live.</p>}
                   {i.message && <p className="mt-0.5 text-sm text-zinc-600">“{i.message}”</p>}
                 </div>
                 <div className="flex gap-2">
-                  <ActionButton variant="primary" action={respondInvite.bind(null, i.id, true)}>Join</ActionButton>
+                  {i.live && <ActionButton variant="primary" action={respondInvite.bind(null, i.id, true)}>Join</ActionButton>}
                   <ActionButton action={respondInvite.bind(null, i.id, false)}>Decline</ActionButton>
                 </div>
               </li>

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Check, Lock, Pencil, Rocket, Send, Users } from 'lucide-react';
 import { cn } from '@/components/ui/cn';
 import { TIER_PERKS } from '@/lib/tiers';
-import { getCampaignDetail, type SubmissionRow } from '@/lib/data';
+import { getCampaignDetail, getCampaignInvites, type SubmissionRow } from '@/lib/data';
 import { compact, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { achEnabled, feeFor } from '@/lib/stripe';
@@ -30,8 +30,8 @@ export default async function CampaignPage({ params, searchParams }: { params: {
   const ended = c.status === 'completed';
   const { data: brandRow } = isDemo ? { data: null } : await createAdminClient().from('brands').select('early_partner').eq('id', c.brand_id).single();
   const plan = feeFor(!!brandRow?.early_partner);
-  const { count: invites } =
-    isDemo || !c.invite_only ? { count: 0 } : await createAdminClient().from('campaign_invites').select('id', { count: 'exact', head: true }).eq('campaign_id', c.id);
+  const sent = await getCampaignInvites(c.id);
+  const invites = sent.length;
   const feePercent = plan.percent;
   const cancel: CancelSummary = {
     refund: budget.available,
@@ -103,7 +103,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
         <LaunchChecklist
           campaign={c}
           funded={c.escrow_balance > 0}
-          invites={invites ?? 0}
+          invites={invites}
           addBudget={
             publishableKey === '' ? null : (
               <AppAddBudget
@@ -235,7 +235,44 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             </Card>
           )}
 
-
+          {(sent.length > 0 || (c.invite_only && !ended)) && (
+            <Card>
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="flex items-center gap-1.5 font-semibold tracking-tight">
+                  <Send className="size-4 text-[rgb(var(--brand-ta))]" /> Invites
+                </h2>
+                {!ended && (
+                  <Link href={`/streamer/scout?campaign=${c.id}`} className="text-xs font-medium text-zinc-500 hover:text-zinc-900">
+                    Invite more
+                  </Link>
+                )}
+              </div>
+              {sent.length === 0 ? (
+                <p className="text-sm text-zinc-500">No one invited yet. Find clippers in Scout.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {sent.map((s) => {
+                    const [label, tone] = s.joined
+                      ? ['Joined', 'bg-brand text-brand-ink']
+                      : s.status === 'declined'
+                        ? ['Declined', 'bg-zinc-100 text-zinc-500']
+                        : c.status === 'draft'
+                          ? ['Sees it at launch', 'bg-amber-100 text-amber-800']
+                          : ['Pending', 'bg-zinc-100 text-zinc-700'];
+                    return (
+                      <li key={s.creatorId} className="flex items-center gap-3">
+                        <StreamerAvatar name={s.name} size="md" src={s.avatar} />
+                        <Link href={`/streamer/clippers/${s.creatorId}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:underline">
+                          {s.name}
+                        </Link>
+                        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', tone)}>{label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Card>
+          )}
         </div>
       </div>
     </div>

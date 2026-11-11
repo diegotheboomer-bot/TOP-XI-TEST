@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Check, Lock, Telescope } from 'lucide-react';
-import { getInvitableCampaigns, getScoutClippers, type InvitableCampaign } from '@/lib/data';
+import { Check, Clapperboard, Lock, Telescope } from 'lucide-react';
+import { cn } from '@/components/ui/cn';
+import { getInvitableCampaigns, getScoutClippers, type InvitableCampaign, type ScoutClipper } from '@/lib/data';
 import { TIERS, TIER_LABEL, atLeast, tierRank, type Tier } from '@/lib/tiers';
 import { ScoutFilters, type FilterDef } from '@/components/scout-filters';
 import { compact } from '@/lib/format';
@@ -22,10 +23,13 @@ const FILTERS: FilterDef[] = [
   { key: 'sort', label: 'Sort by', icon: 'sort', options: [['', 'Best match'], ['views', 'All-time views'], ['approved', 'Clips approved'], ['approval', 'Approval rate'], ['tier', 'Tier']] },
   { key: 'topic', label: 'Niche', icon: 'topic', options: [['', 'Any niche'], ...TOPICS.map((t) => [t, t] as [string, string])] },
   { key: 'tier', label: 'Tier', icon: 'tier', options: [['', 'Any tier'], ...TIERS.slice(1).map((t) => [t, `${TIER_LABEL[t]}+`] as [string, string])] },
-  { key: 'approval', label: 'Approval', icon: 'approval', options: [['', 'Any rate'], ['80', '80%+'], ['90', '90%+'], ['95', '95%+']] },
-  { key: 'views', label: 'Views', icon: 'views', options: [['', 'Any views'], ['10000', '10K+ views'], ['100000', '100K+ views'], ['1000000', '1M+ views'], ['10000000', '10M+ views']] },
-  { key: 'approved', label: 'Approved', icon: 'approved', options: [['', 'Any clips'], ['5', '5+ clips'], ['20', '20+ clips'], ['50', '50+ clips'], ['120', '120+ clips']] },
+  { key: 'approval', label: 'Approval', icon: 'approval', custom: 'percent', options: [['', 'Any rate'], ['80', '80%+'], ['90', '90%+'], ['95', '95%+']] },
+  { key: 'views', label: 'Views', icon: 'views', custom: 'views', options: [['', 'Any views'], ['10000', '10K+ views'], ['100000', '100K+ views'], ['1000000', '1M+ views'], ['10000000', '10M+ views']] },
+  { key: 'approved', label: 'Approved', icon: 'approved', custom: 'clips', options: [['', 'Any clips'], ['5', '5+ clips'], ['20', '20+ clips'], ['50', '50+ clips'], ['120', '120+ clips']] },
 ];
+
+/** How well a clipper fits a niche: clipped it and likes it > clipped it > only said they like it. */
+const fit = (c: ScoutClipper, topic: string) => (c.clipped.includes(topic) ? 2 : 0) + (c.interests.includes(topic) ? 1 : 0);
 
 export default async function ScoutPage({ searchParams: sp }: { searchParams: Search }) {
   const topic = TOPICS.includes(sp.topic ?? '') ? sp.topic : undefined;
@@ -49,7 +53,9 @@ export default async function ScoutPage({ searchParams: sp }: { searchParams: Se
             ? b.approval - a.approval || b.approved - a.approved
             : sp.sort === 'tier'
               ? tierRank(b.tier) - tierRank(a.tier) || b.views - a.views
-              : 0,
+              : topic
+                ? fit(b, topic) - fit(a, topic)
+                : 0,
     );
   return (
     <>
@@ -107,13 +113,22 @@ export default async function ScoutPage({ searchParams: sp }: { searchParams: Se
                   </div>
                 ))}
               </dl>
-              {c.interests.length > 0 && (
+              {(c.interests.length > 0 || c.clipped.length > 0) && (
                 <p className="mt-3 flex flex-wrap gap-1.5">
-                  {c.interests.slice(0, 4).map((i) => (
-                    <span key={i} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600">
-                      {i}
+                  {/* Niches they've clipped first (proven), then ones they said they like. */}
+                  {c.clipped.slice(0, 4).map((i) => (
+                    <span key={`c-${i}`} title={`Has posted clips for ${i} campaigns`} className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', i === topic ? 'bg-brand text-brand-ink' : 'bg-brand-a/15 text-[rgb(var(--brand-ta))]')}>
+                      <Clapperboard className="size-3" /> Clips {i}
                     </span>
                   ))}
+                  {c.interests
+                    .filter((i) => !c.clipped.includes(i))
+                    .slice(0, Math.max(0, 4 - c.clipped.length))
+                    .map((i) => (
+                      <span key={i} className={cn('rounded-full px-2 py-0.5 text-[11px]', i === topic ? 'bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-600')}>
+                        {i}
+                      </span>
+                    ))}
                 </p>
               )}
               <div className="mt-4 flex items-center justify-between gap-2 border-t border-zinc-100 pt-3">

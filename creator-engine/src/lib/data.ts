@@ -723,6 +723,8 @@ export interface ScoutClipper {
   bio: string | null;
   verified: boolean;
   interests: string[];
+  /** Niches they've actually clipped (from the campaigns they posted in), stated or not. */
+  clipped: string[];
   tier: Tier;
   views: number;
   approved: number;
@@ -730,21 +732,35 @@ export interface ScoutClipper {
   handles: { platform: string; handle: string; url: string }[];
 }
 
-/** Clippers for businesses to scout, best record first. Optional topic filter (an interest like "Gaming"). */
+/**
+ * Clippers for businesses to scout, best record first. With a topic (like "Gaming"), matches
+ * clippers who said they like it and clippers who've posted clips for campaigns in that niche.
+ */
 export async function getScoutClippers(topic?: string): Promise<ScoutClipper[]> {
   if (isDemo) return [];
   await requireRole('brand');
   const admin = createAdminClient();
-  let q = admin.from('creators').select('id, display_name, avatar_url, bio, verified, interests').limit(200);
-  if (topic) q = q.contains('interests', [topic]);
-  const { data: creators } = await q;
+  const { data: creators } = await admin.from('creators').select('id, display_name, avatar_url, bio, verified, interests').order('created_at', { ascending: false }).limit(500);
   const ids = (creators ?? []).map((c) => c.id as string);
   if (!ids.length) return [];
-  const [records, { data: socials }] = await Promise.all([
+  const [records, { data: socials }, { data: posted }] = await Promise.all([
     clipperRecords(ids),
     admin.from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', ids),
+    admin.from('submissions').select('creator_id, campaign_id').in('creator_id', ids),
   ]);
+  // What each clipper has clipped, by campaign niche.
+  const campIds = [...new Set((posted ?? []).map((s) => s.campaign_id as string))];
+  const { data: camps } = campIds.length ? await admin.from('campaigns').select('id, category').in('id', campIds) : { data: [] };
+  const niche = new Map((camps ?? []).map((c) => [c.id as string, c.category as string | null]));
+  const clipped = new Map<string, Set<string>>();
+  for (const s of posted ?? []) {
+    const n = niche.get(s.campaign_id as string);
+    if (!n) continue;
+    if (!clipped.has(s.creator_id as string)) clipped.set(s.creator_id as string, new Set());
+    clipped.get(s.creator_id as string)!.add(n);
+  }
   return (creators ?? [])
+    .filter((c) => !topic || ((c.interests as string[] | null) ?? []).includes(topic) || clipped.get(c.id as string)?.has(topic))
     .map((c) => {
       const rec = records.get(c.id as string)!;
       return {
@@ -754,6 +770,7 @@ export async function getScoutClippers(topic?: string): Promise<ScoutClipper[]> 
         bio: (c.bio as string | null) ?? null,
         verified: !!c.verified,
         interests: ((c.interests as string[] | null) ?? []).filter((i) => !i.includes(':')),
+        clipped: [...(clipped.get(c.id as string) ?? [])],
         tier: tierFor(rec),
         views: rec.views,
         approved: rec.approved,
@@ -805,6 +822,8 @@ export async function getInvitableCampaigns(): Promise<InvitableCampaign[]> {
 
 export interface InviteRow {
   id: string;
+  /** False while the campaign is still a draft: the clipper can't join yet. */
+  live: boolean;
   message: string | null;
   campaignId: string;
   campaignTitle: string;
@@ -824,17 +843,53 @@ export async function getMyInvites(): Promise<InviteRow[]> {
     .eq('creator_id', viewer.creatorId)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
-  // Invites to a draft show up once the campaign launches.
-  const live = (data ?? []).filter((r) => (r.campaigns as unknown as { status?: string } | null)?.status === 'active');
-  return live.map((r) => {
-    const c = r.campaigns as unknown as { title: string; client_name: string | null; brands: { name: string; avatar_url: string | null } | null } | null;
+  // Invites to a draft show as "opens at launch"; ended or paused campaigns drop off.
+  const shown = (data ?? []).filter((r) => ['active', 'draft'].includes((r.campaigns as unknown as { status?: string } | null)?.status ?? ''));
+  return shown.map((r) => {
+    const c = r.campaigns as unknown as { title: string; status: string; client_name: string | null; brands: { name: string; avatar_url: string | null } | null } | null;
     return {
       id: r.id as string,
+      live: c?.status === 'active',
       message: (r.message as string | null) ?? null,
       campaignId: r.campaign_id as string,
       campaignTitle: c?.title ?? 'Campaign',
       brandName: c?.client_name || c?.brands?.name || 'A business',
       brandAvatar: c?.client_name ? null : (c?.brands?.avatar_url ?? null),
+    };
+  });
+}
+
+export interface SentInvite {
+  creatorId: string;
+  name: string;
+  avatar: string | null;
+  verified: boolean;
+  status: 'pending' | 'accepted' | 'declined';
+  joined: boolean;
+}
+
+/** Who the business invited to one of its campaigns, and whether they joined. */
+export async function getCampaignInvites(campaignId: string): Promise<SentInvite[]> {
+  if (isDemo) return [];
+  const brandId = await requireRole('brand');
+  const admin = createAdminClient();
+  const { data: own } = await admin.from('campaigns').select('id').eq('id', campaignId).eq('brand_id', brandId).maybeSingle();
+  if (!own) return [];
+  const [{ data: invites }, { data: members }] = await Promise.all([
+    admin.from('campaign_invites').select('creator_id, status, created_at').eq('campaign_id', campaignId).order('created_at', { ascending: false }),
+    admin.from('campaign_creators').select('creator_id').eq('campaign_id', campaignId),
+  ]);
+  const names = await creatorNames((invites ?? []).map((i) => i.creator_id as string));
+  const inside = new Set((members ?? []).map((m) => m.creator_id as string));
+  return (invites ?? []).map((i) => {
+    const n = names.get(i.creator_id as string);
+    return {
+      creatorId: i.creator_id as string,
+      name: n?.name ?? 'Clipper',
+      avatar: n?.avatar ?? null,
+      verified: !!n?.verified,
+      status: i.status as SentInvite['status'],
+      joined: inside.has(i.creator_id as string),
     };
   });
 }
