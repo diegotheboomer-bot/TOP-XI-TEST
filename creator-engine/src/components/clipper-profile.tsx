@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Check } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import type { ClipperProfile } from '@/lib/data';
 import { compact, usd, usdCompact } from '@/lib/format';
 import { TIER_LABEL, TIER_RULES, approvalRate, nextTierProgress } from '@/lib/tiers';
@@ -8,8 +8,6 @@ import { PlatformIcon } from './platform-icon';
 import { StreamerAvatar } from './views';
 import { ClipperCard } from './clipper-card';
 import { TierBadge, TierEmblem } from './tier-badge';
-import { NextTierBar } from './tier-progress';
-import { TierGuideButton } from './tier-guide';
 
 
 /** A clipper's tier, record and campaigns. `own` adds tier progress and the perks table. */
@@ -29,14 +27,18 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
             </span>
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h1 className="truncate text-2xl font-semibold tracking-tight">{p.name}</h1>
+              {own && (
+                <Link href="/account" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium transition hover:bg-zinc-50">
+                  <Pencil className="size-3.5" /> Edit profile
+                </Link>
+              )}
             </div>
             <p className="text-sm font-medium" style={{ color: p.founder ? '#10b981' : undefined }}>
               {p.founder ? `Founding clipper #${String(p.founder).padStart(3, '0')} · ` : ''}
               {TIER_LABEL[p.tier]}
             </p>
-            {p.bio && <p className="mt-1 max-w-prose text-sm text-zinc-600">{p.bio}</p>}
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
               {p.handles.length ? (
                 p.handles.map((h) => (
@@ -51,14 +53,6 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
             </div>
           </div>
         </div>
-        {own && (
-          <div className="relative mt-6 rounded-xl border border-zinc-100 p-4">
-            <NextTierBar record={p.record} />
-            <div className="mt-3">
-              <TierGuideButton record={p.record} />
-            </div>
-          </div>
-        )}
         <dl className="relative mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-100 bg-zinc-100 sm:grid-cols-4">
           {[
             ['Verified views', compact(p.record.views)],

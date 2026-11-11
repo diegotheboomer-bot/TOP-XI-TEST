@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { isDemo } from '@/lib/env';
+import { appUrl, isDemo } from '@/lib/env';
+import { createClient } from '@/lib/supabase/server';
 import { THUMBNAIL_TYPES, thumbnailError } from '@/lib/schemas';
 import type { ActionState } from './result';
 
@@ -79,4 +80,35 @@ export async function disconnectDiscord(): Promise<void> {
   if (!viewer?.creatorId) redirect('/login');
   await createAdminClient().from('creators').update({ discord_id: null, discord_username: null }).eq('id', viewer.creatorId);
   redirect('/account?discord=disconnected');
+}
+
+/** Starts an email change. Supabase sends a confirmation link; the change applies once it's opened. */
+export async function changeEmail(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: 'Off in the demo.' };
+  const email = String(form.get('email') ?? '').trim().toLowerCase();
+  if (!z.string().email().safeParse(email).success) return { error: 'Enter a valid email address.' };
+  const viewer = await getViewer();
+  if (!viewer) redirect('/login');
+  if (viewer.email?.toLowerCase() === email) return { error: 'That’s already your email.' };
+  const { error } = await createClient().auth.updateUser({ email }, { emailRedirectTo: `${appUrl()}/account?tab=account` });
+  if (error) return { error: error.message };
+  return { success: `Check ${email} (and your current inbox) for a confirmation link. Your email changes once you open it.` };
+}
+
+/** Changes the password after checking the current one. */
+export async function changePassword(_prev: ActionState, form: FormData): Promise<ActionState> {
+  if (isDemo) return { error: 'Off in the demo.' };
+  const current = String(form.get('current') ?? '');
+  const next = String(form.get('password') ?? '');
+  const confirm = String(form.get('confirm') ?? '');
+  if (next.length < 8) return { error: 'Use at least 8 characters for the new password.' };
+  if (next !== confirm) return { error: 'The new passwords don’t match.' };
+  const viewer = await getViewer();
+  if (!viewer?.email) redirect('/login');
+  const supabase = createClient();
+  const { error: wrong } = await supabase.auth.signInWithPassword({ email: viewer.email, password: current });
+  if (wrong) return { error: 'Your current password isn’t right.' };
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) return { error: error.message };
+  return { success: 'Password changed.' };
 }

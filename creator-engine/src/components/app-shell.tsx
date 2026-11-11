@@ -50,8 +50,11 @@ export function AppShell({
   homeHref,
   demo,
   footer,
+  account,
   children,
 }: {
+  /** The account menu (picture, top right). */
+  account?: React.ReactNode;
   sections: NavSection[];
   current: string | null;
   link?: LinkLike;
@@ -149,14 +152,18 @@ export function AppShell({
           <Logo link={Link} href={homeHref} />
           <div className="flex items-center gap-1">
             {demo && <Badge tone="amber">Demo</Badge>}
-            {items
-              .filter((i) => i.badge)
-              .map((i) => (
-                <Link key={i.href} href={i.href} aria-label={i.label} className="mr-1">
-                  {i.badge}
-                </Link>
-              ))}
-            {footer}
+            {account ?? (
+              <>
+                {items
+                  .filter((i) => i.badge)
+                  .map((i) => (
+                    <Link key={i.href} href={i.href} aria-label={i.label} className="mr-1">
+                      {i.badge}
+                    </Link>
+                  ))}
+                {footer}
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -171,7 +178,10 @@ export function AppShell({
         </div>
       </nav>
 
-      <main className="gutter mx-auto w-full max-w-6xl pb-28 pt-6 lg:px-10 lg:py-10">{children}</main>
+      <main className="gutter mx-auto w-full max-w-6xl pb-28 pt-6 lg:px-10 lg:py-10">
+        {account && <div className="relative z-20 -mb-2 hidden justify-end lg:-mt-4 lg:flex">{account}</div>}
+        {children}
+      </main>
     </div>
   );
 }

@@ -108,7 +108,6 @@ export default async function ScoutPage({ searchParams: sp }: { searchParams: Se
                   </p>
                 </div>
               </div>
-              {c.bio && <p className="mt-3 line-clamp-2 text-sm text-zinc-600">{c.bio}</p>}
               <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
                 {[
                   ['Views', compact(c.views)],

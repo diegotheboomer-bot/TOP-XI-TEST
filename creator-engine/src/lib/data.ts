@@ -1003,3 +1003,28 @@ export async function getPayoutHistory(): Promise<PayoutEvent[]> {
   }
   return events.sort((a, b) => b.at.localeCompare(a.at));
 }
+
+export interface AccountSummary {
+  name: string;
+  email: string | null;
+  avatar: string | null;
+  tier: Tier | null;
+  founder: number | null;
+}
+
+/** Name, picture and tier of whoever is signed in, for the account menu. */
+export async function getAccountSummary(): Promise<AccountSummary | null> {
+  if (isDemo) return null;
+  const viewer = await getViewer();
+  if (!viewer) return null;
+  const admin = createAdminClient();
+  if (viewer.creatorId) {
+    const [{ data: c }, records] = await Promise.all([
+      admin.from('creators').select('display_name, avatar_url, founder_number').eq('id', viewer.creatorId).maybeSingle(),
+      clipperRecords([viewer.creatorId]),
+    ]);
+    return { name: (c?.display_name as string) ?? '', email: viewer.email, avatar: (c?.avatar_url as string | null) ?? null, tier: tierFor(records.get(viewer.creatorId)!), founder: (c?.founder_number as number | null) ?? null };
+  }
+  const { data: b } = await admin.from('brands').select('name, avatar_url').eq('id', viewer.brandId!).maybeSingle();
+  return { name: (b?.name as string) ?? '', email: viewer.email, avatar: (b?.avatar_url as string | null) ?? null, tier: null, founder: null };
+}

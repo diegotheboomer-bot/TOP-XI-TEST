@@ -199,7 +199,8 @@ export function FounderEmblem({ tier, size = 72, number, className }: { tier: Ti
   return (
     <span
       title={number ? `Founder #${String(number).padStart(3, '0')} · ${TIER_LABEL[tier]}` : `Founder · ${TIER_LABEL[tier]}`}
-      className={cn('relative inline-grid shrink-0 place-items-center', className)}
+      // Callers that pin it to a corner pass `absolute`; otherwise it sits in the flow.
+      className={cn(className?.includes('absolute') ? '' : 'relative', 'inline-grid shrink-0 place-items-center', className)}
       style={{ width: size, height: size, filter: `drop-shadow(0 ${size > 30 ? 6 : 2}px ${size > 30 ? 14 : 5}px rgba(16,185,129,0.45))` }}
     >
       <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>

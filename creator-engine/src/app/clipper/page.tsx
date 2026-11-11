@@ -220,55 +220,6 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
         </section>
       )}
 
-      <Card>
-        <h2 className="mb-4 font-semibold tracking-tight">Accounts</h2>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <ConnectionCard
-            icon={<PlatformIcon platform="tiktok" />}
-            title="TikTok"
-            connected={!!d.tiktok}
-            detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips only'}
-            action={
-              <form action={connectTikTok}>
-                <Button size="sm" variant={d.tiktok ? 'ghost' : 'secondary'}>
-                  {d.tiktok ? 'Reconnect' : 'Connect'}
-                </Button>
-              </form>
-            }
-          />
-          <ConnectionCard
-            icon={<PlatformIcon platform="youtube" />}
-            title="YouTube Shorts"
-            connected={!!d.youtube}
-            detail={d.youtube ? `${d.youtube.channel ?? 'Channel'}${d.youtube.subscribers != null ? ` · ${compact(d.youtube.subscribers)} subscribers` : ''}` : 'Connect your channel once to submit Shorts'}
-            action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} />}
-          />
-          <ConnectionCard
-            icon={<PlatformIcon platform="instagram" />}
-            title="Instagram Reels"
-            connected={!!d.instagram}
-            detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : 'Creator or Business account'}
-            action={
-              <form action={connectInstagram}>
-                <Button size="sm" variant={d.instagram ? 'ghost' : 'secondary'}>
-                  {d.instagram ? 'Reconnect' : 'Connect'}
-                </Button>
-              </form>
-            }
-          />
-          <ConnectionCard
-            icon={<Wallet />}
-            title="Payouts"
-            connected={d.payoutsEnabled}
-            detail={d.payoutsEnabled ? payoutDestination(d.payout) : 'Not set up'}
-            action={
-              <ButtonLink href="/clipper/payouts" size="sm" variant={d.payoutsEnabled ? 'ghost' : 'secondary'}>
-                {d.payoutsEnabled ? 'Manage' : 'Set up'}
-              </ButtonLink>
-            }
-          />
-        </div>
-      </Card>
     </div>
   );
 }

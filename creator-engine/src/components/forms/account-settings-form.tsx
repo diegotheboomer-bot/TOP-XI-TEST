@@ -53,14 +53,6 @@ export function AccountSettingsForm({ name, bio, avatar, email, clipper }: { nam
           <Field label={clipper ? 'Display name' : 'Name or brand'}>
             <Input name="name" required minLength={2} maxLength={120} defaultValue={name} />
           </Field>
-          {clipper && (
-            <Field label="Bio" hint="One or two lines streamers see on your profile.">
-              <textarea name="bio" maxLength={280} rows={2} defaultValue={bio} className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm" placeholder="Gaming clipper. Fast edits, captions, 9:16." />
-            </Field>
-          )}
-          <Field label="Email">
-            <Input value={email ?? ''} disabled readOnly />
-          </Field>
         </div>
       </Card>
       <FormMessage state={state} />

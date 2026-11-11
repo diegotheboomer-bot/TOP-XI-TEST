@@ -49,41 +49,43 @@ export function Landing({
   return (
     <main className="gutter mx-auto max-w-6xl">
       {/* Hero */}
-      <section className="relative isolate pb-16 pt-14 text-center sm:pb-24 sm:pt-20">
+      <section className="relative isolate grid grid-cols-1 items-center gap-10 pb-16 pt-10 sm:pb-20 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:pb-16 lg:pt-12">
         <div className="hero-grid pointer-events-none absolute inset-x-0 -top-16 bottom-0 -z-10" aria-hidden />
-        <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-600 backdrop-blur">
-          <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> The clipping marketplace
-        </p>
-        <h1 className="balance mx-auto mt-6 max-w-4xl text-[3.25rem] font-semibold leading-[0.98] tracking-tight sm:text-7xl lg:text-8xl">
-          Content in. <span className="text-brand">Views out.</span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
-          Fund a campaign and a network of clippers turns your streams, music, trailers or videos into TikToks, Shorts and Reels. You pay only for verified views.
-        </p>
-        <div className="mx-auto mt-8 grid max-w-sm grid-cols-2 gap-3 sm:flex sm:max-w-none sm:justify-center">
-          <Link href={startHref} className={buttonClass('primary', 'md', 'h-12 px-6')}>
-            Launch a campaign
-          </Link>
-          <Link href={clipperStartHref} className={buttonClass('secondary', 'md', 'h-12 px-6')}>
-            Start clipping
-          </Link>
+        <div className="text-center lg:text-left">
+          <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-600 backdrop-blur">
+            <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> The clipping marketplace
+          </p>
+          <h1 className="balance mt-5 text-[3.25rem] font-semibold leading-[0.98] tracking-tight sm:text-7xl lg:text-[4.5rem]">
+            Content in. <span className="text-brand">Views out.</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg lg:mx-0">
+            Fund a campaign and a network of clippers turns your streams, music, trailers or videos into TikToks, Shorts and Reels. You pay only for verified views.
+          </p>
+          <div className="mx-auto mt-7 grid max-w-sm grid-cols-2 gap-3 sm:flex sm:max-w-none sm:justify-center lg:justify-start">
+            <Link href={startHref} className={buttonClass('primary', 'md', 'h-12 px-6')}>
+              Launch a campaign
+            </Link>
+            <Link href={clipperStartHref} className={buttonClass('secondary', 'md', 'h-12 px-6')}>
+              Start clipping
+            </Link>
+          </div>
+          <ul className="mx-auto mt-6 flex max-w-2xl flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-zinc-600 lg:justify-start">
+            {[
+              [BadgeCheck, 'Verified views only'],
+              [ShieldCheck, 'You approve every clip'],
+              [Percent, 'Low fees'],
+            ].map(([Icon, text]) => {
+              const I = Icon as React.ElementType;
+              return (
+                <li key={text as string} className="flex items-center gap-2">
+                  <I className="size-4 shrink-0 text-[rgb(var(--brand-ta))]" />
+                  {text as string}
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        <ul className="mx-auto mt-6 flex max-w-2xl flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-zinc-600">
-          {[
-            [BadgeCheck, 'Verified views only'],
-            [ShieldCheck, 'You approve every clip'],
-            [Percent, 'Low fees'],
-          ].map(([Icon, text]) => {
-            const I = Icon as React.ElementType;
-            return (
-              <li key={text as string} className="flex items-center gap-2">
-                <I className="size-4 shrink-0 text-[rgb(var(--brand-ta))]" />
-                {text as string}
-              </li>
-            );
-          })}
-        </ul>
-        <div className="mt-12 text-left sm:mt-16">
+        <div className="text-left">
           <ViewsChartHero />
         </div>
       </section>

@@ -5,7 +5,8 @@ import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
 import { ThemeToggle } from './theme-toggle';
 import { TierBadge } from './tier-badge';
-import { getMyTier } from '@/lib/data';
+import { getAccountSummary, getMyTier } from '@/lib/data';
+import { AccountMenu } from './account-menu';
 import type { NavSection } from './app-shell';
 
 export type Role = 'streamer' | 'clipper';
@@ -68,7 +69,7 @@ const footerItem = 'flex items-center gap-2 rounded-lg p-2 text-sm lg:w-full lg:
 
 /** Sidebar layout for /streamer and /clipper. Each side only shows its own menu. */
 export async function AppLayout({ role, children }: { role: Role; children: React.ReactNode }) {
-  const tier = role === 'clipper' ? await getMyTier() : null;
+  const [tier, me] = await Promise.all([role === 'clipper' ? getMyTier() : null, getAccountSummary()]);
   const sections: NavSection[] = SECTIONS[role].map((sec) => ({
     ...sec,
     items: sec.items.map((i) => (tier && i.href === '/clipper/profile' ? { ...i, badge: <TierBadge tier={tier} /> } : i)),
@@ -97,7 +98,7 @@ export async function AppLayout({ role, children }: { role: Role; children: Reac
     </div>
   );
   return (
-    <NextShell sections={sections} demo={isDemo} footer={footer}>
+    <NextShell sections={sections} demo={isDemo} footer={me ? undefined : footer} account={me ? <AccountMenu me={me} clipper={role === 'clipper'} signOut={signOut} /> : undefined}>
       {children}
     </NextShell>
   );
