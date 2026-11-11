@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Compass, Mail, Wallet } from 'lucide-react';
+import { BadgeCheck, Compass, FolderOpen, Mail, TrendingUp, Wallet } from 'lucide-react';
 import { PlatformIcon } from '@/components/platform-icon';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { getCreatorDashboard } from '@/lib/data';
-import { getMyInvites, needsWelcome } from '@/lib/data';
+import { getCreatorViewHistory, getMyInvites, needsWelcome } from '@/lib/data';
+import { Spark } from '@/components/clipper-stats';
 import { compact, usd } from '@/lib/format';
 import { payoutDestination } from '@/lib/payout-methods';
 import { connectInstagram, connectTikTok, respondInvite } from '@/actions/creator';
@@ -43,8 +44,12 @@ const tiktokMessages: Record<string, [string, boolean]> = {
 
 export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; instagram?: string } }) {
   if (await needsWelcome()) redirect('/welcome');
-  const [d, invites] = await Promise.all([getCreatorDashboard(), getMyInvites()]);
+  const [d, invites, history] = await Promise.all([getCreatorDashboard(), getMyInvites(), getCreatorViewHistory()]);
   const subs = d.enrollments.flatMap((e) => e.submissions);
+  const earned = subs.reduce((a, s) => a + s.payout_earned, 0);
+  const paid = subs.reduce((a, s) => a + s.payout_transferred, 0);
+  const views = subs.filter((s) => s.status !== 'flagged').reduce((a, s) => a + s.current_view_count, 0);
+  const week = history.length > 7 ? Math.max(0, history[history.length - 1].views - history[history.length - 8].views) : 0;
   const firstOpen = d.enrollments.find((e) => !e.submission);
   const notice: [string, boolean] | undefined = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : searchParams.instagram ? instagramMessages[searchParams.instagram] : undefined;
 
@@ -63,37 +68,53 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       />
 
       {d.record && (
-        <section className="grid grid-cols-1 gap-5 md:grid-cols-[20rem_minmax(0,1fr)]">
-          <TierGuideButton record={d.record} className="mx-auto max-w-[16rem] md:max-w-none">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-5">
+          <TierGuideButton record={d.record} className="mx-auto h-full w-full max-w-[17rem] md:max-w-none">
             <ClipperCard name={d.name} tier={d.tier ?? 'silver'} founder={d.founder ?? null} views={d.record.views} clips={d.record.approved} joinedAt={d.joinedAt ?? null} />
           </TierGuideButton>
           <div className="flex flex-col gap-4">
-          {/* All-time stats */}
-          <div className="flex-1 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">All time</p>
-            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-5">
-              {(
-                [
-                  ['Earned', usd(subs.reduce((a, s) => a + s.payout_earned, 0)), true],
-                  ['Paid out', usd(subs.reduce((a, s) => a + s.payout_transferred, 0)), false],
-                  ['Approval rate', `${Math.round(approvalRate(d.record) * 100)}%`, false],
-                  ['Campaigns', String(d.enrollments.length), false],
-                ] as const
-              ).map(([k, v, main]) => (
-                <div key={k}>
-                  <dt className="text-xs text-zinc-500">{k}</dt>
-                  <dd className={main ? 'mt-0.5 text-3xl font-semibold tabular-nums tracking-tight text-brand' : 'mt-0.5 text-2xl font-semibold tabular-nums tracking-tight'}>{v}</dd>
+            {/* All-time stats with the last 30 days of views underneath */}
+            <div className="relative flex flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
+              <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-brand opacity-[0.1] blur-3xl" />
+              <div className="relative p-5 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">All time</p>
+                  {week > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-a/15 px-2 py-0.5 text-[11px] font-semibold text-[rgb(var(--brand-ta))]">
+                      <TrendingUp className="size-3" /> +{compact(week)} views this week
+                    </span>
+                  )}
                 </div>
-              ))}
-            </dl>
-          </div>
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
-            <NextTierBar record={d.record} />
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-4">
-              <p className="text-xs text-zinc-500">Tap your card to see every tier and its perks.</p>
-              <TierGuideButton record={d.record} />
+                <p className="mt-2 text-4xl font-semibold tabular-nums tracking-tight text-brand sm:text-5xl">{usd(earned)}</p>
+                <p className="text-xs text-zinc-500">earned from {compact(views)} verified views</p>
+                <dl className="mt-5 grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      [Wallet, 'Paid out', usd(paid)],
+                      [BadgeCheck, 'Approval', `${Math.round(approvalRate(d.record) * 100)}%`],
+                      [FolderOpen, 'Campaigns', String(d.enrollments.length)],
+                    ] as const
+                  ).map(([Icon, k, v]) => (
+                    <div key={k} className="rounded-xl bg-zinc-50 px-3 py-2.5">
+                      <dt className="flex items-center gap-1 text-[11px] text-zinc-500">
+                        <Icon className="size-3.5 text-[rgb(var(--brand-ta))]" /> {k}
+                      </dt>
+                      <dd className="mt-0.5 text-base font-semibold tabular-nums sm:text-lg">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+              <div className="relative mt-auto">
+                <Spark points={history.map((h) => h.views)} />
+              </div>
             </div>
-          </div>
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card">
+              <NextTierBar record={d.record} />
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-100 pt-3">
+                <p className="hidden text-xs text-zinc-500 sm:block">Tap your card to see every tier and its perks.</p>
+                <TierGuideButton record={d.record} />
+              </div>
+            </div>
           </div>
         </section>
       )}

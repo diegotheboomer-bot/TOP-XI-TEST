@@ -20,9 +20,9 @@ export function ClipperCard({ name, tier, founder, views, clips, joinedAt }: { n
   const since = joinedAt ? new Date(joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : null;
   const accent = founder ? '#6ee7b7' : t.accent;
   return (
-    <div className={founder ? 'emerald-flow rounded-3xl p-[1.5px]' : 'rounded-3xl p-[1.5px]'} style={founder ? undefined : { backgroundImage: t.border }}>
+    <div className={founder ? 'emerald-flow flex h-full rounded-3xl p-[1.5px]' : 'flex h-full rounded-3xl p-[1.5px]'} style={founder ? undefined : { backgroundImage: t.border }}>
       <div
-        className="card-sheen rounded-[22px] p-6"
+        className="card-sheen flex w-full flex-col justify-between rounded-[22px] p-5 sm:p-6"
         style={{ background: founder ? 'radial-gradient(120% 80% at 50% 0%, #064e3b 0%, #03241c 45%, #010f0b 100%)' : t.bg, color: '#fff', boxShadow: `0 20px 50px -25px ${founder ? '#10b981' : t.glow}` }}
       >
         <div className="flex items-start justify-between">
