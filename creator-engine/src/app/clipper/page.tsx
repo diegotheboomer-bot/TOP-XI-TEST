@@ -68,13 +68,13 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       />
 
       {d.record && (
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-5">
-          <TierGuideButton record={d.record} className="mx-auto h-full w-full max-w-[17rem] md:max-w-none">
+        // Phones: progress to the next tier first, then the card (full width), then all-time stats.
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-[19rem_minmax(0,1fr)] md:grid-rows-[1fr_auto] md:gap-5">
+          <TierGuideButton record={d.record} className="order-2 h-full w-full md:col-start-1 md:row-span-2 md:row-start-1">
             <ClipperCard name={d.name} tier={d.tier ?? 'silver'} founder={d.founder ?? null} views={d.record.views} clips={d.record.approved} joinedAt={d.joinedAt ?? null} />
           </TierGuideButton>
-          <div className="flex flex-col gap-4">
             {/* All-time stats with the last 30 days of views underneath */}
-            <div className="relative flex flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
+            <div className="relative order-3 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card md:col-start-2 md:row-start-1">
               <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-brand opacity-[0.1] blur-3xl" />
               <div className="relative p-5 sm:p-6">
                 <div className="flex items-center justify-between">
@@ -108,14 +108,13 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                 <Spark points={history.map((h) => h.views)} />
               </div>
             </div>
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card">
+            <div className="order-1 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card md:col-start-2 md:row-start-2">
               <NextTierBar record={d.record} />
               <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-100 pt-3">
                 <p className="hidden text-xs text-zinc-500 sm:block">Tap your card to see every tier and its perks.</p>
                 <TierGuideButton record={d.record} />
               </div>
             </div>
-          </div>
         </section>
       )}
 
