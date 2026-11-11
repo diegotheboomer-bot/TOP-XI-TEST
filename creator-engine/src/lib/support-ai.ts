@@ -56,21 +56,31 @@ export async function askAssistant(history: ChatTurn[]): Promise<AssistantReply>
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: history.slice(-12).map((t) => ({ role: t.role === 'user' ? 'user' : 'model', parts: [{ text: t.text.slice(0, 2000) }] })),
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 600 },
+        // Gemini wants the conversation to start with the person, so the greeting is left out.
+        contents: history
+          .slice(-12)
+          .filter((t, i, a) => !(i === 0 && t.role === 'assistant') || a.length === 1)
+          .map((t) => ({ role: t.role === 'user' ? 'user' : 'model', parts: [{ text: t.text.slice(0, 2000) }] })),
+        // No hidden "thinking": it used up the output and cut replies off.
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 1500, thinkingConfig: { thinkingBudget: 0 } },
       }),
       signal: AbortSignal.timeout(20_000),
     });
-    if (!res.ok) return fallback;
+    if (!res.ok) {
+      console.error('support assistant', res.status, (await res.text()).slice(0, 300));
+      return fallback;
+    }
     const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
-    const parsed = JSON.parse(raw) as Partial<AssistantReply>;
+    const json = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1);
+    const parsed = JSON.parse(json || raw) as Partial<AssistantReply>;
     return {
       answer: String(parsed.answer ?? '').slice(0, 1500) || fallback.answer,
       options: Array.isArray(parsed.options) ? parsed.options.map(String).slice(0, 4) : [],
       suggestHuman: !!parsed.suggestHuman,
     };
-  } catch {
+  } catch (e) {
+    console.error('support assistant', e);
     return fallback;
   }
 }
