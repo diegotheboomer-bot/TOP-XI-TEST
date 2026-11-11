@@ -11,8 +11,9 @@ const METAL: Record<Exclude<Tier, 'majesty'>, { stops: string[]; edge: string; f
   diamond: { stops: ['#ecfeff', '#67e8f9', '#3b82f6', '#a5f3fc', '#1d4ed8'], edge: '#1e3a8a', fg: '#06142e', glow: 'rgba(56,189,248,0.6)', icon: Gem },
 };
 
-// Majesty: obsidian body, molten-gold crown and a holographic rim that keeps moving.
-const HOLO = 'linear-gradient(115deg, #fde68a, #f472b6, #a78bfa, #67e8f9, #a3e635, #fde68a)';
+// Majesty: deep emerald body, molten-gold crown and a shimmering green-and-gold rim.
+export const MAJESTY_RIM = 'linear-gradient(115deg, #fde68a, #34d399, #a3e635, #10b981, #fcd34d, #6ee7b7, #fde68a)';
+const HOLO = MAJESTY_RIM;
 const GOLD_TEXT = 'linear-gradient(180deg, #fff7cc 0%, #fcd34d 45%, #d97706 100%)';
 
 const gradient = (stops: string[], angle = 135) => `linear-gradient(${angle}deg, ${stops.map((c, i) => `${c} ${Math.round((i / (stops.length - 1)) * 100)}%`).join(', ')})`;
@@ -25,7 +26,7 @@ export function TierBadge({ tier, size = 'sm', className }: { tier: Tier; size?:
       <span className={cn('majesty-ring relative inline-flex shrink-0 rounded-full p-[1.5px]', className)} style={{ backgroundImage: HOLO, backgroundSize: '300% 100%' }}>
         <span
           className={cn('tier-shine relative inline-flex items-center gap-1 overflow-hidden rounded-full font-extrabold tracking-tight', sizing)}
-          style={{ background: 'radial-gradient(120% 140% at 50% 0%, #2e1065 0%, #0b0613 70%)', boxShadow: '0 0 14px -2px rgba(167,139,250,0.7), inset 0 1px 0 rgba(255,255,255,0.18)' }}
+          style={{ background: 'radial-gradient(120% 140% at 50% 0%, #065f46 0%, #022c22 60%, #01140f 100%)', boxShadow: '0 0 14px -2px rgba(16,185,129,0.75), inset 0 1px 0 rgba(255,255,255,0.18)' }}
         >
           <Crown strokeWidth={2.6} className="relative" style={{ color: '#fcd34d', filter: 'drop-shadow(0 0 4px rgba(252,211,77,0.8))' }} />
           <span className="relative bg-clip-text text-transparent" style={{ backgroundImage: GOLD_TEXT }}>
@@ -117,21 +118,21 @@ function MajestyEmblem({ size }: { size: number }) {
       {/* Halo */}
       <span
         className="majesty-halo pointer-events-none absolute -inset-[18%] rounded-full opacity-80 blur-md"
-        style={{ background: 'conic-gradient(from 0deg, #fde68a, #f472b6, #a78bfa, #67e8f9, #a3e635, #fde68a)' }}
+        style={{ background: 'conic-gradient(from 0deg, #fde68a, #34d399, #a3e635, #10b981, #fcd34d, #6ee7b7, #fde68a)' }}
       />
       <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
         <defs>
           <linearGradient id="maj-rim" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#fde68a" />
-            <stop offset="25%" stopColor="#f472b6" />
-            <stop offset="50%" stopColor="#a78bfa" />
-            <stop offset="75%" stopColor="#67e8f9" />
+            <stop offset="30%" stopColor="#34d399" />
+            <stop offset="55%" stopColor="#fcd34d" />
+            <stop offset="80%" stopColor="#10b981" />
             <stop offset="100%" stopColor="#a3e635" />
           </linearGradient>
           <radialGradient id="maj-body" cx="50%" cy="25%" r="80%">
-            <stop offset="0%" stopColor="#4c1d95" />
-            <stop offset="55%" stopColor="#1e0b3a" />
-            <stop offset="100%" stopColor="#07030d" />
+            <stop offset="0%" stopColor="#047857" />
+            <stop offset="55%" stopColor="#022c22" />
+            <stop offset="100%" stopColor="#01110c" />
           </radialGradient>
           <linearGradient id="maj-gloss" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#fff" stopOpacity="0.35" />
@@ -139,7 +140,7 @@ function MajestyEmblem({ size }: { size: number }) {
           </linearGradient>
         </defs>
         <polygon points={hex(48)} fill="url(#maj-rim)" />
-        <polygon points={hex(44)} fill="#07030d" />
+        <polygon points={hex(44)} fill="#01110c" />
         <polygon points={hex(42)} fill="url(#maj-body)" />
         <polygon points={hex(30)} fill="none" stroke="url(#maj-rim)" strokeWidth="1" opacity="0.7" />
         <polygon points={hex(42)} fill="url(#maj-gloss)" />

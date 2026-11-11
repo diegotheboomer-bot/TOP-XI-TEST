@@ -10,7 +10,7 @@ const TRACK: Record<string, string> = {
   gold: 'linear-gradient(90deg, #fde68a, #f59e0b)',
   platinum: 'linear-gradient(90deg, #a7f3d0, #2dd4bf)',
   diamond: 'linear-gradient(90deg, #a5f3fc, #3b82f6)',
-  majesty: 'linear-gradient(90deg, #fde68a, #f472b6, #a78bfa, #67e8f9)',
+  majesty: 'linear-gradient(90deg, #10b981, #a3e635, #fcd34d)',
 };
 
 /** One bar from the current tier to the next. */
