@@ -19,7 +19,8 @@ const GOLD_TEXT = 'linear-gradient(180deg, #fff7cc 0%, #fcd34d 45%, #d97706 100%
 const gradient = (stops: string[], angle = 135) => `linear-gradient(${angle}deg, ${stops.map((c, i) => `${c} ${Math.round((i / (stops.length - 1)) * 100)}%`).join(', ')})`;
 
 /** A small shiny pill: metal gradient, bevel highlight, soft glow and a light sweep. Majesty gets its own treatment. */
-export function TierBadge({ tier, size = 'sm', className }: { tier: Tier; size?: 'sm' | 'lg'; className?: string }) {
+export function TierBadge({ tier, size = 'sm', className, iconOnly }: { tier: Tier; size?: 'sm' | 'lg'; className?: string; iconOnly?: boolean }) {
+  if (iconOnly) return <TierDot tier={tier} className={className} />;
   const sizing = size === 'sm' ? 'px-2 py-0.5 text-[10px] [&_svg]:size-3' : 'px-3.5 py-1.5 text-sm [&_svg]:size-4';
   if (tier === 'majesty') {
     return (
@@ -155,6 +156,25 @@ function MajestyEmblem({ size }: { size: number }) {
       </span>
       <span className="tier-sparkle pointer-events-none absolute right-[12%] top-[12%] size-2 rounded-full" style={{ backgroundColor: '#fff' }} />
       <span className="tier-sparkle pointer-events-none absolute bottom-[16%] left-[10%] size-1.5 rounded-full" style={{ backgroundColor: '#fff', animationDelay: '1.2s' }} />
+    </span>
+  );
+}
+
+/** A tiny round tier mark (icon only), e.g. on an avatar corner. */
+function TierDot({ tier, className }: { tier: Tier; className?: string }) {
+  const royal = tier === 'majesty';
+  const Icon = royal ? Crown : METAL[tier].icon;
+  return (
+    <span
+      title={TIER_LABEL[tier]}
+      className={cn('grid size-[18px] place-items-center rounded-full ring-2 ring-white', className)}
+      style={
+        royal
+          ? { background: 'radial-gradient(circle at 50% 30%, #065f46, #022c22)', color: '#fcd34d', boxShadow: '0 0 8px -1px rgba(16,185,129,0.8)' }
+          : { backgroundImage: gradient(METAL[tier].stops), color: METAL[tier].fg, boxShadow: `0 1px 4px ${METAL[tier].glow}` }
+      }
+    >
+      <Icon className="size-2.5" strokeWidth={2.8} />
     </span>
   );
 }

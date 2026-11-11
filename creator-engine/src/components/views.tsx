@@ -302,6 +302,8 @@ export function submissionNote(s: Submission, now = Date.now(), holdHours?: numb
   return { text: `Locked. Paid automatically · synced ${timeAgo(s.last_synced_at)}`, tone: 'muted' };
 }
 
+const STATUS_LABEL = { pending_review: 'In review', live_tracking: 'Live', flagged: 'Flagged', paid: 'Paid' } as const;
+const STATUS_COLOR = { pending_review: '#f59e0b', live_tracking: '#22c55e', flagged: '#f43f5e', paid: '#38bdf8' } as const;
 const NOTE_TONE = { muted: 'text-zinc-500', warn: 'text-amber-700', bad: 'text-rose-600' } as const;
 /** Clips on a fixed grid so numbers and buttons line up: who, views, earned, actions. */
 const CLIP_COLS = 'md:grid md:grid-cols-[minmax(0,1fr)_4rem_5.5rem_10.5rem] md:items-center md:gap-4';
@@ -331,32 +333,29 @@ export function SubmissionTable({
           return (
             <li key={s.id} className={cn('px-5 py-4 sm:px-6', CLIP_COLS)}>
               <div className="flex min-w-0 items-center gap-3 overflow-hidden">
-                <StreamerAvatar name={s.creator_name} size="md" />
+                {/* Avatar carries the tier as a small corner mark, so the text lines stay clean. */}
+                <span className="relative shrink-0">
+                  <StreamerAvatar name={s.creator_name} size="md" />
+                  {s.creator_tier && <TierBadge tier={s.creator_tier} iconOnly className="absolute -bottom-1 -right-1" />}
+                </span>
                 <div className="min-w-0">
-                  <p className="flex min-w-0 items-baseline gap-2">
-                    {s.creator_id ? (
-                      <a href={`/streamer/clippers/${s.creator_id}`} className="truncate text-sm font-semibold hover:underline">
-                        {s.creator_name}
-                      </a>
-                    ) : (
-                      <span className="truncate text-sm font-semibold">{s.creator_name}</span>
-                    )}
-                    {s.creator_tier && <TierBadge tier={s.creator_tier} />}
+                  <p className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                    <a href={s.creator_id ? `/streamer/clippers/${s.creator_id}` : undefined} className="truncate font-semibold hover:underline">
+                      {s.creator_name}
+                    </a>
                     {s.creator_profile && (
-                      <a href={s.creator_profile.url} target="_blank" rel="noreferrer" className="truncate text-xs text-zinc-500 hover:text-zinc-900 hover:underline">
+                      <a href={s.creator_profile.url} target="_blank" rel="noreferrer" className="truncate text-xs text-zinc-500 hover:text-zinc-900">
                         {s.creator_profile.handle}
                       </a>
                     )}
                   </p>
-                  <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
-                    <SubmissionBadge status={s.status} />
-                    <a
-                      href={s.video_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={`Watch on ${PLATFORM_LABEL[s.platform]}`}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-1.5 py-0.5 font-medium text-zinc-700 transition hover:bg-zinc-200 hover:text-zinc-900"
-                    >
+                  <p className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-zinc-500">
+                    <span className="inline-flex shrink-0 items-center gap-1 font-medium" style={{ color: STATUS_COLOR[s.status] }}>
+                      <span className="size-1.5 rounded-full bg-current" />
+                      {STATUS_LABEL[s.status]}
+                    </span>
+                    <span className="text-zinc-300">·</span>
+                    <a href={s.video_url} target="_blank" rel="noreferrer" title={`Watch on ${PLATFORM_LABEL[s.platform]}`} className="inline-flex shrink-0 items-center gap-1 hover:text-zinc-900">
                       <PlatformIcon platform={s.platform} className="size-3" />
                       Watch
                     </a>
