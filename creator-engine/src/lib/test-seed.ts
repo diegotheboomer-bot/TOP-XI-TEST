@@ -420,7 +420,8 @@ export async function removeTestData(db: SupabaseClient): Promise<string> {
   }
   for (const id of users) {
     const { error } = await db.auth.admin.deleteUser(id);
-    if (error) throw new Error(`delete user: ${error.message}`);
+    // Already gone (e.g. Remove tapped twice) is fine.
+    if (error && !/not found/i.test(error.message)) throw new Error(`delete user: ${error.message}`);
   }
   return `Removed ${users.length} test accounts and everything they made.`;
 }
