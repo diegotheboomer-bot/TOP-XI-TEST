@@ -11,6 +11,7 @@ import { PlatformIcon } from '@/components/platform-icon';
 import { StreamerAvatar, VerifiedMark } from '@/components/views';
 import { TierBadge } from '@/components/tier-badge';
 import { InviteButton } from '@/components/invite-button';
+import { InviteAllButton } from '@/components/invite-all-button';
 import type { Platform } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -70,6 +71,14 @@ export default async function ScoutPage({ searchParams: sp }: { searchParams: Se
         </div>
       )}
       <ScoutFilters filters={FILTERS} />
+      {clippers.length > 0 && (
+        <div className="-mt-2 mb-4 flex items-center justify-between gap-2">
+          <p className="text-sm text-zinc-500">
+            {clippers.length} {clippers.length === 1 ? 'clipper' : 'clippers'}
+          </p>
+          <InviteAllButton creatorIds={clippers.map((c) => c.id)} campaigns={campaigns.map((c) => ({ id: c.id, title: c.title, draft: c.draft }))} preselect={focus?.id} />
+        </div>
+      )}
       {clippers.length === 0 ? (
         all.length === 0 ? (
           <Empty icon={<Telescope />} title="No clippers here yet" body="As clippers sign up and post, they show up here with their record." />

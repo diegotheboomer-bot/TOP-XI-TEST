@@ -336,3 +336,48 @@ export async function inviteClipper(creatorId: string, campaignId: string, messa
   revalidatePath(`/streamer/campaigns/${campaignId}`);
   return { success: campaign.status === 'draft' ? 'Invite saved. They’ll see it on their home page once you launch.' : 'Invite sent. They’ll see it on their home page.' };
 }
+
+/**
+ * Approves every clip waiting for review in a campaign. Clips held for a check
+ * (low engagement or a high fraud score) are left for a one-by-one look.
+ */
+export async function approveAllPending(campaignId: string): Promise<ActionState> {
+  if (isDemo) return { error: 'Off in the demo.' };
+  const { admin, campaign } = await requireOwnCampaign(campaignId);
+  if (campaign.status === 'completed') return { error: 'This campaign has ended, so new clips can’t earn.' };
+  const { data: pending } = await selectAll(() => admin.from('submissions').select('id, flag_reason, fraud_score').eq('campaign_id', campaignId).eq('status', 'pending_review').order('id'));
+  const safe = pending.filter((s) => !s.flag_reason && Number(s.fraud_score) < 50).map((s) => s.id as string);
+  const skipped = pending.length - safe.length;
+  for (let i = 0; i < safe.length; i += 200) {
+    const { error } = await admin
+      .from('submissions')
+      .update({ status: 'live_tracking', approved_at: new Date().toISOString(), fraud_score: 0 })
+      .in('id', safe.slice(i, i + 200))
+      .eq('status', 'pending_review');
+    if (error) return { error: error.message };
+  }
+  revalidatePath(`/streamer/campaigns/${campaignId}`);
+  if (!safe.length) return { error: skipped ? `All ${skipped} need a one-by-one check (held for low engagement or fraud signs).` : 'Nothing waiting for review.' };
+  return { success: `Approved ${safe.length} clips.${skipped ? ` ${skipped} held for a check are left for you to review one by one.` : ''}` };
+}
+
+/** Invites many clippers to one campaign at once, skipping anyone already in it or invited. */
+export async function inviteMany(creatorIds: string[], campaignId: string, message: string): Promise<ActionState> {
+  if (isDemo) return { error: 'Invites are off in the demo.' };
+  const { admin, campaign } = await requireOwnCampaign(campaignId);
+  if (campaign.status !== 'active' && campaign.status !== 'draft') return { error: 'This campaign has ended or is paused.' };
+  const ids = [...new Set(creatorIds)].slice(0, 500);
+  const [{ data: members }, { data: invited }] = await Promise.all([
+    selectAll(() => admin.from('campaign_creators').select('creator_id').eq('campaign_id', campaignId).order('id')),
+    selectAll(() => admin.from('campaign_invites').select('creator_id').eq('campaign_id', campaignId).order('id')),
+  ]);
+  const skip = new Set([...members, ...invited].map((r) => r.creator_id as string));
+  const rows = ids.filter((id) => !skip.has(id)).map((creator_id) => ({ campaign_id: campaignId, creator_id, message: message.trim().slice(0, 500) || null, status: 'pending' }));
+  if (!rows.length) return { error: 'Everyone matching is already in this campaign or invited.' };
+  const { error } = await admin.from('campaign_invites').insert(rows);
+  if (error) return { error: 'Couldn’t send the invites. Try again.' };
+  revalidatePath('/streamer/scout');
+  revalidatePath(`/streamer/campaigns/${campaignId}`);
+  const skipped = ids.length - rows.length;
+  return { success: `Invited ${rows.length} clippers.${skipped ? ` ${skipped} were already in or invited.` : ''}${campaign.status === 'draft' ? ' They’ll see it once you launch.' : ''}` };
+}

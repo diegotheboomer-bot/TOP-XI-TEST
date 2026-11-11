@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Check, Lock, Pencil, Rocket, Send, Users } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Lock, Pencil, Rocket, Send, Users } from 'lucide-react';
 import { cn } from '@/components/ui/cn';
 import { TIER_PERKS } from '@/lib/tiers';
 import { getCampaignDetail, getCampaignInvites, type SubmissionRow } from '@/lib/data';
@@ -8,7 +8,7 @@ import { compact, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { achEnabled, feeFor } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSync } from '@/actions/brand';
+import { approveAllPending, cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
@@ -140,7 +140,19 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             {submissions.length === 0 ? (
               <Empty icon={<Users />} title="No clips yet" body="Clips show up here as soon as clippers post them." />
             ) : (
-              <SubmissionTable rows={submissions} cap={c.cpm_cap} actions={(s) => <SubmissionActions s={s} ended={ended} />} />
+              <>
+                {pending > 1 && !ended && (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-zinc-50 px-4 py-3">
+                    <p className="text-sm text-zinc-600">
+                      <b className="text-zinc-900">{pending}</b> clips waiting. Approve them all at once; any held for a check stay for you to look at.
+                    </p>
+                    <ActionButton variant="primary" action={approveAllPending.bind(null, c.id)}>
+                      <CheckCheck className="size-4" /> Approve all {pending}
+                    </ActionButton>
+                  </div>
+                )}
+                <SubmissionTable rows={submissions} cap={c.cpm_cap} actions={(s) => <SubmissionActions s={s} ended={ended} />} />
+              </>
             )}
           </Card>
           <Card>
