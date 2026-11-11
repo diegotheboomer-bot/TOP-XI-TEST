@@ -57,7 +57,8 @@ export function rateParts(c: {
   if (c.payout_model === 'per_post') return { rate: usd(c.base_payout), unit: 'per clip', terms: 'flat, once approved' };
   if (c.payout_model === 'pool') return { rate: 'Pool', unit: 'split by views', terms: 'paid when it ends' };
   const split = platformRates(c);
-  const rate = split.length ? `from ${usdCents(Math.min(...split.map((r) => r.rate)))}` : usdCents(c.cpm_rate);
+  // Lowest platform rate when they differ; the campaign page lists each one.
+  const rate = split.length ? usdCents(Math.min(...split.map((r) => r.rate))) : usdCents(c.cpm_rate);
   return { rate, unit: 'per 1K views', terms: c.payout_model === 'hybrid' ? `${usd(c.base_payout)} base · ${cap}` : cap };
 }
 
