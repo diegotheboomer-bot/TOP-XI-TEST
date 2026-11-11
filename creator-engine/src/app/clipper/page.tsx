@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { CreatorSwitcher } from '@/components/creator-switcher';
 import { NextTierBar } from '@/components/tier-progress';
-import { approvalRate } from '@/lib/tiers';
+import { approvalRate, tierProgress } from '@/lib/tiers';
 import { TierGuideButton } from '@/components/tier-guide';
 import { ClipperCard } from '@/components/clipper-card';
 import { Checklist, ConnectionCard, EnrollmentCard, MarketCard, StreamerAvatar } from '@/components/views';
@@ -68,10 +68,19 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       />
 
       {d.record && (
-        // Phones: progress to the next tier first, then the card (full width), then all-time stats.
+        // Phones: the card (with its tier progress inside), then all-time stats.
         <section className="grid grid-cols-1 gap-4 md:grid-cols-[19rem_minmax(0,1fr)] md:grid-rows-[1fr_auto] md:gap-5">
           <TierGuideButton record={d.record} className="order-2 h-full w-full md:col-start-1 md:row-span-2 md:row-start-1">
-            <ClipperCard name={d.name} tier={d.tier ?? 'silver'} founder={d.founder ?? null} views={d.record.views} clips={d.record.approved} joinedAt={d.joinedAt ?? null} />
+            <ClipperCard
+              name={d.name}
+              tier={d.tier ?? 'silver'}
+              founder={d.founder ?? null}
+              views={d.record.views}
+              clips={d.record.approved}
+              joinedAt={d.joinedAt ?? null}
+              progress={tierProgress(d.record)}
+              progressClassName="mt-5 md:hidden"
+            />
           </TierGuideButton>
             {/* All-time stats with the last 30 days of views underneath */}
             <div className="relative order-3 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card md:col-start-2 md:row-start-1">
@@ -108,7 +117,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                 <Spark points={history.map((h) => h.views)} />
               </div>
             </div>
-            <div className="order-1 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card md:col-start-2 md:row-start-2">
+            <div className="hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card md:col-start-2 md:row-start-2 md:block">
               <NextTierBar record={d.record} />
               <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-100 pt-3">
                 <p className="hidden text-xs text-zinc-500 sm:block">Tap your card to see every tier and its perks.</p>

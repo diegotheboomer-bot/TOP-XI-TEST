@@ -71,3 +71,12 @@ export async function skipWelcome(): Promise<void> {
   if (viewer.brandId) await admin.from('brands').update(row).eq('id', viewer.brandId);
   redirect(viewer.brandId ? '/streamer' : '/clipper');
 }
+
+/** Unlinks the clipper's Discord account (their Discord roles stop updating). */
+export async function disconnectDiscord(): Promise<void> {
+  if (isDemo) redirect('/');
+  const viewer = await getViewer();
+  if (!viewer?.creatorId) redirect('/login');
+  await createAdminClient().from('creators').update({ discord_id: null, discord_username: null }).eq('id', viewer.creatorId);
+  redirect('/account?discord=disconnected');
+}

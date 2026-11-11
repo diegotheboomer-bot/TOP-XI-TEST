@@ -15,7 +15,26 @@ const THEME: Record<Tier, { border: string; glow: string; bg: string; accent: st
  * Every clipper's card: name, tier emblem and stats. The first 100 clippers get the
  * founder edition: flowing emerald border, sheen and their founder number.
  */
-export function ClipperCard({ name, tier, founder, views, clips, joinedAt }: { name: string; tier: Tier; founder: number | null; views: number; clips: number; joinedAt: string | null }) {
+export function ClipperCard({
+  name,
+  tier,
+  founder,
+  views,
+  clips,
+  joinedAt,
+  progress,
+  progressClassName,
+}: {
+  name: string;
+  tier: Tier;
+  founder: number | null;
+  views: number;
+  clips: number;
+  joinedAt: string | null;
+  /** Progress to the next tier, shown inside the card (e.g. on phones). */
+  progress?: { next: Tier | null; pct: number };
+  progressClassName?: string;
+}) {
   const t = THEME[tier];
   const since = joinedAt ? new Date(joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : null;
   const accent = founder ? '#6ee7b7' : t.accent;
@@ -61,6 +80,17 @@ export function ClipperCard({ name, tier, founder, views, clips, joinedAt }: { n
             </div>
           ))}
         </div>
+        {progress && (
+          <div className={progressClassName ?? 'mt-5'}>
+            <div className="flex justify-between text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              <span>{TIER_LABEL[tier]}</span>
+              <span>{progress.next ? `${Math.round(progress.pct * 100)}% to ${TIER_LABEL[progress.next]}` : 'Top tier'}</span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+              <div className="h-full rounded-full" style={{ width: `${Math.round((progress.next ? progress.pct : 1) * 100)}%`, background: `linear-gradient(90deg, ${accent}, ${founder ? '#10b981' : t.glow})` }} />
+            </div>
+          </div>
+        )}
         {(founder || since) && (
           <p className="mt-5 text-center text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {founder ? 'One of the first 100' : 'Clipping'}
