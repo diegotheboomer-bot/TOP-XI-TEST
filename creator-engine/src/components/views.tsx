@@ -194,21 +194,22 @@ export function ReferenceList({ campaign }: { campaign: Pick<Campaign, 'asset_fo
 }
 
 // ─── Creator marketplace ───────────────────────────────────────────────────
-export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; href: string; link?: LinkLike }) {
+export function MarketCard({ c, href, link: Link = 'a', size = 'md' }: { c: MarketCampaign; href: string; link?: LinkLike; /** lg: bigger card when only a few campaigns are shown. */ size?: 'md' | 'lg' }) {
   const r = rateParts(c);
+  const lg = size === 'lg';
   const days = budgetDaysLabel(c.budget);
   const pool = c.payout_model === 'pool';
   return (
     <Link
       href={href}
       aria-label={`${c.title} by ${c.brandName}, ${r.rate} ${r.unit}`}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+      className={cn('group flex h-full flex-col overflow-hidden border border-zinc-200/80 bg-white transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500', lg ? 'rounded-2xl shadow-card' : 'rounded-xl')}
     >
       <div className="overflow-hidden">
         <CampaignCover campaign={c} brandName="" showTitle={false} className="transition duration-500 group-hover:scale-[1.03]" />
       </div>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <div className="flex items-center justify-between gap-2 text-sm">
+      <div className={cn('flex flex-1 flex-col', lg ? 'gap-1.5 p-5' : 'gap-1 p-3')}>
+        <div className={cn('flex items-center justify-between gap-2', lg ? 'text-lg' : 'text-sm')}>
           {pool ? (
             <span className="inline-flex items-center gap-1 font-semibold" style={{ color: '#38bdf8' }}>
               <PieChart className="size-3.5" /> {usdCompact(c.budget.deposited)} pool
@@ -224,8 +225,9 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
             ))}
           </span>
         </div>
-        <h3 className="truncate text-sm font-medium">{c.title}</h3>
-        <p className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
+        <h3 className={cn('truncate', lg ? 'text-lg font-semibold tracking-tight' : 'text-sm font-medium')}>{c.title}</h3>
+        <p className={cn('flex min-w-0 items-center text-zinc-500', lg ? 'gap-1.5 text-sm' : 'gap-1 text-xs')}>
+          {lg && <StreamerAvatar name={c.brandName} src={c.brandAvatar} />}
           <span className="truncate">{c.brandName}</span>
           {c.brandVerified && <VerifiedMark className="size-3" />}
           {c.min_tier && c.min_tier !== 'silver' && <span className="shrink-0">· {c.min_tier[0].toUpperCase() + c.min_tier.slice(1)}+</span>}
