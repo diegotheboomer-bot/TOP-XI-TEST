@@ -52,7 +52,7 @@ export default function DevAccounts() {
           </form>
         ))}
       </div>
-      <p className="mt-6 text-xs text-zinc-500">Also 300+ more: clipper1@atlas.test … clipper320@atlas.test and brand1@ … brand14@atlas.test, same password.</p>
+      <p className="mt-6 text-xs text-zinc-500">Also 300+ more: clipper1@atlas.test … clipper320@atlas.test and brand1@ … brand14@atlas.test, same password. Load or remove the data at /admin/test-data.</p>
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isSupportAdmin } from './support';
 import type { ActionState } from './result';
+import { hasTestData, removeTestData as removeAll, seedTestData } from '@/lib/test-seed';
 
 /** Atlas team only: give or remove the verified badge on a clipper or a business. */
 export async function setVerified(kind: 'creator' | 'brand', id: string, verified: boolean): Promise<ActionState> {
@@ -12,4 +13,32 @@ export async function setVerified(kind: 'creator' | 'brand', id: string, verifie
   if (error) return { error: error.message };
   revalidatePath('/admin/verify');
   return { success: verified ? 'Verified.' : 'Badge removed.' };
+}
+
+const localTesting = () => process.env.LOCAL_TEST_ACCOUNTS === '1';
+
+/** Atlas team only: fill the site with fake test data (all @atlas.test, never synced or paid). */
+export async function loadTestData(): Promise<ActionState> {
+  if (!localTesting() && !(await isSupportAdmin())) return { error: 'Not allowed.' };
+  const db = createAdminClient();
+  if (await hasTestData(db)) return { error: 'Test data is already loaded. Remove it first to load it fresh.' };
+  try {
+    const summary = await seedTestData(db);
+    revalidatePath('/admin/test-data');
+    return { success: `Loaded: ${summary}.` };
+  } catch (e) {
+    return { error: `Stopped part way: ${e instanceof Error ? e.message : 'unknown error'}. Tap Remove, then try again.` };
+  }
+}
+
+/** Atlas team only: delete every @atlas.test account and everything they made. */
+export async function removeTestData(): Promise<ActionState> {
+  if (!localTesting() && !(await isSupportAdmin())) return { error: 'Not allowed.' };
+  try {
+    const summary = await removeAll(createAdminClient());
+    revalidatePath('/admin/test-data');
+    return { success: summary };
+  } catch (e) {
+    return { error: `Couldn’t finish: ${e instanceof Error ? e.message : 'unknown error'}. Tap Remove again.` };
+  }
 }
