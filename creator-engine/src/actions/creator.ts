@@ -15,7 +15,7 @@ import { hasDisclosure } from '@/lib/compliance';
 import { getYouTubeChannel, getYouTubeVideos, parseChannelInput } from '@/lib/platforms/youtube';
 import { youtubeVerifyCode } from '@/lib/youtube-verify';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
-import { stripe } from '@/lib/stripe';
+import { stripe, CLIPPER_ACCOUNT_DEFAULTS } from '@/lib/stripe';
 import { paypalConfigured } from '@/lib/paypal';
 import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
@@ -271,6 +271,7 @@ async function payoutAccount(creatorId: string): Promise<string> {
       stripe_dashboard: { type: 'express' },
     },
     capabilities: { transfers: { requested: true } },
+    ...CLIPPER_ACCOUNT_DEFAULTS,
     metadata: { creator_id: creatorId },
   });
   await admin.from('creators').update({ stripe_account_id: account.id }).eq('id', creatorId);

@@ -1,9 +1,10 @@
 'use server';
 
+
 // /test/money only: a small REAL deposit and cash-out with the live Stripe keys.
 // Nothing is saved in the database; the test clipper account lives in a cookie.
 import { cookies } from 'next/headers';
-import { stripe } from '@/lib/stripe';
+import { CLIPPER_ACCOUNT_DEFAULTS, stripe } from '@/lib/stripe';
 import { getViewer } from '@/lib/session';
 import type { ActionState } from './result';
 
@@ -41,9 +42,13 @@ export async function testConnectSession(): Promise<{ clientSecret: string } | {
         await s.accounts.create({
           controller: { fees: { payer: 'application' }, losses: { payments: 'application' }, stripe_dashboard: { type: 'express' } },
           capabilities: { transfers: { requested: true } },
+          ...CLIPPER_ACCOUNT_DEFAULTS,
         })
       ).id;
       cookies().set(ACCOUNT_COOKIE, account, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 86_400, path: '/' });
+    } else {
+      // An account made before the defaults existed: fill them in so the form skips those questions.
+      await s.accounts.update(account, CLIPPER_ACCOUNT_DEFAULTS).catch(() => undefined);
     }
     const session = await s.accountSessions.create({ account, components: { account_onboarding: { enabled: true, features: { external_account_collection: true } } } });
     return { clientSecret: session.client_secret };

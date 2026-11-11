@@ -25,5 +25,18 @@ export function feeFor(earlyPartner: boolean): { percent: number; fixed: number;
   return earlyPartner || noServiceFee() ? { ...EARLY_PARTNER_FEE, early: true } : { percent: platformFeePercent(), fixed: 0, early: false };
 }
 
+/**
+ * Pre-filled for every clipper's payout account, so Stripe's form skips the
+ * "business details" questions (website, what you sell). Clippers are individuals
+ * paid for clips on Atlas.
+ */
+export const CLIPPER_ACCOUNT_DEFAULTS = {
+  business_type: 'individual' as const,
+  business_profile: {
+    url: 'https://atlasclipping.com',
+    product_description: 'Creates short video clips of streams and posts them on social media, paid per view through Atlas Clipping.',
+  },
+};
+
 /** Charged to streamers on top of the budget they fund. (Clippers pay a tier fee on payouts; see tiers.ts.) */
 export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 9);
