@@ -53,7 +53,7 @@ export function StripeOnboarding({
     <ConnectComponentsProvider connectInstance={instance}>
       <ConnectAccountOnboarding
         onExit={onExit}
-        collectionOptions={{ fields: 'eventually_due' }}
+        collectionOptions={{ fields: 'currently_due', futureRequirements: 'omit' }}
         fullTermsOfServiceUrl={`${origin}/terms`}
         privacyPolicyUrl={`${origin}/privacy`}
         onLoadError={({ error }) => setError(error.message ?? 'Payout setup failed to load.')}

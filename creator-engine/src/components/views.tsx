@@ -204,32 +204,27 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
       aria-label={`${c.title} by ${c.brandName}, ${r.rate} ${r.unit}`}
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card transition duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-[0_18px_40px_-18px_rgb(var(--brand-b)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
     >
-      {/* Cover with the pay on it, so the number is the first thing you see. */}
-      <div className="relative overflow-hidden">
+      {/* The thumbnail stays fully visible; everything else sits below it. */}
+      <div className="overflow-hidden">
         <CampaignCover campaign={c} brandName="" showTitle={false} className="transition duration-500 group-hover:scale-[1.04]" />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0) 55%, rgba(0,0,0,0.25))' }} />
-        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-          <span className="flex gap-1">
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-2">
+          <span className="min-w-0">
+            <span className="block text-2xl font-semibold leading-none tracking-tight tabular-nums text-brand">{r.rate}</span>
+            <span className="mt-1 block truncate text-[11px] text-zinc-500">
+              {r.unit} · {r.terms}
+            </span>
+          </span>
+          <span className="flex shrink-0 gap-1">
             {PLATFORM_ORDER.filter((p) => c.platforms.includes(p)).map((p) => (
-              <span key={p} className="grid size-6 place-items-center rounded-md backdrop-blur" style={{ backgroundColor: 'rgba(0,0,0,0.45)', color: '#fff' }} title={PLATFORM_LABEL[p]}>
+              <span key={p} className="grid size-6 place-items-center rounded-md bg-zinc-100 text-zinc-600" title={PLATFORM_LABEL[p]}>
                 <PlatformIcon platform={p} className="size-3" />
               </span>
             ))}
           </span>
-          {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
         </div>
-        <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2" style={{ color: '#fff' }}>
-          <span>
-            <span className="block text-2xl font-semibold leading-none tracking-tight tabular-nums">{r.rate}</span>
-            <span className="mt-1 block text-[11px]" style={{ color: 'rgba(255,255,255,0.8)' }}>
-              {r.unit} · {r.terms}
-            </span>
-          </span>
-          {days.urgent && <span className="shrink-0 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950">{days.text}</span>}
-        </div>
-      </div>
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="line-clamp-2 min-h-[2.5rem] font-semibold leading-5 tracking-tight">{c.title}</h3>
+        <h3 className="mt-3 line-clamp-2 min-h-[2.5rem] font-semibold leading-5 tracking-tight">{c.title}</h3>
         <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm text-zinc-600">
           <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
           <span className="truncate">{c.brandName}</span>
@@ -238,6 +233,8 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
         </p>
         {/* One line of tags, so every card is the same height. */}
         <div className="mt-3 flex h-5 gap-1.5 overflow-hidden">
+          {days.urgent && <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: "#fbbf24", color: "#451a03" }}>{days.text}</span>}
+          {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
           {tags.slice(0, 2).map((t, i) => (
             <span key={t} className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px]', i === 0 && c.category ? 'bg-brand font-medium text-brand-ink' : 'bg-zinc-100 text-zinc-600')}>
               {t}

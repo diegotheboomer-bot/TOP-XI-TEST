@@ -87,3 +87,76 @@ export function CashOutForm({ balance, feePct }: { balance: number; feePct: numb
     </div>
   );
 }
+
+/**
+ * The cash-out button: one tap sends everything that's ready. "Choose an amount"
+ * opens the form above for a partial cash-out. When cashing out isn't possible it
+ * says why, and links to payout setup if that's what's missing.
+ */
+export function OneTapCashOut({
+  balance,
+  feePct,
+  payoutsReady,
+  blocked,
+  nextUnlock,
+}: {
+  balance: number;
+  feePct: number;
+  payoutsReady: boolean;
+  /** Why cashing out isn't possible right now (e.g. weekly limit), if it isn't. */
+  blocked?: string;
+  /** When the next held money unlocks, if any. */
+  nextUnlock?: string;
+}) {
+  const router = useRouter();
+  const [custom, setCustom] = useState(false);
+  const [state, setState] = useState<ActionState>();
+  const [pending, start] = useTransition();
+  const fee = Math.round(balance * feePct) / 100;
+  const net = Math.max(0, balance - fee);
+  const big = 'flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold transition';
+
+  if (!payoutsReady)
+    return (
+      <a href="/clipper/payouts" className={cn(big, 'bg-brand text-brand-ink hover:brightness-110')}>
+        Set up payouts to cash out →
+      </a>
+    );
+  if (state?.success)
+    return <p className="rounded-xl bg-brand-a/10 px-4 py-4 text-center text-sm font-medium ring-1 ring-inset ring-brand-a/30">{state.success}</p>;
+  if (blocked || balance < 0.01)
+    return (
+      <div>
+        <button type="button" disabled className={cn(big, 'bg-zinc-100 text-zinc-400')}>
+          {blocked ? 'Cash-outs used for this week' : 'Nothing to cash out yet'}
+        </button>
+        <p className="mt-2 text-center text-xs text-zinc-500">{blocked ?? (nextUnlock ? `Your next money unlocks ${nextUnlock}.` : 'Approved earnings unlock after the hold.')}</p>
+      </div>
+    );
+  if (custom) return <CashOutForm balance={balance} feePct={feePct} />;
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const r = await cashOut();
+            setState(r);
+            if (r?.success) router.refresh();
+          })
+        }
+        className={cn(big, 'bg-brand text-brand-ink shadow-[0_10px_30px_-12px_rgb(var(--brand-b)/0.8)] hover:brightness-110 active:scale-[0.99] disabled:opacity-60')}
+      >
+        {pending ? 'Sending…' : `Cash out ${cents(net)}`}
+      </button>
+      <p className="mt-2 text-center text-xs text-zinc-500">
+        {cents(balance)} minus the {feePct}% fee, straight to your payout account ·{' '}
+        <button type="button" onClick={() => setCustom(true)} className="font-medium text-zinc-700 underline">
+          Choose an amount
+        </button>
+      </p>
+      {state?.error && <p className="mt-2 text-center text-sm text-rose-600">{state.error}</p>}
+    </div>
+  );
+}

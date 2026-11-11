@@ -6,7 +6,7 @@ import type { Submission, SubmissionStatus } from '@/lib/types';
 import { cashoutReady } from '@/lib/payout-rules';
 import { TIER_LABEL, TIER_PERKS, holdLabel } from '@/lib/tiers';
 import { TierBadge } from './tier-badge';
-import { CashOutForm } from './cash-out-form';
+import { OneTapCashOut } from './cash-out-form';
 import { clipRef, compact, usd, usdCents } from '@/lib/format';
 import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
@@ -180,30 +180,41 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
   const perks = TIER_PERKS[tier];
   const ready = rows.filter((r) => !r.openPool && cashoutReady(r.sub, Date.now(), perks.holdHours)).reduce((n, r) => n + Math.max(0, r.sub.payout_earned - r.sub.payout_transferred), 0);
   const left = perks.cashoutsPerWeek === Infinity ? Infinity : Math.max(0, perks.cashoutsPerWeek - d.recentCashouts);
+  // When the soonest held clip passes its hold.
+  const soonest = rows
+    .filter((r) => !r.openPool && r.sub.status === 'live_tracking' && r.sub.approved_at && r.sub.payout_earned > r.sub.payout_transferred && !cashoutReady(r.sub, Date.now(), perks.holdHours))
+    .map((r) => new Date(r.sub.approved_at!).getTime() + perks.holdHours * 3_600_000)
+    .sort((a, b) => a - b)[0];
+  const nextUnlock = soonest ? new Date(soonest).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : undefined;
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full bg-brand opacity-[0.08] blur-3xl" />
-        <p className="text-sm text-zinc-500">Your balance</p>
-        <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight text-brand">{usdCents(ready)}</p>
-        <p className="mt-2 text-sm text-zinc-500">
-          {usdCents(earned)} earned in total{owed > ready ? ` · ${usdCents(owed - ready)} still in the ${holdLabel(perks.holdHours)} check` : ''}
-        </p>
-        <div className="mt-5">
-          {ready > 0 && d.payoutsEnabled && left > 0 ? (
-            <CashOutForm balance={Math.round(ready * 100) / 100} feePct={perks.feePct} />
-          ) : (
-            <p className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-              {!d.payoutsEnabled
-                ? 'Set up a payout method to cash out.'
-                : left <= 0
-                  ? `You’ve used this week’s cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'}. Reach a higher tier to cash out more often.`
-                  : 'Nothing ready yet. Approved earnings unlock after the hold.'}
-            </p>
-          )}
-          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
+        <p className="relative text-sm text-zinc-500">Ready to cash out</p>
+        <p className="relative mt-1 text-5xl font-semibold tabular-nums tracking-tight text-brand">{usdCents(ready)}</p>
+        <div className="relative mt-5 grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-zinc-50 px-4 py-3">
+            <p className="text-xs text-zinc-500">Coming in</p>
+            <p className="mt-0.5 text-lg font-semibold tabular-nums">{usdCents(Math.max(0, owed - ready))}</p>
+            <p className="text-[11px] text-zinc-500">{nextUnlock ? `Next unlocks ${nextUnlock}` : 'Unlocks after the hold'}</p>
+          </div>
+          <div className="rounded-xl bg-zinc-50 px-4 py-3">
+            <p className="text-xs text-zinc-500">Already paid</p>
+            <p className="mt-0.5 text-lg font-semibold tabular-nums">{usdCents(paid)}</p>
+            <p className="text-[11px] text-zinc-500">{usdCents(earned)} earned in total</p>
+          </div>
+        </div>
+        <div className="relative mt-5">
+          <OneTapCashOut
+            balance={Math.round(ready * 100) / 100}
+            feePct={perks.feePct}
+            payoutsReady={d.payoutsEnabled}
+            blocked={left <= 0 ? `${TIER_LABEL[tier]} clippers can cash out ${perks.cashoutsPerWeek === 1 ? 'once' : `${perks.cashoutsPerWeek} times`} a week. Reach a higher tier to cash out more often.` : undefined}
+            nextUnlock={nextUnlock}
+          />
+          <p className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-zinc-500">
             <TierBadge tier={tier} />
-            {perks.feePct}% fee · {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · paid {holdLabel(perks.holdHours)} after approval
+            {perks.feePct}% fee · {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · unlocks {holdLabel(perks.holdHours)} after approval
           </p>
         </div>
       </div>
