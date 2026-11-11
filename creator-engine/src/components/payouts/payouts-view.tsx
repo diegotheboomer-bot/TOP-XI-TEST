@@ -146,7 +146,7 @@ export function PayoutsView({
       </Card>
       <Card className="space-y-4 text-sm lg:sticky lg:top-6">
         <Point title="Fees that shrink" body="9% comes off each payout at Silver, then 8% at Gold, 6% at Diamond and 4% at Majesty. We cover the transfer costs." />
-        <Point title="Bank or debit card" body="Stripe checks your identity once: name, date of birth, address and the last 4 digits of your SSN." />
+        <Point title="Bank or debit card" body="Stripe checks who you are once: name, date of birth, address and your bank details. Sometimes a photo of your ID." />
         {methods.includes('paypal') && <Point title="PayPal or Venmo" body="We only need your email or mobile number. Payouts nobody claims come back after 30 days." />}
       </Card>
     </div>

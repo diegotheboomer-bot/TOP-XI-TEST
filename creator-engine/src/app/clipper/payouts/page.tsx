@@ -1,3 +1,4 @@
+import { MoneyJourney } from '@/components/payouts/money-journey';
 import { getCreatorDashboard } from '@/lib/data';
 import { isDemo } from '@/lib/env';
 import { paypalConfigured } from '@/lib/paypal';
@@ -51,6 +52,7 @@ export default async function PayoutsPage() {
           )
         }
       />
+      <MoneyJourney />
     </div>
   );
 }
