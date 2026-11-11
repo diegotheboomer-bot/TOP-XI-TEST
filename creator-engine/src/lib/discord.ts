@@ -66,7 +66,7 @@ async function roleIds(): Promise<Map<string, string>> {
 export async function syncDiscordMember(discordId: string, standing: { tier: Tier; founder: boolean }, accessToken?: string, roles?: Map<string, string>): Promise<void> {
   const guild = env('DISCORD_GUILD_ID');
   const ids = roles ?? (await roleIds());
-  const want = new Set([ids.get('Clipper'), ids.get(TIER_LABEL[standing.tier]), standing.founder ? ids.get('Founder') : undefined].filter((x): x is string => !!x));
+  const want = new Set([ids.get('Verified'), ids.get('Clipper'), ids.get(TIER_LABEL[standing.tier]), standing.founder ? ids.get('Founder') : undefined].filter((x): x is string => !!x));
   const managed = new Set([ids.get('Founder'), ...TIERS.map((t) => ids.get(TIER_LABEL[t]))].filter((x): x is string => !!x));
 
   if (accessToken) {
