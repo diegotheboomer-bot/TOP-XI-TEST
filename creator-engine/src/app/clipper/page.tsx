@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { CreatorSwitcher } from '@/components/creator-switcher';
 import { NextTierBar } from '@/components/tier-progress';
+import { approvalRate } from '@/lib/tiers';
 import { TierGuideButton } from '@/components/tier-guide';
 import { ClipperCard } from '@/components/clipper-card';
 import { Checklist, ConnectionCard, EnrollmentCard, MarketCard, StreamerAvatar } from '@/components/views';
@@ -62,16 +63,37 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       />
 
       {d.record && (
-        <section className="grid grid-cols-1 items-center gap-5 md:grid-cols-[20rem_minmax(0,1fr)]">
+        <section className="grid grid-cols-1 gap-5 md:grid-cols-[20rem_minmax(0,1fr)]">
           <TierGuideButton record={d.record} className="mx-auto max-w-[16rem] md:max-w-none">
             <ClipperCard name={d.name} tier={d.tier ?? 'silver'} founder={d.founder ?? null} views={d.record.views} clips={d.record.approved} joinedAt={d.joinedAt ?? null} />
           </TierGuideButton>
+          <div className="flex flex-col gap-4">
+          {/* All-time stats */}
+          <div className="flex-1 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">All time</p>
+            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-5">
+              {(
+                [
+                  ['Earned', usd(subs.reduce((a, s) => a + s.payout_earned, 0)), true],
+                  ['Paid out', usd(subs.reduce((a, s) => a + s.payout_transferred, 0)), false],
+                  ['Approval rate', `${Math.round(approvalRate(d.record) * 100)}%`, false],
+                  ['Campaigns', String(d.enrollments.length), false],
+                ] as const
+              ).map(([k, v, main]) => (
+                <div key={k}>
+                  <dt className="text-xs text-zinc-500">{k}</dt>
+                  <dd className={main ? 'mt-0.5 text-3xl font-semibold tabular-nums tracking-tight text-brand' : 'mt-0.5 text-2xl font-semibold tabular-nums tracking-tight'}>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
           <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
             <NextTierBar record={d.record} />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-4">
               <p className="text-xs text-zinc-500">Tap your card to see every tier and its perks.</p>
               <TierGuideButton record={d.record} />
             </div>
+          </div>
           </div>
         </section>
       )}
@@ -127,15 +149,6 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             action: firstOpen ? <ButtonLink href={`/clipper/campaigns/${firstOpen.campaign.id}`} size="sm">Open campaign</ButtonLink> : undefined,
           },
           { label: 'Set up payouts', detail: 'Add your bank account so you can be paid.', done: d.payoutsEnabled, action: payoutsButton },
-        ]}
-      />
-
-      <StatGrid
-        items={[
-          { label: 'Earned', value: usd(subs.reduce((a, s) => a + s.payout_earned, 0)) },
-          { label: 'Paid out', value: usd(subs.reduce((a, s) => a + s.payout_transferred, 0)) },
-          { label: 'Verified views', value: compact(subs.reduce((a, s) => a + s.current_view_count, 0)) },
-          { label: 'Clips', value: compact(subs.length) },
         ]}
       />
 
