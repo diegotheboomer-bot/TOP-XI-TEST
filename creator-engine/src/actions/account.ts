@@ -184,7 +184,7 @@ export async function createProfile(_prev: ActionState, form: FormData): Promise
       ? await admin.from('brands').insert({ owner_id: data.user.id, name: input.data.name, kind: input.data.role === 'agency' ? 'agency' : 'streamer' })
       : await admin.from('creators').insert({ user_id: data.user.id, display_name: input.data.name });
   if (error && error.code !== '23505') return { error: error.message };
-  redirect(input.data.role === 'creator' ? '/clipper' : '/streamer');
+  redirect('/welcome');
 }
 
 export async function resetDemoData() {

@@ -16,7 +16,7 @@ import { ActionButton } from '@/components/action-button';
 import { EarningsEstimator } from '@/components/estimator';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
-import { CampaignCover, MomentBoard, NextStep, PlatformChips, ReferenceList, RequirementList, StreamerAvatar } from '@/components/views';
+import { VerifiedMark, CampaignCover, MomentBoard, NextStep, PlatformChips, ReferenceList, RequirementList, StreamerAvatar } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,8 +45,9 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
             <CampaignCover campaign={c} brandName={c.brandName} variant="card" showTitle={false} />
             <div className="p-5 sm:p-6">
               <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-600">
-                <StreamerAvatar name={c.brandName} />
+                <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
                 <span className="font-medium text-zinc-900">{c.brandName}</span>
+                {c.brandVerified && <VerifiedMark />}
                 {c.agencyName && <span className="text-xs text-zinc-500">via {c.agencyName}</span>}
                 {c.min_tier && c.min_tier !== 'silver' && <TierBadge tier={c.min_tier} />}
                 {c.category && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-ink">{c.category}</span>}

@@ -315,3 +315,17 @@ function done(result: ActionState, campaignId?: string): ActionState {
   revalidatePath(campaignId ? `/streamer/campaigns/${campaignId}` : '/streamer', campaignId ? 'page' : 'layout');
   return result;
 }
+
+/** Invite a clipper to one of your live campaigns, with an optional note. */
+export async function inviteClipper(creatorId: string, campaignId: string, message: string): Promise<ActionState> {
+  if (isDemo) return { error: 'Invites are off in the demo.' };
+  const { admin, campaign } = await requireOwnCampaign(campaignId);
+  if (campaign.status !== 'active') return { error: 'Launch the campaign first, so the clipper can join it.' };
+  const { data: joined } = await admin.from('campaign_creators').select('id').eq('campaign_id', campaignId).eq('creator_id', creatorId).maybeSingle();
+  if (joined) return { error: 'They’re already in this campaign.' };
+  const { error } = await admin
+    .from('campaign_invites')
+    .upsert({ campaign_id: campaignId, creator_id: creatorId, message: message.trim().slice(0, 500) || null, status: 'pending' }, { onConflict: 'campaign_id,creator_id' });
+  if (error) return { error: 'Couldn’t send the invite. Try again.' };
+  return { success: 'Invite sent. They’ll see it on their home page.' };
+}

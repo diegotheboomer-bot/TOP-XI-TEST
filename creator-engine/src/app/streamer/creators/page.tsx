@@ -6,7 +6,7 @@ import { compact, timeAgo, usdCompact } from '@/lib/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { Empty } from '@/components/ui/empty';
 import { PlatformIcon } from '@/components/platform-icon';
-import { StreamerAvatar } from '@/components/views';
+import { StreamerAvatar, VerifiedMark } from '@/components/views';
 import { cn } from '@/components/ui/cn';
 import type { Platform } from '@/lib/types';
 
@@ -42,7 +42,7 @@ export default async function CreatorsPage() {
                 )}
                 <div className="relative flex items-center gap-3">
                   <span className="relative">
-                    <StreamerAvatar name={c.name} size="md" />
+                    <StreamerAvatar name={c.name} size="md" src={c.avatar} />
                     <span
                       className={cn(
                         'absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full font-mono text-[10px] font-bold ring-2 ring-white',
@@ -54,7 +54,7 @@ export default async function CreatorsPage() {
                   </span>
                   <div className="min-w-0">
                     <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate font-semibold tracking-tight hover:underline">
-                      <span className="truncate">{c.name}</span> {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
+                      <span className="truncate">{c.name}</span> {c.verified && <VerifiedMark />} {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
                     </Link>
                     <Handles handles={c.handles} />
                   </div>
@@ -87,10 +87,10 @@ export default async function CreatorsPage() {
                 <li key={c.id} className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-5 py-3.5 sm:grid-cols-[2rem_minmax(0,1fr)_6rem_6rem_5rem_7rem]">
                   <span className="font-mono text-xs text-zinc-400">{i + 1}</span>
                   <div className="flex min-w-0 items-center gap-3">
-                    <StreamerAvatar name={c.name} size="md" />
+                    <StreamerAvatar name={c.name} size="md" src={c.avatar} />
                     <div className="min-w-0">
                       <Link href={`/streamer/clippers/${c.id}`} className="flex items-center gap-1.5 truncate text-sm font-medium hover:underline">
-                        <span className="truncate">{c.name}</span> {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
+                        <span className="truncate">{c.name}</span> {c.verified && <VerifiedMark />} {c.tier && <TierBadge tier={c.tier} iconOnly className="shrink-0" />}
                       </Link>
                       <Handles handles={c.handles} />
                     </div>

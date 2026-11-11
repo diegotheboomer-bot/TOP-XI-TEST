@@ -24,6 +24,8 @@ export type SubmissionRow = Submission & {
   /** The clipper's account on the clip's platform, when connected. */
   creator_profile?: { handle: string; url: string } | null;
   creator_tier?: Tier;
+  creator_avatar?: string | null;
+  creator_verified?: boolean;
   /** Share of the clipper's reviewed clips that were approved, 0–1. */
   creator_approval?: number;
 };
@@ -40,12 +42,22 @@ function profileUrl(platform: string, username: string | null, platformUserId: s
 export type MomentRow = Moment & { claimers: string[]; mine: boolean };
 
 /** A campaign as creators see it in Discover. */
-export type MarketCampaign = Campaign & { brandName: string; budget: BudgetStats; creators: number; /** Set when an agency runs it for brandName. */ agencyName?: string };
+export type MarketCampaign = Campaign & {
+  brandName: string;
+  budget: BudgetStats;
+  creators: number;
+  /** Set when an agency runs it for brandName. */
+  agencyName?: string;
+  brandAvatar?: string | null;
+  brandVerified?: boolean;
+};
 
 /** Who clippers see: the streamer, plus the agency when one runs the campaign for them. */
-function shownBrand(clientName: string | null | undefined, brands: unknown): { brandName: string; agencyName?: string } {
-  const owner = (brands as { name: string } | null)?.name ?? '';
-  return clientName ? { brandName: clientName, agencyName: owner } : { brandName: owner };
+function shownBrand(clientName: string | null | undefined, brands: unknown): { brandName: string; agencyName?: string; brandAvatar?: string | null; brandVerified?: boolean } {
+  const b = brands as { name: string; avatar_url?: string | null; verified?: boolean } | null;
+  const owner = b?.name ?? '';
+  const extra = { brandAvatar: clientName ? null : (b?.avatar_url ?? null), brandVerified: !!b?.verified };
+  return clientName ? { brandName: clientName, agencyName: owner, ...extra } : { brandName: owner, ...extra };
 }
 
 export interface BrandDashboard {
@@ -91,6 +103,8 @@ export interface CreatorDashboard {
   payout: PayoutSetup;
   enrollments: CreatorEnrollment[];
   openCampaigns: MarketCampaign[];
+  /** What they said they like clipping and where they post (from the welcome questions). */
+  interests?: string[];
   /** Tier and the record it's based on (missing in the demo: Silver). */
   tier?: Tier;
   record?: ClipperRecord;
@@ -183,6 +197,8 @@ export interface StreamerCreator {
   campaigns: number;
   lastClipAt: string;
   tier?: Tier;
+  avatar?: string | null;
+  verified?: boolean;
 }
 
 /** Everyone who has clipped this streamer's campaigns, ranked by views. */
@@ -208,7 +224,9 @@ export async function getStreamerCreators(): Promise<StreamerCreator[]> {
       by.get(id) ??
       {
         id,
-        name: names.get(id) ?? 'Clipper',
+        name: names.get(id)?.name ?? 'Clipper',
+        avatar: names.get(id)?.avatar ?? null,
+        verified: !!names.get(id)?.verified,
         handles: (socials ?? []).filter((x) => x.creator_id === id).map((x) => ({ platform: x.platform as string, username: x.username as string | null })),
         views: 0,
         earned: 0,
@@ -253,11 +271,11 @@ export interface CreatorCampaignDetail {
  * Clipper display names by id. Looked up separately: submissions reference
  * campaign_creators, not creators, so PostgREST can't embed creators directly.
  */
-async function creatorNames(ids: string[]): Promise<Map<string, string>> {
+async function creatorNames(ids: string[]): Promise<Map<string, { name: string; avatar: string | null; verified: boolean }>> {
   const unique = [...new Set(ids)];
   if (!unique.length) return new Map();
-  const { data } = await createAdminClient().from('creators').select('id, display_name').in('id', unique);
-  return new Map((data ?? []).map((c) => [c.id as string, c.display_name as string]));
+  const { data } = await createAdminClient().from('creators').select('id, display_name, avatar_url, verified').in('id', unique);
+  return new Map((data ?? []).map((c) => [c.id as string, { name: c.display_name as string, avatar: (c.avatar_url as string | null) ?? null, verified: !!c.verified }]));
 }
 
 /** Track records (for tiers) of the given clippers. */
@@ -380,7 +398,9 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
     const acct = (socials ?? []).find((a) => a.creator_id === s.creator_id && a.platform === s.platform);
     return {
       ...num(s as Submission, SUB_NUMS),
-      creator_name: names.get(s.creator_id as string) ?? 'Clipper',
+      creator_name: names.get(s.creator_id as string)?.name ?? 'Clipper',
+      creator_avatar: names.get(s.creator_id as string)?.avatar ?? null,
+      creator_verified: !!names.get(s.creator_id as string)?.verified,
       creator_profile: acct ? profileUrl(acct.platform as string, acct.username as string | null, acct.platform_user_id as string | null) : null,
       creator_tier: rec ? tierFor(rec) : ('silver' as Tier),
       creator_approval: rec ? approvalRate(rec) : 1,
@@ -419,10 +439,10 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const creatorId = await requireRole('creator');
   const db = createClient();
   const [{ data: creator }, { data: account }, { data: enrollments }, { data: open }, { data: subs }] = await Promise.all([
-    db.from('creators').select('display_name, payouts_enabled').eq('id', creatorId).single(),
+    db.from('creators').select('display_name, payouts_enabled, interests').eq('id', creatorId).single(),
     createAdminClient().from('social_accounts').select('platform, username, follower_count').eq('creator_id', creatorId),
-    db.from('campaign_creators').select('*, campaigns(*, brands(name), conversion_pixels(shop_domain))').eq('creator_id', creatorId),
-    db.from('campaigns').select('*, brands(name)').eq('status', 'active').order('created_at', { ascending: false }),
+    db.from('campaign_creators').select('*, campaigns(*, brands(name, avatar_url, verified), conversion_pixels(shop_domain))').eq('creator_id', creatorId),
+    db.from('campaigns').select('*, brands(name, avatar_url, verified)').eq('status', 'active').order('created_at', { ascending: false }),
     db.from('submissions').select('*').eq('creator_id', creatorId),
   ]);
   const joined = new Set((enrollments ?? []).map((e) => e.campaign_id));
@@ -441,6 +461,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const instagram = (account ?? []).find((a) => a.platform === 'instagram');
   return {
     name: creator?.display_name ?? '',
+    interests: ((creator as { interests?: string[] } | null)?.interests ?? []) as string[],
     tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count } : null,
     youtube: youtube ? { channel: youtube.username, subscribers: youtube.follower_count } : null,
     instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
@@ -475,7 +496,7 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
   const creatorId = await requireRole('creator');
   const db = createClient();
   const [{ data: campaign }, { data: enrollment }, { data: sub }, { data: creator }, { data: account }] = await Promise.all([
-    db.from('campaigns').select('*, brands(name), conversion_pixels(shop_domain)').eq('id', id).maybeSingle(),
+    db.from('campaigns').select('*, brands(name, avatar_url, verified), conversion_pixels(shop_domain)').eq('id', id).maybeSingle(),
     db.from('campaign_creators').select('*').eq('campaign_id', id).eq('creator_id', creatorId).maybeSingle(),
     db.from('submissions').select('*').eq('campaign_id', id).eq('creator_id', creatorId).order('created_at', { ascending: false }),
     db.from('creators').select('payouts_enabled').eq('id', creatorId).single(),
@@ -520,7 +541,7 @@ export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
   const creatorId = await requireRole('creator');
   const db = createClient();
   const [{ data: enrollments }, { data: subs }] = await Promise.all([
-    db.from('campaign_creators').select('joined_at, campaigns(*, brands(name))').eq('creator_id', creatorId).order('joined_at', { ascending: false }),
+    db.from('campaign_creators').select('joined_at, campaigns(*, brands(name, avatar_url, verified))').eq('creator_id', creatorId).order('joined_at', { ascending: false }),
     db.from('submissions').select('*').eq('creator_id', creatorId).order('created_at', { ascending: false }),
   ]);
   const camps = (enrollments ?? []).map((e) => {
@@ -538,6 +559,10 @@ export async function getJoinedCampaigns(): Promise<JoinedCampaign[]> {
 export interface ClipperProfile {
   id: string;
   name: string;
+  avatar: string | null;
+  bio: string | null;
+  verified: boolean;
+  interests: string[];
   joinedAt: string | null;
   handles: { platform: string; handle: string; url: string }[];
   record: ClipperRecord;
@@ -551,7 +576,7 @@ export interface ClipperProfile {
 async function loadClipperProfile(creatorId: string, onlyBrand?: string): Promise<ClipperProfile | null> {
   const admin = createAdminClient();
   const [{ data: creator }, { data: socials }, { data: subs }] = await Promise.all([
-    admin.from('creators').select('id, display_name, created_at').eq('id', creatorId).maybeSingle(),
+    admin.from('creators').select('id, display_name, created_at, avatar_url, bio, verified, interests').eq('id', creatorId).maybeSingle(),
     admin.from('social_accounts').select('platform, username, platform_user_id').eq('creator_id', creatorId),
     admin.from('submissions').select('campaign_id, status, current_view_count, fraud_score, created_at, payout_earned').eq('creator_id', creatorId),
   ]);
@@ -560,12 +585,16 @@ async function loadClipperProfile(creatorId: string, onlyBrand?: string): Promis
   const record = recordFrom(all);
   const ids = [...new Set(all.map((s) => s.campaign_id))];
   const { data: camps } = ids.length
-    ? await admin.from('campaigns').select('id, title, brand_id, client_name, thumbnail_url, cover_color, brands(name)').in('id', ids)
+    ? await admin.from('campaigns').select('id, title, brand_id, client_name, thumbnail_url, cover_color, brands(name, avatar_url, verified)').in('id', ids)
     : { data: [] as Record<string, unknown>[] };
   const visible = (camps ?? []).filter((c) => !onlyBrand || c.brand_id === onlyBrand);
   return {
     id: creator.id as string,
     name: creator.display_name as string,
+    avatar: (creator.avatar_url as string | null) ?? null,
+    bio: (creator.bio as string | null) ?? null,
+    verified: !!creator.verified,
+    interests: (creator.interests as string[] | null) ?? [],
     joinedAt: (creator.created_at as string) ?? null,
     handles: (socials ?? [])
       .map((a) => profileUrl(a.platform as string, a.username as string | null, a.platform_user_id as string | null))
@@ -672,3 +701,113 @@ export async function getBrandMoney(): Promise<BrandMoney> {
   };
 }
 
+
+/** True when the signed-in person hasn't answered (or skipped) the after-sign-up questions yet. */
+export async function needsWelcome(): Promise<boolean> {
+  if (isDemo) return false;
+  const viewer = await getViewer();
+  if (!viewer) return false;
+  const admin = createAdminClient();
+  const { data } = viewer.brandId
+    ? await admin.from('brands').select('onboarded_at').eq('id', viewer.brandId).maybeSingle()
+    : viewer.creatorId
+      ? await admin.from('creators').select('onboarded_at').eq('id', viewer.creatorId).maybeSingle()
+      : { data: null };
+  return !!data && !data.onboarded_at;
+}
+
+export interface ScoutClipper {
+  id: string;
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+  verified: boolean;
+  interests: string[];
+  tier: Tier;
+  views: number;
+  approved: number;
+  approval: number;
+  handles: { platform: string; handle: string; url: string }[];
+}
+
+/** Clippers for businesses to scout, best record first. Optional topic filter (an interest like "Gaming"). */
+export async function getScoutClippers(topic?: string): Promise<ScoutClipper[]> {
+  if (isDemo) return [];
+  await requireRole('brand');
+  const admin = createAdminClient();
+  let q = admin.from('creators').select('id, display_name, avatar_url, bio, verified, interests').limit(200);
+  if (topic) q = q.contains('interests', [topic]);
+  const { data: creators } = await q;
+  const ids = (creators ?? []).map((c) => c.id as string);
+  if (!ids.length) return [];
+  const [records, { data: socials }] = await Promise.all([
+    clipperRecords(ids),
+    admin.from('social_accounts').select('creator_id, platform, username, platform_user_id').in('creator_id', ids),
+  ]);
+  return (creators ?? [])
+    .map((c) => {
+      const rec = records.get(c.id as string)!;
+      return {
+        id: c.id as string,
+        name: c.display_name as string,
+        avatar: (c.avatar_url as string | null) ?? null,
+        bio: (c.bio as string | null) ?? null,
+        verified: !!c.verified,
+        interests: ((c.interests as string[] | null) ?? []).filter((i) => !i.includes(':')),
+        tier: tierFor(rec),
+        views: rec.views,
+        approved: rec.approved,
+        approval: approvalRate(rec),
+        handles: (socials ?? [])
+          .filter((a) => a.creator_id === c.id)
+          .map((a) => {
+            const h = profileUrl(a.platform as string, a.username as string | null, a.platform_user_id as string | null);
+            return h ? { platform: a.platform as string, ...h } : null;
+          })
+          .filter((h): h is { platform: string; handle: string; url: string } => !!h),
+      };
+    })
+    .sort((a, b) => Number(b.verified) - Number(a.verified) || tierRank(b.tier) - tierRank(a.tier) || b.views - a.views);
+}
+
+/** The signed-in business's live campaigns (invites need a campaign clippers can join). */
+export async function getInvitableCampaigns(): Promise<{ id: string; title: string }[]> {
+  if (isDemo) return [];
+  const brandId = await requireRole('brand');
+  const { data } = await createAdminClient().from('campaigns').select('id, title').eq('brand_id', brandId).eq('status', 'active').order('created_at', { ascending: false });
+  return (data ?? []).map((c) => ({ id: c.id as string, title: c.title as string }));
+}
+
+export interface InviteRow {
+  id: string;
+  message: string | null;
+  campaignId: string;
+  campaignTitle: string;
+  brandName: string;
+  brandAvatar: string | null;
+}
+
+/** Pending invites for the signed-in clipper. */
+export async function getMyInvites(): Promise<InviteRow[]> {
+  if (isDemo) return [];
+  const viewer = await getViewer();
+  if (!viewer?.creatorId) return [];
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('campaign_invites')
+    .select('id, message, campaign_id, campaigns(title, client_name, brands(name, avatar_url))')
+    .eq('creator_id', viewer.creatorId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  return (data ?? []).map((r) => {
+    const c = r.campaigns as unknown as { title: string; client_name: string | null; brands: { name: string; avatar_url: string | null } | null } | null;
+    return {
+      id: r.id as string,
+      message: (r.message as string | null) ?? null,
+      campaignId: r.campaign_id as string,
+      campaignTitle: c?.title ?? 'Campaign',
+      brandName: c?.client_name || c?.brands?.name || 'A business',
+      brandAvatar: c?.client_name ? null : (c?.brands?.avatar_url ?? null),
+    };
+  });
+}

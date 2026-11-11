@@ -61,9 +61,9 @@ const hex = (r: number) =>
   }).join(' ');
 
 /** A big faceted emblem for profiles: a bevelled hexagon in the tier's metal with a glowing icon. */
-export function TierEmblem({ tier, size = 72 }: { tier: Tier; size?: number }) {
-  if (tier === 'majesty') return <MajestyEmblem size={size} />;
-  const m = METAL[tier];
+export function TierEmblem({ tier, size = 72, icon }: { tier: Tier; size?: number; /** Swap the symbol (design previews). */ icon?: React.ElementType }) {
+  if (tier === 'majesty') return <MajestyEmblem size={size} icon={icon} />;
+  const m = { ...METAL[tier], icon: icon ?? METAL[tier].icon };
   const id = `tier-${tier}`;
   return (
     <span className="tier-float relative inline-grid shrink-0 place-items-center" style={{ width: size, height: size, filter: `drop-shadow(0 8px 18px ${m.glow})` }}>
@@ -113,7 +113,7 @@ export function TierEmblem({ tier, size = 72 }: { tier: Tier; size?: number }) {
 }
 
 /** Majesty: an obsidian gem with a turning holographic halo, a molten-gold crown and orbiting sparks. */
-function MajestyEmblem({ size }: { size: number }) {
+function MajestyEmblem({ size, icon: Icon = Crown }: { size: number; icon?: React.ElementType }) {
   return (
     <span className="tier-float relative inline-grid shrink-0 place-items-center" style={{ width: size, height: size }}>
       {/* Halo */}
@@ -146,7 +146,7 @@ function MajestyEmblem({ size }: { size: number }) {
         <polygon points={hex(30)} fill="none" stroke="url(#maj-rim)" strokeWidth="1" opacity="0.7" />
         <polygon points={hex(42)} fill="url(#maj-gloss)" />
       </svg>
-      <Crown
+      <Icon
         className="relative"
         style={{ width: size * 0.4, height: size * 0.4, color: '#fcd34d', filter: 'drop-shadow(0 0 6px rgba(252,211,77,0.9)) drop-shadow(0 2px 0 #92400e)' }}
         strokeWidth={2.4}

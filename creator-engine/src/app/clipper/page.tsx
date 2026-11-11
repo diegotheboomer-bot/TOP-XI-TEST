@@ -1,11 +1,14 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Compass, Wallet } from 'lucide-react';
+import { Compass, Mail, Wallet } from 'lucide-react';
 import { PlatformIcon } from '@/components/platform-icon';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { getCreatorDashboard } from '@/lib/data';
+import { getMyInvites, needsWelcome } from '@/lib/data';
 import { compact, usd } from '@/lib/format';
 import { payoutDestination } from '@/lib/payout-methods';
-import { connectInstagram, connectTikTok } from '@/actions/creator';
+import { connectInstagram, connectTikTok, respondInvite } from '@/actions/creator';
+import { ActionButton } from '@/components/action-button';
 import { isDemo } from '@/lib/env';
 import { currentCreatorId, demoCreators } from '@/lib/demo';
 import { PageHeader } from '@/components/ui/page-header';
@@ -16,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { CreatorSwitcher } from '@/components/creator-switcher';
 import { TierCard } from '@/components/tier-progress';
-import { Checklist, ConnectionCard, EnrollmentCard, MarketCard } from '@/components/views';
+import { Checklist, ConnectionCard, EnrollmentCard, MarketCard, StreamerAvatar } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +39,8 @@ const tiktokMessages: Record<string, [string, boolean]> = {
 };
 
 export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; instagram?: string } }) {
-  const d = await getCreatorDashboard();
+  if (await needsWelcome()) redirect('/welcome');
+  const [d, invites] = await Promise.all([getCreatorDashboard(), getMyInvites()]);
   const subs = d.enrollments.map((e) => e.submission).filter((s) => s !== null);
   const firstOpen = d.enrollments.find((e) => !e.submission);
   const notice: [string, boolean] | undefined = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : searchParams.instagram ? instagramMessages[searchParams.instagram] : undefined;
@@ -56,6 +60,31 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
       />
 
       {d.record && <TierCard record={d.record} />}
+
+      {invites.length > 0 && (
+        <section className="rounded-2xl border border-brand-b/40 bg-white p-5 shadow-card sm:p-6">
+          <h2 className="flex items-center gap-2 font-semibold tracking-tight">
+            <Mail className="size-4 text-[rgb(var(--brand-ta))]" /> You’ve been invited
+          </h2>
+          <ul className="mt-4 space-y-3">
+            {invites.map((i) => (
+              <li key={i.id} className="flex flex-col gap-3 rounded-xl bg-zinc-50 p-3.5 sm:flex-row sm:items-center">
+                <StreamerAvatar name={i.brandName} size="md" src={i.brandAvatar} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm">
+                    <span className="font-semibold">{i.brandName}</span> invited you to <Link href={`/clipper/campaigns/${i.campaignId}`} className="font-semibold underline-offset-2 hover:underline">{i.campaignTitle}</Link>
+                  </p>
+                  {i.message && <p className="mt-0.5 text-sm text-zinc-600">“{i.message}”</p>}
+                </div>
+                <div className="flex gap-2">
+                  <ActionButton variant="primary" action={respondInvite.bind(null, i.id, true)}>Join</ActionButton>
+                  <ActionButton action={respondInvite.bind(null, i.id, false)}>Decline</ActionButton>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {notice && <p className={`rounded-lg px-4 py-3 text-sm ${notice[1] ? 'bg-accent-50 text-accent-700' : 'bg-rose-50 text-rose-700'}`}>{notice[0]}</p>}
 

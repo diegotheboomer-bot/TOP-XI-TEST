@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn, CircleUser, FolderOpen, LifeBuoy, Users } from 'lucide-react';
+import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn, CircleUser, FolderOpen, LifeBuoy, Settings, Telescope, Users } from 'lucide-react';
 import { isDemo } from '@/lib/env';
 import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
@@ -18,6 +18,7 @@ const SECTIONS: Record<Role, NavSection[]> = {
         { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus />, primary: true },
         { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
         { href: '/streamer/creators', label: 'Creators', icon: <Users /> },
+        { href: '/streamer/scout', label: 'Scout', icon: <Telescope /> },
       ],
     },
     {
@@ -27,7 +28,13 @@ const SECTIONS: Record<Role, NavSection[]> = {
         { href: '/streamer/money', label: 'Money', icon: <Wallet /> },
       ],
     },
-    { title: 'Help', items: [{ href: '/support', label: 'Support', icon: <LifeBuoy /> }] },
+    {
+      title: 'Account',
+      items: [
+        { href: '/account', label: 'Settings', icon: <Settings /> },
+        { href: '/support', label: 'Support', icon: <LifeBuoy /> },
+      ],
+    },
   ],
   clipper: [
     {
@@ -50,6 +57,7 @@ const SECTIONS: Record<Role, NavSection[]> = {
       title: 'Account',
       items: [
         { href: '/clipper/profile', label: 'Profile', icon: <CircleUser /> },
+        { href: '/account', label: 'Settings', icon: <Settings /> },
         { href: '/support', label: 'Support', icon: <LifeBuoy /> },
       ],
     },

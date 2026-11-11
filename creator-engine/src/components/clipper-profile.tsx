@@ -5,7 +5,7 @@ import { compact, usd, usdCompact } from '@/lib/format';
 import { TIER_LABEL, TIER_RULES, approvalRate, nextTierProgress } from '@/lib/tiers';
 import type { Platform } from '@/lib/types';
 import { PlatformIcon } from './platform-icon';
-import { StreamerAvatar } from './views';
+import { StreamerAvatar, VerifiedMark } from './views';
 import { TierBadge, TierEmblem } from './tier-badge';
 import { NextTierBar } from './tier-progress';
 import { TierGuideButton } from './tier-guide';
@@ -21,12 +21,19 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
       <section className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32" style={{ background: 'radial-gradient(70% 100% at 0% 0%, rgb(var(--brand-a) / 0.18), transparent 70%)' }} />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-          <TierEmblem tier={p.tier} />
+          <span className="relative w-fit shrink-0">
+            <StreamerAvatar name={p.name} size="lg" src={p.avatar} />
+            <span className="absolute -bottom-2 -right-3 scale-75">
+              <TierEmblem tier={p.tier} size={40} />
+            </span>
+          </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-2xl font-semibold tracking-tight">{p.name}</h1>
+              {p.verified && <VerifiedMark />}
               <TierBadge tier={p.tier} />
             </div>
+            {p.bio && <p className="mt-1 max-w-prose text-sm text-zinc-600">{p.bio}</p>}
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
               {p.handles.length ? (
                 p.handles.map((h) => (

@@ -26,7 +26,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: {
       meta.role !== 'creator'
         ? await admin.from('brands').insert({ owner_id: viewer.userId, name, kind: meta.role === 'agency' ? 'agency' : 'streamer' })
         : await admin.from('creators').insert({ user_id: viewer.userId, display_name: name });
-    if (!error || error.code === '23505') redirect(meta.role === 'creator' ? '/clipper' : '/streamer');
+    if (!error || error.code === '23505') redirect('/welcome');
   }
   return (
     <main className="grid min-h-screen place-items-center px-4 py-12">

@@ -1,6 +1,8 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Megaphone, Plus } from 'lucide-react';
 import { getBrandDashboard } from '@/lib/data';
+import { needsWelcome } from '@/lib/data';
 import { compact, usd } from '@/lib/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { ButtonLink } from '@/components/ui/button-link';
@@ -13,6 +15,7 @@ import { StreamerTour } from '@/components/streamer-tour';
 export const dynamic = 'force-dynamic';
 
 export default async function BrandDashboardPage() {
+  if (await needsWelcome()) redirect('/welcome');
   const { brandName, campaigns } = await getBrandDashboard();
   const sum = (f: (c: (typeof campaigns)[number]) => number) => campaigns.reduce((a, c) => a + f(c), 0);
   const pending = sum((c) => c.pendingReview);

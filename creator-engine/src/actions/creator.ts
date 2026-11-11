@@ -450,3 +450,19 @@ function refreshed(result: ActionState): ActionState {
   revalidatePath('/clipper', 'layout');
   return result;
 }
+
+/** Accept (joins the campaign) or decline an invite. */
+export async function respondInvite(inviteId: string, accept: boolean): Promise<ActionState> {
+  if (isDemo) return { error: 'Invites are off in the demo.' };
+  const creatorId = await requireCreator();
+  const admin = createAdminClient();
+  const { data: invite } = await admin.from('campaign_invites').select('id, campaign_id, creator_id, status').eq('id', inviteId).maybeSingle();
+  if (!invite || invite.creator_id !== creatorId) return { error: 'Invite not found.' };
+  if (accept) {
+    const joined = await joinCampaign(invite.campaign_id as string);
+    if (joined?.error && !joined.error.includes('already joined')) return joined;
+  }
+  await admin.from('campaign_invites').update({ status: accept ? 'accepted' : 'declined' }).eq('id', inviteId);
+  revalidatePath('/clipper');
+  return { success: accept ? 'Joined. Open the campaign to post your first clip.' : 'Invite declined.' };
+}

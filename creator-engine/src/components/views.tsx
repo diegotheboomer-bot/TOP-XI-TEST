@@ -45,11 +45,13 @@ export function PlatformChips({ platforms, className }: { platforms: Platform[];
 const AVATAR_COLORS = ['#0e2a47', '#16403a', '#4c1d4a', '#7f1d1d', '#3d3320', '#1e3a8a'];
 
 /** Initials avatar for a streamer (no photos of real people). */
-export function StreamerAvatar({ name, size = 'sm' }: { name: string; size?: 'sm' | 'md' }) {
+export function StreamerAvatar({ name, size = 'sm', src }: { name: string; size?: 'sm' | 'md' | 'lg'; src?: string | null }) {
+  const box = size === 'sm' ? 'size-6 text-[10px]' : size === 'md' ? 'size-9 text-xs' : 'size-16 text-lg';
+  if (src) return <img src={src} alt="" className={cn('shrink-0 rounded-full object-cover', box)} />;
   const initials = name.replace(/[^\p{L}\p{N}\s._-]/gu, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
   return (
     <span
-      className={cn('grid shrink-0 place-items-center rounded-full font-semibold', size === 'sm' ? 'size-6 text-[10px]' : 'size-9 text-xs')}
+      className={cn('grid shrink-0 place-items-center rounded-full font-semibold', box)}
       style={{ backgroundColor: AVATAR_COLORS[hash(name) % AVATAR_COLORS.length], color: '#fff' }}
       aria-hidden
     >
@@ -207,8 +209,9 @@ export function MarketCard({ c, href, link: Link = 'a' }: { c: MarketCampaign; h
           <div className="min-w-0">
             <h3 className="truncate font-semibold tracking-tight">{c.title}</h3>
             <p className="mt-1.5 flex items-center gap-2 text-sm text-zinc-600">
-              <StreamerAvatar name={c.brandName} />
+              <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
               <span className="truncate">{c.brandName}</span>
+              {c.brandVerified && <VerifiedMark />}
               {c.agencyName && <span className="shrink-0 text-xs text-zinc-400">via {c.agencyName}</span>}
             </p>
           </div>
@@ -335,7 +338,7 @@ export function SubmissionTable({
               <div className="flex min-w-0 items-center gap-3">
                 {/* Avatar carries the tier as a small corner mark, so the text lines stay clean. */}
                 <span className="relative shrink-0">
-                  <StreamerAvatar name={s.creator_name} size="md" />
+                  <StreamerAvatar name={s.creator_name} size="md" src={s.creator_avatar} />
                   {s.creator_tier && <TierBadge tier={s.creator_tier} iconOnly className="absolute -bottom-0.5 -right-0.5" />}
                 </span>
                 <div className="min-w-0">
@@ -343,6 +346,7 @@ export function SubmissionTable({
                     <a href={s.creator_id ? `/streamer/clippers/${s.creator_id}` : undefined} className="truncate font-semibold hover:underline">
                       {s.creator_name}
                     </a>
+                    {s.creator_verified && <VerifiedMark className="self-center" />}
                     {s.creator_profile && (
                       <a href={s.creator_profile.url} target="_blank" rel="noreferrer" className="truncate text-xs text-zinc-500 hover:text-zinc-900">
                         {s.creator_profile.handle}
@@ -705,5 +709,16 @@ export function DemoBar({ children }: { children: React.ReactNode }) {
       </p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
+  );
+}
+
+/** Blue-green check shown next to accounts the Atlas team has verified. */
+export function VerifiedMark({ className }: { className?: string }) {
+  return (
+    <span title="Verified by Atlas" className={cn('inline-grid size-4 shrink-0 place-items-center rounded-full', className)} style={{ backgroundImage: 'linear-gradient(135deg, #a3e635, #10b981)', color: '#052e16' }}>
+      <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth={2.4} aria-hidden>
+        <path d="M2.5 6.2 5 8.5l4.5-5" />
+      </svg>
+    </span>
   );
 }
