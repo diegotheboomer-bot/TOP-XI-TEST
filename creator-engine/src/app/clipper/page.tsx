@@ -77,7 +77,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
             />
           </TierGuideButton>
             {/* All-time stats with the last 30 days of views underneath */}
-            <div className="relative order-3 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card md:col-start-2 md:row-start-1">
+            <div className="relative order-3 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card md:col-start-2 md:row-span-2 md:row-start-1">
               <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-brand opacity-[0.1] blur-3xl" />
               <div className="relative p-5 sm:p-6">
                 <div className="flex items-center justify-between">
@@ -102,7 +102,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                     <p className="text-3xl font-semibold tabular-nums tracking-tight text-brand sm:text-4xl">{usd(earned)}</p>
                   </div>
                 </div>
-                <dl className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <dl className="mt-5 grid grid-cols-2 gap-y-4 border-t border-zinc-100 pt-4 sm:grid-cols-4 sm:divide-x sm:divide-zinc-100">
                   {(
                     [
                       [Wallet, 'Paid out', usd(paid)],
@@ -111,7 +111,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                       [FolderOpen, 'Campaigns', String(d.enrollments.length)],
                     ] as const
                   ).map(([Icon, k, v]) => (
-                    <div key={k} className="rounded-xl bg-zinc-50 px-3 py-2.5">
+                    <div key={k} className="sm:px-4 sm:first:pl-0">
                       <dt className="flex items-center gap-1 text-[11px] text-zinc-500">
                         <Icon className="size-3.5 text-[rgb(var(--brand-ta))]" /> {k}
                       </dt>
@@ -120,16 +120,17 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                   ))}
                 </dl>
               </div>
-              <div className="relative mt-auto">
+              <div className="relative">
                 <p className="px-5 text-[11px] text-zinc-500 sm:px-6">Total views on your clips · last 30 days</p>
                 <Spark points={history.map((h) => h.views)} />
               </div>
-            </div>
-            <div className="hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card md:col-start-2 md:row-start-2 md:block">
-              <NextTierBar record={d.record} />
-              <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-100 pt-3">
-                <p className="hidden text-xs text-zinc-500 sm:block">Tap your card to see every tier and its perks.</p>
-                <TierGuideButton record={d.record} />
+              {/* Tier progress, in the same panel (phones show it on the card instead) */}
+              <div className="relative mt-auto hidden border-t border-zinc-100 p-5 sm:px-6 md:block">
+                <NextTierBar record={d.record} />
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <p className="text-xs text-zinc-500">Tap your card to see every tier and its perks.</p>
+                  <TierGuideButton record={d.record} />
+                </div>
               </div>
             </div>
         </section>

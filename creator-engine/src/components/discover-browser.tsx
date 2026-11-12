@@ -101,7 +101,8 @@ export function DiscoverBrowser({ campaigns, forYou }: { campaigns: MarketCampai
   const picks = forYou.map((id) => campaigns.find((c) => c.id === id)).filter((c): c is MarketCampaign => !!c);
   // Few campaigns: big cards. Lots: four across.
   const few = shown.length <= 3;
-  const grid = shown.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : few ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : shown.length <= 6 ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+  // Wide cards with big pictures: one per row on phones, two on tablets, three on wide screens.
+  const grid = shown.length <= 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3';
 
   return (
     <div className="space-y-8">
@@ -165,7 +166,7 @@ export function DiscoverBrowser({ campaigns, forYou }: { campaigns: MarketCampai
           </h2>
           <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
             {picks.map((c) => (
-              <div key={c.id} className="w-[58%] shrink-0 snap-start sm:w-72">
+              <div key={c.id} className="w-[85%] shrink-0 snap-start sm:w-96">
                 <MarketCard c={c} href={`/clipper/campaigns/${c.id}`} link={Link} />
               </div>
             ))}
@@ -182,7 +183,7 @@ export function DiscoverBrowser({ campaigns, forYou }: { campaigns: MarketCampai
         {shown.length ? (
           <div className={cn('grid gap-4', grid)}>
             {shown.map((c) => (
-              <MarketCard key={c.id} c={c} href={`/clipper/campaigns/${c.id}`} link={Link} size={few ? 'lg' : 'md'} />
+              <MarketCard key={c.id} c={c} href={`/clipper/campaigns/${c.id}`} link={Link} size="lg" />
             ))}
           </div>
         ) : (

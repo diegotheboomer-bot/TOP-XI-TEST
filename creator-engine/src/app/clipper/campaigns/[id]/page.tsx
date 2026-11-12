@@ -99,7 +99,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                     </span>
                   )}
                 </div>
-                <dl className="relative mt-3 grid grid-cols-4 gap-1.5 text-center">
+                <dl className="relative mt-4 grid grid-cols-4 divide-x divide-zinc-100 border-y border-zinc-100 py-3 text-center">
                   {(
                     [
                       ['Max / clip', c.payout_model === 'pool' ? '—' : usdCompact(c.cpm_cap)],
@@ -108,18 +108,24 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                       ['Approved', String(d.approvedClips ?? 0)],
                     ] as const
                   ).map(([k, v]) => (
-                    <div key={k} className="rounded-xl bg-zinc-50 px-1 py-2.5">
+                    <div key={k} className="px-1">
                       <dd className="text-sm font-semibold tabular-nums sm:text-base">{v}</dd>
                       <dt className="truncate text-[10px] text-zinc-500 sm:text-[11px]">{k}</dt>
                     </div>
                   ))}
                 </dl>
-                <div className="relative mt-3">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
-                    <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(used, 1.5)}%` }} />
+                <div className="relative mt-4">
+                  <p className="mb-2 flex items-baseline justify-between text-sm">
+                    <span className="font-medium">Budget used</span>
+                    <span className="tabular-nums text-zinc-500">
+                      <b className="font-semibold text-zinc-900">{Math.round(used)}%</b> · {usdCompact(c.budget.committed)} of {usdCompact(c.budget.deposited)}
+                    </span>
+                  </p>
+                  <div className="h-3 overflow-hidden rounded-full bg-zinc-100">
+                    <div className="h-full rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-b)/0.6)]" style={{ width: `${Math.max(used, 1.5)}%` }} />
                   </div>
-                  <p className="mt-1.5 flex justify-between text-[11px] text-zinc-500">
-                    <span>{usdCompact(c.budget.available)} left of {usdCompact(c.budget.deposited)}</span>
+                  <p className="mt-2 flex justify-between text-xs text-zinc-500">
+                    <span>{usdCompact(c.budget.available)} left to earn</span>
                     <span className="flex gap-1.5 sm:hidden">
                       {c.platforms.map((p) => (
                         <PlatformIcon key={p} platform={p} className="size-3" />
