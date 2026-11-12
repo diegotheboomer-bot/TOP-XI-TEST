@@ -36,7 +36,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   gets the full budget: `src/lib/card-fees.ts`, priced from a Stripe ConfirmationToken in `quoteDeposit`/`createDepositIntent`
   (`src/actions/brand.ts`). `STRIPE_FX_PERCENT` (default 2) = conversion fee; set 1 if USD settlement is on in Stripe.
   Tiers mean faster pay, more cash-outs, gated campaigns.
-- Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. For an invited clipper's first 90 days
+- Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. Page `/clipper/invite` (Invite & earn: pitch,
+  how it works, who joined with Active/days left, no per-person money); Earnings strip and one-time home popup (`components/invite/*`). For an invited clipper's first 90 days
   their 2% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
 - Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper
   (`src/lib/payout-costs.ts`: 0.25% + $0.15, plus $2.40 on the first Stripe payout of the month, covering Stripe's

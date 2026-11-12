@@ -219,9 +219,8 @@ export function EarningsView({ d, extra, payout }: { d: CreatorDashboard; extra?
             {perks.cashoutsPerWeek === Infinity ? 'unlimited cash-outs' : `${left} of ${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} left this week`} · unlocks {holdLabel(perks.holdHours)} after approval
           </p>
         </div>
-      </div>
-      {/* Where the money is: one bar split into paid, on the way and held */}
-      <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-6">
+        {/* Where the money is: one bar split into paid, on the way and held (same card) */}
+        <div className="relative -mx-5 mt-6 border-t border-zinc-100 px-5 pt-6 sm:-mx-8 sm:px-8">
         <div className="flex h-3 gap-1 overflow-hidden rounded-full bg-zinc-100">
           {[
             [paid, 'bg-brand'],
@@ -258,6 +257,7 @@ export function EarningsView({ d, extra, payout }: { d: CreatorDashboard; extra?
             {d.payoutsEnabled ? 'Ready' : 'Set it up'} <ArrowUpRight className="size-3.5" />
           </span>
         </Link>
+        </div>
       </div>
       {extra}
       <ByCampaign rows={rows} />

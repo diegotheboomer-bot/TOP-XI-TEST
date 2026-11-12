@@ -5,7 +5,7 @@ import { clipperRecords as loadRecords } from './clipper-records';
 import { selectAll, selectAllIn } from './fetch-all';
 import { approvalRate, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
 import { appUrl, isDemo } from './env';
-import { inReferralWindow } from './referrals';
+import { REFERRAL_DAYS, inReferralWindow } from './referrals';
 import { getViewer } from './session';
 import { createClient } from './supabase/server';
 import { createAdminClient } from './supabase/admin';
@@ -1044,6 +1044,16 @@ async function poolSharesFor(campaignId: string, me: string): Promise<{ mine: bo
   return [...by.entries()].map(([id, views]) => ({ mine: id === me, views, share: views / total })).sort((a, b) => b.views - a.views);
 }
 
+export interface ReferralPerson {
+  id: string;
+  name: string;
+  avatar: string | null;
+  joinedAt: string;
+  /** Still inside their first 90 days: their fee comes to you. */
+  active: boolean;
+  daysLeft: number;
+}
+
 export interface ReferralSummary {
   link: string;
   /** Clippers who signed up with your link. */
@@ -1052,25 +1062,35 @@ export interface ReferralSummary {
   active: number;
   earned: number;
   paid: number;
+  /** Everyone you invited, active first. No money per person, only who and how long. */
+  people: ReferralPerson[];
 }
 
-/** The clipper's invite link and what it has earned them. */
+/** The clipper's invite link, who joined with it and what it has earned them. */
 export async function getReferralSummary(): Promise<ReferralSummary | null> {
   if (isDemo) return null;
   const creatorId = await requireRole('creator');
   const admin = createAdminClient();
   const [{ data: me }, { data: invited }, { data: earnings }] = await Promise.all([
     admin.from('creators').select('referral_code').eq('id', creatorId).single(),
-    selectAll(() => admin.from('creators').select('id, created_at').eq('referred_by', creatorId).order('id')),
+    selectAll(() => admin.from('creators').select('id, display_name, avatar_url, created_at').eq('referred_by', creatorId).order('id')),
     selectAll(() => admin.from('referral_earnings').select('id, amount, paid_at').eq('referrer_id', creatorId).order('id')),
   ]);
   if (!me?.referral_code) return null;
   const sum = (rows: { amount: unknown }[]) => Math.round(rows.reduce((n, r) => n + Number(r.amount), 0) * 100) / 100;
+  const people: ReferralPerson[] = invited
+    .map((c) => {
+      const joinedAt = c.created_at as string;
+      const left = Math.ceil((new Date(joinedAt).getTime() + REFERRAL_DAYS * 86_400_000 - Date.now()) / 86_400_000);
+      return { id: c.id as string, name: (c.display_name as string) ?? 'Clipper', avatar: (c.avatar_url as string | null) ?? null, joinedAt, active: inReferralWindow(joinedAt), daysLeft: Math.max(0, left) };
+    })
+    .sort((a, b) => Number(b.active) - Number(a.active) || b.joinedAt.localeCompare(a.joinedAt));
   return {
     link: `${appUrl().replace(/\/$/, '')}/r/${me.referral_code}`,
     invited: invited.length,
-    active: invited.filter((c) => inReferralWindow(c.created_at as string)).length,
+    active: people.filter((x) => x.active).length,
     earned: sum(earnings),
     paid: sum(earnings.filter((e) => e.paid_at)),
+    people,
   };
 }

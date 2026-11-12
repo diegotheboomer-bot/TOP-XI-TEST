@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn, CircleUser, FolderOpen, LifeBuoy, Settings, Telescope, Users } from 'lucide-react';
+import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn, CircleUser, FolderOpen, LifeBuoy, Settings, Telescope, Users, Gift } from 'lucide-react';
 import { isDemo } from '@/lib/env';
 import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
@@ -51,6 +51,7 @@ const SECTIONS: Record<Role, NavSection[]> = {
       items: [
         { href: '/clipper/earnings', label: 'Earnings', icon: <ChartColumn /> },
         { href: '/clipper/payouts', label: 'Payouts', icon: <Wallet /> },
+        { href: '/clipper/invite', label: 'Invite & earn', icon: <Gift /> },
       ],
     },
     {

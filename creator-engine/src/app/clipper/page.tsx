@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { BadgeCheck, Clapperboard, DollarSign, Eye, FolderOpen, Mail, TrendingUp, Upload, Wallet } from 'lucide-react';
 import { getCreatorDashboard } from '@/lib/data';
-import { getCreatorViewHistory, getMyInvites, needsWelcome } from '@/lib/data';
+import { getCreatorViewHistory, getMyInvites, getReferralSummary, needsWelcome } from '@/lib/data';
+import { InvitePromo } from '@/components/invite/invite-promo';
 import { Spark } from '@/components/clipper-stats';
 import { compact, usd } from '@/lib/format';
 import { respondInvite } from '@/actions/creator';
@@ -37,7 +38,7 @@ const tiktokMessages: Record<string, [string, boolean]> = {
 
 export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; instagram?: string } }) {
   if (await needsWelcome()) redirect('/welcome');
-  const [d, invites, history] = await Promise.all([getCreatorDashboard(), getMyInvites(), getCreatorViewHistory()]);
+  const [d, invites, history, referral] = await Promise.all([getCreatorDashboard(), getMyInvites(), getCreatorViewHistory(), getReferralSummary()]);
   const subs = d.enrollments.flatMap((e) => e.submissions);
   const earned = subs.reduce((a, s) => a + s.payout_earned, 0);
   const paid = subs.reduce((a, s) => a + s.payout_transferred, 0);
@@ -55,6 +56,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
 
   return (
     <div className="space-y-8">
+      {referral && <InvitePromo link={referral.link} />}
       <PageHeader
         title={`Hi, ${d.name}`}
         description="Your campaigns, clips and earnings."
