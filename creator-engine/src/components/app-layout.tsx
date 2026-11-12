@@ -3,7 +3,6 @@ import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wa
 import { isDemo } from '@/lib/env';
 import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
-import { ThemeToggle } from './theme-toggle';
 import { TierBadge } from './tier-badge';
 import { getAccountSummary, getMyTier } from '@/lib/data';
 import { AccountMenu } from './account-menu';
@@ -77,7 +76,6 @@ export async function AppLayout({ role, children }: { role: Role; children: Reac
   const other: Role = role === 'streamer' ? 'clipper' : 'streamer';
   const footer = isDemo ? (
     <div className="flex gap-1 lg:block lg:space-y-0.5">
-      <ThemeToggle className="lg:w-full" labelClassName="hidden lg:inline" />
       <Link href={`/${other}`} className={footerItem} aria-label={`Switch to ${other} view`}>
         <ArrowLeftRight /> <span className="hidden lg:inline">Switch to {other} view</span>
       </Link>
@@ -89,7 +87,6 @@ export async function AppLayout({ role, children }: { role: Role; children: Reac
     </div>
   ) : (
     <div className="flex gap-1 lg:block lg:space-y-0.5">
-      <ThemeToggle className="lg:w-full" labelClassName="hidden lg:inline" />
       <form action={signOut}>
         <button className={footerItem} aria-label="Sign out">
           <LogOut /> <span className="hidden lg:inline">Sign out</span>

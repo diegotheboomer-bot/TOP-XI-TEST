@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { isDemo } from '@/lib/env';
 import { signOut } from '@/actions/account';
 import { Badge } from './ui/badge';
-import { ThemeToggle } from './theme-toggle';
 import { Logo as BrandLogo } from './logo';
 
 export function Logo() {
@@ -22,7 +21,6 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
           {isDemo && <Badge tone="amber" className="hidden sm:inline-flex">Demo · mock money</Badge>}
         </div>
         <nav className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-sm sm:gap-1">
-          <ThemeToggle labelled={false} />
           {!isDemo && !signedIn && (
             <Link href="/login" className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 sm:px-3">
               Sign in

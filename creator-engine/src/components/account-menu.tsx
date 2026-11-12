@@ -7,7 +7,6 @@ import type { AccountSummary } from '@/lib/data';
 import { TIER_LABEL } from '@/lib/tiers';
 import { StreamerAvatar } from './views';
 import { TierBadge } from './tier-badge';
-import { ThemeToggle } from './theme-toggle';
 
 /** Your picture in the top right; tap it for your profile, settings, money, support and sign out. */
 export function AccountMenu({ me, clipper, signOut, small }: { me: AccountSummary; clipper: boolean; signOut: () => Promise<void>; small?: boolean }) {
@@ -66,7 +65,6 @@ export function AccountMenu({ me, clipper, signOut, small }: { me: AccountSummar
                 <Icon className="size-4 text-zinc-400" /> {label}
               </Link>
             ))}
-            <ThemeToggle className="w-full" labelClassName="" />
           </div>
           <form action={signOut} className="border-t border-zinc-100 p-1.5">
             <button className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-rose-600 transition hover:bg-rose-50">

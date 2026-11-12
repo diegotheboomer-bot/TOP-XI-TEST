@@ -22,4 +22,4 @@ export const backgroundImage = { brand: 'linear-gradient(135deg, rgb(var(--brand
 export const boxShadow = { card: '0 1px 2px rgb(var(--shadow) / 0.05), 0 1px 1px rgb(var(--shadow) / 0.03)' };
 
 /** Runs before first paint so a saved light preference doesn't flash dark. */
-export const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('ce-theme')==='light')document.documentElement.dataset.appTheme='light'}catch(e){}`;
+export const THEME_BOOT_SCRIPT = `try{localStorage.removeItem('ce-theme');delete document.documentElement.dataset.appTheme}catch(e){}`;

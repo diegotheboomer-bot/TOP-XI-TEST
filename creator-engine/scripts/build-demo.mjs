@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 // Applies a saved light preference before first paint (dark is the default).
-const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('ce-theme')==='light')document.documentElement.dataset.appTheme='light'}catch(e){}`;
+const THEME_BOOT_SCRIPT = `try{localStorage.removeItem('ce-theme');delete document.documentElement.dataset.appTheme}catch(e){}`;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'demo-dist');
