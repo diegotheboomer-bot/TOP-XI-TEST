@@ -100,7 +100,8 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                     </span>
                   )}
                 </div>
-                <dl className="relative mt-4 grid grid-cols-4 divide-x divide-zinc-100 border-y border-zinc-100 py-3 text-center">
+                {/* Four soft tiles: separated, but part of the same card */}
+                <dl className="relative mt-4 grid grid-cols-4 gap-1.5 sm:gap-2">
                   {(
                     [
                       ['Max / clip', c.payout_model === 'pool' ? '—' : usdCompact(c.cpm_cap)],
@@ -109,13 +110,13 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                       ['Approved', String(d.approvedClips ?? 0)],
                     ] as const
                   ).map(([k, v]) => (
-                    <div key={k} className="px-1">
-                      <dd className="text-sm font-semibold tabular-nums sm:text-base">{v}</dd>
+                    <div key={k} className="flex flex-col-reverse rounded-xl bg-zinc-100/60 px-2.5 py-2.5 ring-1 ring-inset ring-zinc-200/50 sm:px-3.5 sm:py-3">
                       <dt className="truncate text-[10px] text-zinc-500 sm:text-[11px]">{k}</dt>
+                      <dd className="text-[15px] font-semibold tabular-nums tracking-tight sm:text-lg">{v}</dd>
                     </div>
                   ))}
                 </dl>
-                <div className="relative mt-4">
+                <div className="relative mt-5">
                   {c.payout_model === 'pool' ? (
                     <PoolBar shares={d.poolShares ?? []} pool={c.budget.deposited} />
                   ) : (
