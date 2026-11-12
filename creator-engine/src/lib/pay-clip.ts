@@ -45,7 +45,7 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   const gross = maxGross == null ? owed : Math.min(owed, Math.floor(maxGross * 100) / 100);
   if (gross < minimum) return { ok: false, error: 'Nothing to pay out yet.' };
 
-  // The platform's fee depends on the clipper's tier (9% Silver down to 4% Majesty).
+  // The platform's fee depends on the clipper's tier (0% at launch, see tiers.ts).
   const tier = await clipperTier(admin, sub.creator_id as string);
   const fee = payoutFee(gross, tier);
   if (fee >= gross) return { ok: false, error: 'Amount is too small to pay out.' };

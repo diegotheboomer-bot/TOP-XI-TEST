@@ -57,7 +57,7 @@ const TOPICS = ['Gaming', 'IRL', 'Just Chatting', 'Esports', 'Music', 'Sports', 
 const CATS = ['Gaming', 'IRL', 'Just Chatting', 'Esports', 'Music', 'Sports', 'Comedy', 'Education', 'Other'];
 const TYPES = ['clipping', 'ugc_face', 'ugc_faceless', 'slideshow', 'logo', 'sound', 'reposting'];
 const PLATS = ['tiktok', 'youtube', 'instagram'];
-const TIER_FEE: Record<string, number> = { silver: 9, gold: 8.5, platinum: 8, diamond: 6, majesty: 4 };
+const TIER_FEE: Record<string, number> = { silver: 0, gold: 0, platinum: 0, diamond: 0, majesty: 0 }; // no clipper fees at launch
 
 // ── people ──
 const FIRST = ['Nova', 'Kai', 'Zara', 'Leo', 'Maya', 'Rio', 'Ezra', 'Luna', 'Jax', 'Iris', 'Milo', 'Sky', 'Remy', 'Ada', 'Finn', 'Nia', 'Theo', 'Ivy', 'Cruz', 'Lola', 'Ash', 'Juno', 'Rex', 'Cleo', 'Ozzy', 'Pia', 'Dex', 'Mira', 'Vik', 'Tess', 'Bo', 'Eli', 'Gia', 'Hugo', 'Kira', 'Nico', 'Ola', 'Ravi', 'Suki', 'Uma'];
@@ -375,9 +375,9 @@ export async function seedTestData(db: SupabaseClient): Promise<string> {
   if (moments.length) await insert(db, 'campaign_moments', moments);
 
   await insert(db, 'cashouts', [
-    { creator_id: mainClipper.id, amount: 182.4, fee: 14.59, created_at: ago(200) },
-    { creator_id: mainClipper.id, amount: 96.1, fee: 7.69, created_at: ago(30) },
-    { creator_id: majestyClipper.id, amount: 4210.55, fee: 168.42, created_at: ago(12) },
+    { creator_id: mainClipper.id, amount: 182.4, fee: 0, created_at: ago(200) },
+    { creator_id: mainClipper.id, amount: 96.1, fee: 0, created_at: ago(30) },
+    { creator_id: majestyClipper.id, amount: 4210.55, fee: 0, created_at: ago(12) },
   ]);
 
   const tickets = [

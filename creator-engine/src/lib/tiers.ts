@@ -1,5 +1,5 @@
 // Clipper tiers, worked out from a clipper's real track record. Higher tiers get
-// cheaper cash-outs, sit higher in streamers' review lists and can join gated campaigns.
+// paid sooner, cash out more often, sit higher in streamers' review lists and can join gated campaigns.
 
 export const TIERS = ['silver', 'gold', 'platinum', 'diamond', 'majesty'] as const;
 export type Tier = (typeof TIERS)[number];
@@ -32,7 +32,7 @@ export const TIER_RULES: Record<Tier, TierRule> = {
 };
 
 export interface TierPerks {
-  /** Platform fee taken from each payout, in percent. */
+  /** Platform fee taken from each payout, in percent. 0 at launch: clippers keep 100%. */
   feePct: number;
   /** Cash-outs allowed per 7 days; Infinity = unlimited. */
   cashoutsPerWeek: number;
@@ -41,11 +41,11 @@ export interface TierPerks {
 }
 
 export const TIER_PERKS: Record<Tier, TierPerks> = {
-  silver: { feePct: 9, cashoutsPerWeek: 1, holdHours: 72 },
-  gold: { feePct: 8.5, cashoutsPerWeek: 2, holdHours: 60 },
-  platinum: { feePct: 8, cashoutsPerWeek: 3, holdHours: 48 },
-  diamond: { feePct: 6, cashoutsPerWeek: 7, holdHours: 24 },
-  majesty: { feePct: 4, cashoutsPerWeek: Infinity, holdHours: 12 },
+  silver: { feePct: 0, cashoutsPerWeek: 1, holdHours: 72 },
+  gold: { feePct: 0, cashoutsPerWeek: 2, holdHours: 60 },
+  platinum: { feePct: 0, cashoutsPerWeek: 3, holdHours: 48 },
+  diamond: { feePct: 0, cashoutsPerWeek: 7, holdHours: 24 },
+  majesty: { feePct: 0, cashoutsPerWeek: Infinity, holdHours: 12 },
 };
 
 /** The platform's cut of a payout, rounded to the cent. */

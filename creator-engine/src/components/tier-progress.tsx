@@ -43,7 +43,7 @@ export function TierCard({ record }: { record: ClipperRecord }) {
           <p className="font-semibold tracking-tight">{TIER_LABEL[tier]}</p>
           {unlock && next && (
             <p className="text-xs text-zinc-500">
-              At {TIER_LABEL[next]}: {unlock.feePct}% fee, paid {holdLabel(unlock.holdHours)} after approval
+              At {TIER_LABEL[next]}: paid {holdLabel(unlock.holdHours)} after approval
             </p>
           )}
         </div>

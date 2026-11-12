@@ -56,10 +56,12 @@ export function CashOutForm({ balance, feePct }: { balance: number; feePct: numb
           <dt className="text-zinc-500">Cash out</dt>
           <dd className="tabular-nums">{cents(amount)}</dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-zinc-500">{feePct}% tier fee</dt>
-          <dd className="tabular-nums">−{cents(fee)}</dd>
-        </div>
+        {feePct > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-zinc-500">{feePct}% tier fee</dt>
+            <dd className="tabular-nums">−{cents(fee)}</dd>
+          </div>
+        )}
         <div className="flex justify-between border-t border-zinc-200 pt-1.5 font-semibold">
           <dt>You receive</dt>
           <dd className="tabular-nums text-brand">{cents(net)}</dd>
@@ -150,9 +152,9 @@ export function OneTapCashOut({
           </div>
           <div className="flex items-center justify-between gap-2">
             <dt className="flex items-center gap-1.5 text-zinc-500">
-              Platform fee <TierBadge tier={tier} /> {feePct}%
+              Platform fee {feePct > 0 && <><TierBadge tier={tier} /> {feePct}%</>}
             </dt>
-            <dd className="tabular-nums">−{cents(fee)}</dd>
+            <dd className="tabular-nums">{fee > 0 ? `−${cents(fee)}` : 'None'}</dd>
           </div>
           <div className="flex justify-between border-t border-zinc-200 pt-2 text-base font-semibold">
             <dt>You receive</dt>

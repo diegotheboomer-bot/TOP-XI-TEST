@@ -18,7 +18,7 @@ export interface AssistantReply {
 const tiers = TIERS.map((t) => {
   const r = TIER_RULES[t];
   const p = TIER_PERKS[t];
-  return `${TIER_LABEL[t]}: needs ${r.views} views, ${r.approved} approved clips, ${Math.round(r.approvalRate * 100)}% approval${r.noFraud ? ', no fraud flags in 90 days' : ''}; ${p.feePct}% payout fee, paid ${holdLabel(p.holdHours)} after approval, ${p.cashoutsPerWeek === Infinity ? 'unlimited' : p.cashoutsPerWeek} cash-outs a week.`;
+  return `${TIER_LABEL[t]}: needs ${r.views} views, ${r.approved} approved clips, ${Math.round(r.approvalRate * 100)}% approval${r.noFraud ? ', no fraud flags in 90 days' : ''}; ${p.feePct ? `${p.feePct}% payout fee` : 'no fee'}, paid ${holdLabel(p.holdHours)} after approval, ${p.cashoutsPerWeek === Infinity ? 'unlimited' : p.cashoutsPerWeek} cash-outs a week.`;
 }).join('\n');
 
 const SYSTEM = `You are Nova, an automated help bot on Atlas Clipping (atlasclipping.com). You are not a person or an employee, and your answers are general guidance, not official decisions. Atlas Clipping is a marketplace where streamers, brands, musicians, studios and agencies fund clip campaigns and clippers post short videos on TikTok, YouTube Shorts and Instagram Reels and get paid per 1,000 verified views.

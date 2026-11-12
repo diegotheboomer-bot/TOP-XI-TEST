@@ -19,7 +19,7 @@ export const FAQ: [string, string][] = [
   ],
   [
     'How do I get paid, and are there fees?',
-    'Once a clip is approved and its short hold has passed, you can cash out to your bank account (or a debit card in countries where Stripe supports it, like the US). A 9% fee comes off each payout. As you grow through Gold, Diamond and Majesty, the fee drops to 4%, you get paid sooner and you can cash out more often.',
+    'Once a clip is approved and its short hold has passed, you can cash out to your bank account (or a debit card in countries where Stripe supports it, like the US). There are no fees: you keep 100% of what you earn. As you grow through Gold, Diamond and Majesty, you get paid sooner and can cash out more often.',
   ],
   [
     'What do campaign owners get?',

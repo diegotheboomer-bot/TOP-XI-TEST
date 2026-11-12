@@ -36,7 +36,7 @@ function TierGraphic() {
               {t === 'silver' ? 'Start here' : `${compactViews(r.views)} views · ${r.approved} clips`}
               <br />
               <span className="font-semibold text-zinc-800">
-                {p.feePct}% fee · paid in {holdLabel(p.holdHours)}
+                Paid in {holdLabel(p.holdHours)}
               </span>
             </span>
           </div>
@@ -71,7 +71,7 @@ export function SupportChat({ audience = 'clipper' }: { audience?: 'clipper' | '
     setOptions([]);
     if (isTierQuestion(q)) {
       // Answered locally: same graphic every time, no AI call.
-      setTurns([...next, { role: 'assistant', text: 'Clippers move up tiers automatically from verified views, approved clips and approval rate. Higher tiers pay a lower fee and get paid sooner:', graphic: 'tiers' }]);
+      setTurns([...next, { role: 'assistant', text: 'Clippers move up tiers automatically from verified views, approved clips and approval rate. There are no fees at any tier; higher tiers get paid sooner:', graphic: 'tiers' }]);
       setOptions(['How do I cash out?', 'Where is my money?']);
       return;
     }

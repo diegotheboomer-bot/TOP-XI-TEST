@@ -26,7 +26,7 @@ const STEPS_OWNER: [string, string][] = [
 const STEPS_CLIPPER: [string, string][] = [
   ['Join a campaign', 'Free, no follower minimum. Pick what you like clipping.'],
   ['Post your clips', 'Post from your connected account and paste the link.'],
-  ['Get paid and level up', 'Earn per 1,000 views. Higher tiers mean lower fees and faster pay.'],
+  ['Get paid and level up', 'Earn per 1,000 views. No fees. Higher tiers get paid faster.'],
 ];
 
 export function Landing({
@@ -75,7 +75,7 @@ export function Landing({
             {[
               [BadgeCheck, 'Verified views only'],
               [ShieldCheck, 'You approve every clip'],
-              [Percent, 'Low fees'],
+              [Percent, 'No platform fees'],
             ].map(([Icon, text]) => {
               const I = Icon as React.ElementType;
               return (

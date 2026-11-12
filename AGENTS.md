@@ -31,7 +31,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 
 ## Key places
 - Money: `src/lib/pay-clip.ts` (payouts), `src/actions/creator.ts` (`cashOut`), `src/lib/tiers.ts` (fees by tier).
-- Tiers: Silver 9% → Gold 8.5% → Platinum 8% → Diamond 6% → Majesty 4% payout fee.
+- Fees at launch: clippers pay 0% (all tiers `feePct: 0` in `src/lib/tiers.ts`); businesses pay only Stripe card processing
+  (`NO_SERVICE_FEE=true` on Render). Tiers now mean faster pay, more cash-outs, gated campaigns.
 - Founders: first 100 real clippers get `creators.founder_number` (trigger, migration 0022). Emerald badge + card.
 - Data loading: `src/lib/data.ts`. Server actions: `src/actions/*`.
 - Front page: `src/components/landing.tsx`, `landing-fx.tsx`, `views-chart-hero.tsx`.

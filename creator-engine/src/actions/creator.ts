@@ -387,7 +387,7 @@ export async function connectTikTok(): Promise<void> {
 
 /**
  * Cash out: send everything that's ready (approved and past the tier's hold) to the
- * clipper's payout method now. The tier sets the fee (9% Silver to 4% Majesty) and
+ * clipper's payout method now. The tier sets the fee (0% at launch) and
  * how many cash-outs a week are allowed.
  */
 export async function cashOut(amount?: number): Promise<ActionState> {
@@ -436,7 +436,7 @@ export async function cashOut(amount?: number): Promise<ActionState> {
   revalidatePath('/clipper/earnings');
   revalidatePath('/clipper/payouts');
   if (!sent) return { error: errors[0] ?? 'Couldn’t cash out. Try again.' };
-  return { success: `${usdCents(sent)} is on its way (${perks.feePct}% ${TIER_LABEL[tier]} fee: ${usdCents(fee)}).` };
+  return { success: fee > 0 ? `${usdCents(sent)} is on its way (${perks.feePct}% ${TIER_LABEL[tier]} fee: ${usdCents(fee)}).` : `${usdCents(sent)} is on its way.` };
 }
 
 export async function connectInstagram(): Promise<void> {
