@@ -64,24 +64,25 @@ export function Landing({
   ];
 
   return (
-    <main className="gutter mx-auto max-w-6xl">
-      <section className="grid grid-cols-1 items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-accent-700">For streamers and the clippers who grow them</p>
-          <h1 className="balance mt-3 text-4xl font-semibold leading-[1.06] tracking-tight sm:text-5xl">Your stream, clipped everywhere.</h1>
+    <main className="gutter landing-shell mx-auto max-w-6xl">
+      <section className="landing-hero relative grid grid-cols-1 items-center gap-12 overflow-hidden py-20 sm:py-28 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative z-10 min-w-0">
+          <span className="landing-eyebrow"><span className="landing-live-dot" /> THE CREATOR GROWTH ENGINE</span>
+          <h1 className="balance mt-6 text-5xl font-bold leading-[1.03] tracking-[-0.055em] sm:text-6xl lg:text-7xl">Your best moments deserve <span className="landing-gradient-text">the whole internet.</span></h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
-            Post a campaign, pin the moments worth clipping, and pay clippers only for the views their clips get on TikTok, YouTube Shorts and Instagram Reels.
+            Turn streams into viral moments. Launch a campaign, let creators do the clipping, and reward real views across TikTok, Shorts and Reels.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href={startHref} className={buttonClass('primary')}>
-              Get started
+              Launch a campaign <span aria-hidden="true">↗</span>
             </Link>
             <Link href={clipperHref} className={buttonClass('secondary')}>
-              Browse campaigns
+              Explore campaigns <span aria-hidden="true">→</span>
             </Link>
           </div>
+          <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs font-medium text-zinc-500"><span>✦ Performance-based payouts</span><span>✦ No fees for clippers</span><span>✦ Built for creators</span></div>
         </div>
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2" aria-hidden>
+        <div className="landing-showcase relative grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2" aria-hidden>
           {preview.map((c, i) => (
             <div key={c.title} className={i === 1 ? 'hidden sm:block sm:translate-y-8' : undefined}>
               <MarketCard c={c} href={clipperHref} link={Link} />
@@ -90,10 +91,16 @@ export function Landing({
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 border-t border-zinc-200/80 py-14 md:grid-cols-2">
+      <section className="landing-process border-t border-zinc-200/80 py-20">
+        <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
+          <div><p className="landing-section-kicker">HOW IT WORKS</p><h2 className="balance mt-2 text-3xl font-bold tracking-tight sm:text-4xl">One platform. Two ways to win.</h2></div>
+          <p className="max-w-sm text-sm leading-relaxed text-zinc-500">Whether you create the moments or make them travel, there is a place for you here.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {(['streamer', 'clipper'] as const).map((who) => (
-          <div key={who}>
-            <h2 className="text-lg font-semibold tracking-tight">{who === 'streamer' ? 'If you stream' : 'If you clip'}</h2>
+          <div key={who} className="landing-role-card rounded-3xl border border-zinc-200/80 bg-white/80 p-7 shadow-sm sm:p-9">
+            <span className="landing-role-icon" aria-hidden="true">{who === 'streamer' ? '◉' : '✂'}</span>
+            <h2 className="mt-5 text-xl font-bold tracking-tight">{who === 'streamer' ? 'If you stream' : 'If you clip'}</h2>
             <ol className="mt-5 space-y-5">
               {STEPS[who].map(([title, body], i) => (
                 <li key={title} className="flex gap-4">
@@ -109,11 +116,11 @@ export function Landing({
         ))}
       </section>
 
-      <section className="border-t border-zinc-200/80 py-14">
-        <h2 className="balance max-w-xl text-2xl font-semibold tracking-tight">Made for clipping, not adapted from ad tools</h2>
+      <section className="border-t border-zinc-200/80 py-20">
+        <p className="landing-section-kicker">WHY CREATOR ENGINE</p><h2 className="balance mt-2 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">Everything you need to turn attention into momentum.</h2>
         <dl className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(([title, body]) => (
-            <div key={title} className="border-t border-zinc-200/80 pt-4">
+            <div key={title} className="landing-feature-card rounded-2xl border border-zinc-200/80 bg-white/70 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-500/10">
               <dt className="font-semibold tracking-tight">{title}</dt>
               <dd className="mt-1.5 text-sm leading-relaxed text-zinc-600">{withFee(body)}</dd>
             </div>
@@ -121,6 +128,12 @@ export function Landing({
         </dl>
       </section>
 
+      <section className="landing-cta my-10 rounded-[2rem] px-7 py-12 text-center sm:px-14 sm:py-16">
+        <p className="text-xs font-semibold uppercase tracking-[.22em] text-violet-200">Your next viral moment starts here</p>
+        <h2 className="balance mx-auto mt-4 max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-5xl">Stop letting your best content disappear after the stream.</h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-violet-100/80 sm:text-base">Build a campaign or discover your next clip. The next big moment is one click away.</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3"><Link href={startHref} className="landing-cta-button">Start creating ↗</Link><Link href={clipperHref} className="landing-cta-outline">Find campaigns →</Link></div>
+      </section>
       <footer className="flex flex-col gap-3 border-t border-zinc-200/80 py-8 text-xs text-zinc-500 sm:flex-row sm:items-start sm:justify-between">
         <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           Creator Engine
