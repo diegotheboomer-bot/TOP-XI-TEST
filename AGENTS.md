@@ -44,7 +44,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Founders: first 100 real clippers get `creators.founder_number` (trigger, migration 0022). Emerald badge + card.
 - Data loading: `src/lib/data.ts`. Server actions: `src/actions/*`.
 - Front page: `src/components/landing.tsx`; hero `atlas-landing-hero.tsx` + `src/styles/atlas-landing.css`;
-  scroll-pinned story `scroll-story.tsx` (section pins while scrolling, moment → clips → views → pay, then scrolls on).
+  `scroll-story.tsx` is built but not on the page yet (owner: keep the current page for now). Add `<ScrollStory />` to use it.
 - Clipper pages: `src/app/clipper/*`. Business pages: `src/app/streamer/*`. Settings: `src/app/account`.
 - Admin (owner emails in `ADMIN_EMAILS`): `/admin/support`, `/admin/verify`, `/admin/clips` (find by CLP- ref),
   `/admin/test-data` (load/remove fake @atlas.test data).
