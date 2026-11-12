@@ -215,11 +215,11 @@ export function MarketCard({ c, href, link: Link = 'a', size = 'md' }: { c: Mark
               <PieChart className="size-3.5" /> {usdCompact(c.budget.deposited)} pool
             </span>
           ) : (
-            <span className="font-semibold tabular-nums text-[rgb(var(--brand-ta))]">
-              {r.rate} <span className="font-normal text-zinc-500">{c.payout_model === 'per_post' ? '/ clip' : '/ 1K views'}</span>
+            <span className="min-w-0 truncate whitespace-nowrap font-semibold tabular-nums text-[rgb(var(--brand-ta))]">
+              {r.rate} <span className="font-normal text-zinc-500">{c.payout_model === 'per_post' ? '/ clip' : '/ 1K'}</span>
             </span>
           )}
-          <span className="flex shrink-0 gap-1 text-zinc-400">
+          <span className="flex shrink-0 gap-0.5 text-zinc-400 sm:gap-1">
             {PLATFORM_ORDER.filter((p) => c.platforms.includes(p)).map((p) => (
               <PlatformIcon key={p} platform={p} className="size-3" />
             ))}
@@ -236,9 +236,9 @@ export function MarketCard({ c, href, link: Link = 'a', size = 'md' }: { c: Mark
           <div className="h-1 overflow-hidden rounded-full bg-zinc-100">
             <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.budget.usedShare * 100)}%`, backgroundColor: days.urgent ? '#fbbf24' : 'rgb(var(--brand-b))' }} />
           </div>
-          <p className="mt-1.5 flex justify-between text-[11px] text-zinc-500">
-            <span className={days.urgent ? 'font-medium text-amber-600' : ''}>{days.urgent ? days.text : `${usdCompact(c.budget.available)} left`}</span>
-            <span>{c.creators} clippers</span>
+          <p className="mt-1.5 flex justify-between gap-2 whitespace-nowrap text-[11px] text-zinc-500">
+            <span className={cn('min-w-0 truncate', days.urgent && 'font-medium text-amber-600')}>{days.urgent ? 'Ending soon' : `${usdCompact(c.budget.available)} left`}</span>
+            <span className="shrink-0">{c.creators} clippers</span>
           </p>
         </div>
       </div>
@@ -666,10 +666,19 @@ export function NextStep({
 
         {stage === 'post' && enrollment && (
           <>
-            <h3 className="font-semibold tracking-tight">Post your clip, then paste the link</h3>
-            <p className="mt-1 text-sm text-zinc-600">
-              Post it on {where} from your connected account{claimedMoment ? <> (your moment: <span className="font-medium text-zinc-900">{claimedMoment}</span>)</> : ''}, then paste the link here.
-            </p>
+            <h3 className="text-lg font-semibold tracking-tight">Submit your clip</h3>
+            <ol className="mt-3 space-y-2 text-sm">
+              {[
+                <>Post your clip on <b className="font-semibold">{where}</b>{claimedMoment ? <> (your moment: <b className="font-semibold">{claimedMoment}</b>)</> : ''}</>,
+                <>Tap <b className="font-semibold">Share → Copy link</b> on the video</>,
+                <>Paste it below and submit</>,
+              ].map((t, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand text-[11px] font-bold text-brand-ink">{i + 1}</span>
+                  <span className="text-zinc-700">{t}</span>
+                </li>
+              ))}
+            </ol>
             {tiktokPrompt && <div className="mt-3">{tiktokPrompt}</div>}
             <div className="mt-4">{submitForm}</div>
           </>

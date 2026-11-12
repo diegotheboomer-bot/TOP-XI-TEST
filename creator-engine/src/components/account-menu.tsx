@@ -10,7 +10,7 @@ import { TierBadge } from './tier-badge';
 import { ThemeToggle } from './theme-toggle';
 
 /** Your picture in the top right; tap it for your profile, settings, money, support and sign out. */
-export function AccountMenu({ me, clipper, signOut }: { me: AccountSummary; clipper: boolean; signOut: () => Promise<void> }) {
+export function AccountMenu({ me, clipper, signOut, small }: { me: AccountSummary; clipper: boolean; signOut: () => Promise<void>; small?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -42,8 +42,8 @@ export function AccountMenu({ me, clipper, signOut }: { me: AccountSummary; clip
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Your account" className="relative block rounded-full ring-2 ring-transparent transition hover:ring-brand-a/40">
-        <StreamerAvatar name={me.name || '?'} size="md" src={me.avatar} />
-        {me.tier && <TierBadge tier={me.tier} founder={me.founder} iconOnly className="absolute -bottom-1 -right-1" />}
+        <StreamerAvatar name={me.name || '?'} size={small ? 'sm' : 'md'} src={me.avatar} />
+        {me.tier && <TierBadge tier={me.tier} founder={me.founder} iconOnly className={small ? 'absolute -bottom-1 -right-1.5 !size-[14px]' : 'absolute -bottom-1 -right-1'} />}
       </button>
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl">

@@ -1,29 +1,22 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { BadgeCheck, Clapperboard, Compass, DollarSign, Eye, FolderOpen, Mail, TrendingUp, Wallet } from 'lucide-react';
-import { PlatformIcon } from '@/components/platform-icon';
-import { YouTubeVerify } from '@/components/forms/youtube-verify';
+import { BadgeCheck, Clapperboard, DollarSign, Eye, FolderOpen, Mail, TrendingUp, Upload, Wallet } from 'lucide-react';
 import { getCreatorDashboard } from '@/lib/data';
 import { getCreatorViewHistory, getMyInvites, needsWelcome } from '@/lib/data';
 import { Spark } from '@/components/clipper-stats';
 import { compact, usd } from '@/lib/format';
-import { payoutDestination } from '@/lib/payout-methods';
-import { connectInstagram, connectTikTok, respondInvite } from '@/actions/creator';
+import { respondInvite } from '@/actions/creator';
 import { ActionButton } from '@/components/action-button';
 import { isDemo } from '@/lib/env';
 import { currentCreatorId, demoCreators } from '@/lib/demo';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card } from '@/components/ui/card';
-import { StatGrid } from '@/components/ui/stat';
-import { Empty } from '@/components/ui/empty';
-import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { CreatorSwitcher } from '@/components/creator-switcher';
 import { NextTierBar } from '@/components/tier-progress';
 import { approvalRate, tierProgress } from '@/lib/tiers';
 import { TierGuideButton } from '@/components/tier-guide';
 import { ClipperCard } from '@/components/clipper-card';
-import { Checklist, ConnectionCard, EnrollmentCard, MarketCard, StreamerAvatar } from '@/components/views';
+import { Checklist, MarketCard, StreamerAvatar } from '@/components/views';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +44,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
   const views = subs.filter((s) => s.status !== 'flagged').reduce((a, s) => a + s.current_view_count, 0);
   const week = history.length > 7 ? Math.max(0, history[history.length - 1].views - history[history.length - 8].views) : 0;
   const firstOpen = d.enrollments.find((e) => !e.submission);
+  const waiting = d.enrollments.filter((e) => e.campaign.status === 'active' && e.submissions.length === 0);
   const notice: [string, boolean] | undefined = searchParams.tiktok ? tiktokMessages[searchParams.tiktok] : searchParams.instagram ? instagramMessages[searchParams.instagram] : undefined;
 
   const payoutsButton = (
@@ -127,6 +121,7 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
                 </dl>
               </div>
               <div className="relative mt-auto">
+                <p className="px-5 text-[11px] text-zinc-500 sm:px-6">Total views on your clips · last 30 days</p>
                 <Spark points={history.map((h) => h.views)} />
               </div>
             </div>
@@ -194,28 +189,25 @@ export default async function CreatorPage({ searchParams }: { searchParams: { ti
         ]}
       />
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold tracking-tight">Your campaigns</h2>
-        {d.enrollments.length === 0 ? (
-          <Empty icon={<Compass />} title="No campaigns yet" body="Find a streamer you like clipping in Discover." action={<ButtonLink href="/clipper/discover">Browse campaigns</ButtonLink>} />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {d.enrollments.map((e) => (
-              <EnrollmentCard
-                key={e.enrollment.id}
-                {...e}
-                href={`/clipper/campaigns/${e.campaign.id}`}
-                link={Link}
-                submitForm={
-                  <ButtonLink href={`/clipper/campaigns/${e.campaign.id}`} className="w-full">
-                    Post your clip
-                  </ButtonLink>
-                }
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Joined but nothing posted yet: nudge straight to the submit box. */}
+      {waiting.length > 0 && (
+        <section className="space-y-2">
+          {waiting.slice(0, 3).map((e) => (
+            <Link
+              key={e.campaign.id}
+              href={`/clipper/campaigns/${e.campaign.id}#post`}
+              className="flex items-center gap-3 rounded-2xl border border-brand-b/40 bg-brand-a/10 px-4 py-3 transition hover:bg-brand-a/15"
+            >
+              <Upload className="size-5 shrink-0 text-[rgb(var(--brand-ta))]" />
+              <span className="min-w-0 flex-1 text-sm">
+                <span className="block truncate font-semibold">{e.campaign.title}</span>
+                <span className="text-zinc-600">You joined. Post your first clip to start earning.</span>
+              </span>
+              <span className="shrink-0 text-sm font-semibold text-[rgb(var(--brand-ta))]">Post →</span>
+            </Link>
+          ))}
+        </section>
+      )}
 
       {d.openCampaigns.length > 0 && (
         <section>

@@ -21,7 +21,7 @@ export default async function DiscoverPage() {
   const forYou = interests.length ? [...openCampaigns].filter((c) => fit(c, interests) > 0).sort((a, b) => fit(b, interests) - fit(a, interests)).slice(0, 8).map((c) => c.id) : [];
   return (
     <>
-      <PageHeader title="Discover" description="Campaigns looking for clippers. You’re paid on views the platforms report, never screenshots." />
+      <PageHeader title="Discover" description="Campaigns looking for clippers. Paid on real, verified views." />
       {openCampaigns.length === 0 ? (
         <Empty icon={<Compass />} title="You’ve joined everything open" body="New campaigns show up here as soon as they launch." />
       ) : (

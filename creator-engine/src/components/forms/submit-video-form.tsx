@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, TriangleAlert, X } from 'lucide-react';
+import { Check, ClipboardPaste, Link2, TriangleAlert, X } from 'lucide-react';
+import { PlatformIcon } from '../platform-icon';
+import type { Platform } from '@/lib/types';
 import { submitVideo } from '@/actions/creator';
 import type { SubmitCheck, SubmitState } from '@/actions/result';
 import { FormMessage } from '../form-message';
@@ -11,6 +13,15 @@ import { Input } from '../ui/field';
 import { cn } from '../ui/cn';
 
 const STEP_MS = 420;
+
+/** Which platform a pasted link is from, so the box can show its logo. */
+function platformOf(url: string): Platform | null {
+  const u = url.toLowerCase();
+  if (/tiktok\.com/.test(u)) return 'tiktok';
+  if (/youtube\.com|youtu\.be/.test(u)) return 'youtube';
+  if (/instagram\.com/.test(u)) return 'instagram';
+  return null;
+}
 // Shown while the server works, before the real results arrive.
 const PLACEHOLDER = ['Link recognised', 'Video found', 'It’s your video', 'Posted after you joined', 'Original clip'];
 
@@ -24,6 +35,19 @@ export function SubmitVideoForm({ campaignId }: { campaignId: string }) {
   const [shown, setShown] = useState(0);
   const [error, setError] = useState<string>();
   const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [url, setUrl] = useState('');
+  const [canPaste, setCanPaste] = useState(false);
+  useEffect(() => setCanPaste(!!navigator.clipboard?.readText), []);
+  const platform = platformOf(url);
+  const paste = async () => {
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (text) setUrl(text);
+    } catch {
+      inputRef.current?.focus(); // permission denied: let them paste by hand
+    }
+  };
 
   // Reveal the server's checks one at a time.
   const checks = result?.checks ?? [];
@@ -49,22 +73,46 @@ export function SubmitVideoForm({ campaignId }: { campaignId: string }) {
   const close = () => {
     if (!done) return; // stay open until every check has shown
     setOpen(false);
-    if (ok) formRef.current?.reset();
+    if (ok) {
+      formRef.current?.reset();
+      setUrl('');
+    }
   };
 
   return (
     <>
       <form ref={formRef} onSubmit={submit} className="space-y-3">
         <input type="hidden" name="campaignId" value={campaignId} />
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input name="videoUrl" type="url" required placeholder="Link to your clip on TikTok, Shorts or Reels" aria-label="Clip link" className="sm:flex-1" />
-          <Button type="submit">Submit clip</Button>
+        {/* One big, obvious box: paste the link, see which platform it is, submit. */}
+        <div className="flex h-14 items-center gap-2 rounded-2xl border-2 border-zinc-200 bg-white pl-4 pr-1.5 transition focus-within:border-[rgb(var(--brand-a))]">
+          {platform ? <PlatformIcon platform={platform} className="size-5 shrink-0 text-[rgb(var(--brand-ta))]" /> : <Link2 className="size-5 shrink-0 text-zinc-400" />}
+          <input
+            ref={inputRef}
+            name="videoUrl"
+            type="url"
+            inputMode="url"
+            required
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Paste your clip link"
+            aria-label="Clip link"
+            className="h-full min-w-0 flex-1 bg-transparent text-base placeholder:text-zinc-400 focus:outline-none"
+          />
+          {!url && canPaste && (
+            <button type="button" onClick={paste} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-200">
+              <ClipboardPaste className="size-4" /> Paste
+            </button>
+          )}
         </div>
-        <label className="flex items-start gap-2 text-xs text-zinc-500">
-          <input type="checkbox" name="noPaidPromo" required className="mt-0.5 size-3.5 accent-[rgb(var(--brand-b))]" />
+        {url && !platform && <p className="text-xs text-amber-700">That doesn’t look like a TikTok, YouTube Shorts or Instagram Reels link.</p>}
+        <label className="flex items-start gap-2.5 rounded-xl bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+          <input type="checkbox" name="noPaidPromo" required className="mt-0.5 size-4 shrink-0 accent-[rgb(var(--brand-b))]" />
           <span>I haven’t paid and won’t pay to promote or boost this clip (TikTok Promote, ads or similar).</span>
         </label>
         <FormMessage state={error ? { error } : undefined} />
+        <Button type="submit" className="h-12 w-full text-base">
+          Submit clip
+        </Button>
       </form>
 
       <Dialog open={open} onClose={close} title={!done ? 'Checking your clip' : ok ? 'Clip submitted' : 'Couldn’t submit'} className="sm:max-w-md">

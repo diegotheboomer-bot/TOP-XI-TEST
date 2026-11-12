@@ -41,7 +41,7 @@ export function ClipperCard({
   return (
     <div className={founder ? 'emerald-flow flex h-full rounded-3xl p-[1.5px]' : 'flex h-full rounded-3xl p-[1.5px]'} style={founder ? undefined : { backgroundImage: t.border }}>
       <div
-        className="card-sheen flex w-full flex-col justify-between rounded-[22px] p-5 sm:p-6"
+        className="card-sheen flex w-full flex-col justify-between rounded-[22px] p-4 sm:p-6"
         style={{ background: founder ? 'radial-gradient(120% 80% at 50% 0%, #064e3b 0%, #03241c 45%, #010f0b 100%)' : t.bg, color: '#fff', boxShadow: `0 20px 50px -25px ${founder ? '#10b981' : t.glow}` }}
       >
         <div className="flex items-start justify-between">
@@ -59,14 +59,22 @@ export function ClipperCard({
             </p>
           )}
         </div>
-        <div className="mt-6 flex flex-col items-center text-center">
-          <TierEmblem tier={tier} size={96} founder={founder} />
-          <p className="mt-4 max-w-full truncate text-2xl font-semibold tracking-tight">{name}</p>
+        {/* Phones: badge beside the name to save height; bigger screens: centred. */}
+        <div className="mt-4 flex items-center gap-4 md:mt-6 md:flex-col md:gap-0 md:text-center">
+          <span className="md:hidden">
+            <TierEmblem tier={tier} size={64} founder={founder} />
+          </span>
+          <span className="hidden md:block">
+            <TierEmblem tier={tier} size={96} founder={founder} />
+          </span>
+          <div className="min-w-0">
+          <p className="max-w-full truncate text-xl font-semibold tracking-tight md:mt-4 md:text-2xl">{name}</p>
           <p className="text-xs font-semibold uppercase tracking-[0.28em]" style={{ color: accent }}>
             {founder ? 'Founding clipper' : 'Clipper'}
           </p>
+          </div>
         </div>
-        <div className="mt-6 grid grid-cols-3 gap-2 text-center">
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center md:mt-6">
           {[
             [compact(views), 'views'],
             [String(clips), 'clips'],
@@ -92,7 +100,7 @@ export function ClipperCard({
           </div>
         )}
         {(founder || since) && (
-          <p className="mt-5 text-center text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="mt-3 text-center text-[11px] md:mt-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {founder ? 'One of the first 100' : 'Clipping'}
             {since ? ` · since ${since}` : ''}
           </p>

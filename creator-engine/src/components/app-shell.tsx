@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { LinkLike } from './views';
 import { cn } from './ui/cn';
 import { Badge } from './ui/badge';
@@ -51,10 +52,13 @@ export function AppShell({
   demo,
   footer,
   account,
+  accountPhone,
   children,
 }: {
   /** The account menu (picture, top right). */
   account?: React.ReactNode;
+  /** A smaller account menu for the phone top bar. */
+  accountPhone?: React.ReactNode;
   sections: NavSection[];
   current: string | null;
   link?: LinkLike;
@@ -65,6 +69,19 @@ export function AppShell({
 }) {
   const Link = link;
   const items = sections.flatMap((s) => s.items);
+  // Phone top bar: slides away when scrolling down, back when scrolling up.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 6) return;
+      setHidden(y > last && y > 80);
+      last = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   const navLink = (item: NavItem) => {
     const on = item.href === current;
     if (item.primary) {
@@ -147,12 +164,12 @@ export function AppShell({
         {footer && <div className="border-t border-zinc-100 px-1 pt-3">{footer}</div>}
       </aside>
 
-      <header className="site-header sticky top-0 z-20 border-b border-zinc-200/80 bg-white/85 backdrop-blur-xl lg:hidden">
+      <header className={cn('site-header sticky top-0 z-20 border-b border-zinc-200/80 bg-white/80 backdrop-blur-xl transition-transform duration-300 ease-out lg:hidden', hidden && '-translate-y-full')}>
         <div className="gutter flex h-14 items-center justify-between gap-3">
           <Logo link={Link} href={homeHref} />
           <div className="flex items-center gap-1">
             {demo && <Badge tone="amber">Demo</Badge>}
-            {account ?? (
+            {accountPhone ?? account ?? (
               <>
                 {items
                   .filter((i) => i.badge)

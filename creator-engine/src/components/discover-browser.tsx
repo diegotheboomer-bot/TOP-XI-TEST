@@ -165,7 +165,7 @@ export function DiscoverBrowser({ campaigns, forYou }: { campaigns: MarketCampai
           </h2>
           <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
             {picks.map((c) => (
-              <div key={c.id} className="w-[72%] shrink-0 snap-start sm:w-72">
+              <div key={c.id} className="w-[58%] shrink-0 snap-start sm:w-72">
                 <MarketCard c={c} href={`/clipper/campaigns/${c.id}`} link={Link} />
               </div>
             ))}

@@ -98,7 +98,9 @@ export async function AppLayout({ role, children }: { role: Role; children: Reac
     </div>
   );
   return (
-    <NextShell sections={sections} demo={isDemo} footer={me ? undefined : footer} account={me ? <AccountMenu me={me} clipper={role === 'clipper'} signOut={signOut} /> : undefined}>
+    <NextShell sections={sections} demo={isDemo} footer={me ? undefined : footer} account={me ? <AccountMenu me={me} clipper={role === 'clipper'} signOut={signOut} /> : undefined}
+      accountPhone={me ? <AccountMenu me={me} clipper={role === 'clipper'} signOut={signOut} small /> : undefined}
+    >
       {children}
     </NextShell>
   );
