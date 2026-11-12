@@ -13,7 +13,6 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/components/action-button';
-import { EarningsEstimator } from '@/components/estimator';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
 import { VerifiedMark, CampaignCover, MomentBoard, NextStep, PlatformChips, ReferenceList, RequirementList, StreamerAvatar } from '@/components/views';
@@ -56,32 +55,10 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
         <ArrowLeft className="size-4" /> Discover
       </Link>
 
-      {/* Phones: which campaign this is, compact, before the rate. */}
-      <div className="flex items-center gap-3 lg:hidden">
-        <CampaignCover campaign={c} brandName="" variant="thumb" showTitle={false} className="size-14 shrink-0 rounded-xl" />
-        <div className="min-w-0">
-          <h1 className="line-clamp-2 text-lg font-semibold leading-tight tracking-tight">{c.title}</h1>
-          <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-zinc-500">
-            {c.brandName}
-            {c.brandVerified && <VerifiedMark />}
-          </p>
-        </div>
-      </div>
-
-      {d.enrollment && mine.length === 0 && (
-        <a href="#post" className="flex items-center gap-3 rounded-2xl bg-brand px-4 py-3.5 text-brand-ink shadow-[0_10px_30px_-12px_rgb(var(--brand-b)/0.8)] transition hover:brightness-110">
-          <PartyPopper className="size-5 shrink-0" />
-          <span className="min-w-0 flex-1 text-sm">
-            <b className="font-semibold">You’re in!</b> Post your first clip to start earning.
-          </span>
-          <span className="shrink-0 text-sm font-semibold">Post →</span>
-        </a>
-      )}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-6">
-        <div className="min-w-0 space-y-6">
           {/* Hero: cover, who, what, and how busy it is. */}
-          <section className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
+          <section className="order-first overflow-hidden rounded-2xl lg:order-none lg:col-start-1 lg:row-start-1 border border-zinc-200/80 bg-white shadow-card">
             <CampaignCover campaign={c} brandName={c.brandName} variant="card" showTitle={false} />
             <div className="p-4 sm:p-6">
               <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-600">
@@ -97,15 +74,16 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   </span>
                 ))}
               </div>
-              <h2 className="balance mt-3 hidden text-3xl font-semibold tracking-tight lg:block">{c.title}</h2>
+              <h1 className="balance mt-3 text-xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
               <PlatformChips platforms={c.platforms} className="mt-3" />
               <dl className="mt-5 grid grid-cols-3 divide-x divide-zinc-100 rounded-xl border border-zinc-100 text-center">
-                <Fact icon={<Users className="size-4" />} label="Clippers joined" value={String(c.creators)} />
-                <Fact icon={<BadgeCheck className="size-4" />} label="Clips approved" value={String(d.approvedClips ?? 0)} />
+                <Fact icon={<Users className="size-4" />} label="Clippers" value={String(c.creators)} />
+                <Fact icon={<BadgeCheck className="size-4" />} label="Approved" value={String(d.approvedClips ?? 0)} />
                 <Fact icon={<Wallet className="size-4" />} label="Budget left" value={usdCompact(c.budget.available)} />
               </dl>
             </div>
           </section>
+        <div className="order-last min-w-0 space-y-6 lg:order-none lg:col-start-1 lg:row-start-2">
 
           {c.brief && (
             <section>
@@ -161,7 +139,16 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
           </section>
         </div>
 
-        <aside className="order-first space-y-4 lg:order-none lg:sticky lg:top-8 lg:self-start">
+        <aside className="space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:sticky lg:top-8 lg:self-start">
+          {d.enrollment && mine.length === 0 && (
+            <a href="#post" className="flex items-center gap-3 rounded-2xl bg-brand px-4 py-3.5 text-brand-ink shadow-[0_10px_30px_-12px_rgb(var(--brand-b)/0.8)] transition hover:brightness-110">
+              <PartyPopper className="size-5 shrink-0" />
+              <span className="min-w-0 flex-1 text-sm">
+                <b className="font-semibold">You’re in!</b> Post your first clip to start earning.
+              </span>
+              <span className="shrink-0 text-sm font-semibold">Post →</span>
+            </a>
+          )}
           {/* The rate, front and centre. */}
           <section className="relative overflow-hidden rounded-2xl border border-brand-b/40 bg-white p-4 shadow-card sm:p-5">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-28" style={{ background: 'radial-gradient(80% 100% at 0% 0%, rgb(var(--brand-a) / 0.22), transparent 70%)' }} />
@@ -271,9 +258,6 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                 ) : undefined
               }
             />
-          </Card>
-          <Card>
-            <EarningsEstimator terms={c} />
           </Card>
         </aside>
       </div>
