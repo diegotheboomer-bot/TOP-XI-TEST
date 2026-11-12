@@ -16,9 +16,9 @@ export function ReferralPanel({ r }: { r: ReferralSummary }) {
           <Gift className="size-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="font-semibold tracking-tight">Invite clippers, earn their fee</h2>
+          <h2 className="font-semibold tracking-tight">Invite clippers. Earn without limits.</h2>
           <p className="mt-0.5 text-sm text-zinc-500">
-            Everyone who joins with your link: their {TIER_PERKS.silver.feePct}% cash-out fee goes to you for their first {REFERRAL_DAYS} days.
+            Everyone who joins with your link: their {TIER_PERKS.silver.feePct}% cash-out fee goes to you on every cash-out for their first {REFERRAL_DAYS} days. No cap on invites, no cap on earnings.
           </p>
         </div>
       </div>
