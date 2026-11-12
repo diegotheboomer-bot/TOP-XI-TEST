@@ -80,7 +80,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
               </div>
 
               {/* Pay, numbers and budget in one strip */}
-              <div className="relative mt-4 overflow-hidden rounded-2xl border border-brand-b/40 bg-white p-4 sm:p-5">
+              <div className="relative -mx-4 -mb-4 mt-4 overflow-hidden rounded-b-2xl border-t border-brand-b/40 bg-white p-4 sm:-mx-6 sm:-mb-6 sm:p-5">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28" style={{ background: 'radial-gradient(80% 100% at 0% 0%, rgb(var(--brand-a) / 0.22), transparent 70%)' }} />
                 <p className="relative text-[11px] font-medium uppercase tracking-wider text-zinc-500">You earn</p>
                 <div className="relative mt-0.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -115,6 +115,10 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   ))}
                 </dl>
                 <div className="relative mt-4">
+                  {c.payout_model === 'pool' ? (
+                    <PoolBar shares={d.poolShares ?? []} pool={c.budget.deposited} />
+                  ) : (
+                    <>
                   <p className="mb-2 flex items-baseline justify-between text-sm">
                     <span className="font-medium">Budget used</span>
                     <span className="tabular-nums text-zinc-500">
@@ -124,8 +128,10 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   <div className="h-3 overflow-hidden rounded-full bg-zinc-100">
                     <div className="h-full rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-b)/0.6)]" style={{ width: `${Math.max(used, 1.5)}%` }} />
                   </div>
+                    </>
+                  )}
                   <p className="mt-2 flex justify-between text-xs text-zinc-500">
-                    <span>{usdCompact(c.budget.available)} left to earn</span>
+                    <span>{c.payout_model === 'pool' ? 'Paid out when the campaign ends' : `${usdCompact(c.budget.available)} left to earn`}</span>
                     <span className="flex gap-1.5 sm:hidden">
                       {c.platforms.map((p) => (
                         <PlatformIcon key={p} platform={p} className="size-3" />
@@ -285,5 +291,49 @@ function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; va
       </dt>
       <dd className="mt-0.5 text-lg font-semibold tabular-nums">{value}</dd>
     </div>
+  );
+}
+
+/** Pool campaigns: one bar split by each clipper's share of approved views; your slice is highlighted. */
+function PoolBar({ shares, pool }: { shares: { mine: boolean; views: number; share: number }[]; pool: number }) {
+  const mine = shares.find((s) => s.mine);
+  // The 12 biggest slices, plus yours if it's smaller; everyone else shares one faint slice.
+  const top = shares.filter((s, i) => i < 12 || s.mine);
+  const rest = shares.filter((s, i) => i >= 12 && !s.mine).reduce((n, s) => n + s.share, 0);
+  return (
+    <>
+      <p className="mb-2 flex items-baseline justify-between text-sm">
+        <span className="font-medium">Pool split</span>
+        <span className="tabular-nums text-zinc-500">
+          {shares.length} {shares.length === 1 ? 'clipper' : 'clippers'} · {usdCompact(pool)} pool
+        </span>
+      </p>
+      {shares.length ? (
+        <div className="flex h-3 gap-px overflow-hidden rounded-full bg-zinc-100">
+          {top.map((s, i) => (
+            <div
+              key={i}
+              title={`${s.mine ? 'You' : 'A clipper'}: ${(s.share * 100).toFixed(1)}%`}
+              className="h-full"
+              style={{ width: `${s.share * 100}%`, minWidth: s.mine ? 4 : undefined, backgroundColor: s.mine ? '#a3e635' : `rgba(16,185,129,${Math.max(0.25, 0.9 - i * 0.06)})` }}
+            />
+          ))}
+          {rest > 0 && <div className="h-full" style={{ width: `${rest * 100}%`, backgroundColor: 'rgba(16,185,129,0.18)' }} />}
+        </div>
+      ) : (
+        <div className="h-3 rounded-full bg-zinc-100" />
+      )}
+      <p className="mt-2 text-xs text-zinc-500">
+        {mine ? (
+          <>
+            Your share: <b className="font-semibold" style={{ color: '#a3e635' }}>{(mine.share * 100).toFixed(1)}%</b> ≈ {usdCompact(Math.floor(pool * mine.share))} if it ended now
+          </>
+        ) : shares.length ? (
+          'Each slice is one clipper’s share of approved views.'
+        ) : (
+          'No approved clips yet. The first ones split the whole pool.'
+        )}
+      </p>
+    </>
   );
 }

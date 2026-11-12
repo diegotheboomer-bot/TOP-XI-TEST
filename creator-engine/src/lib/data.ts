@@ -275,6 +275,8 @@ export interface CreatorCampaignDetail {
   submissions?: Submission[];
   /** Clips the streamer has approved on this campaign, from everyone. */
   approvedClips?: number;
+  /** Pool campaigns: each clipper's share of approved views, biggest first (only "you" is named). */
+  poolShares?: { mine: boolean; views: number; share: number }[];
 }
 
 /**
@@ -539,6 +541,7 @@ export async function getCreatorCampaign(id: string): Promise<CreatorCampaignDet
     moments: await loadMoments(c.id, creatorId),
     approvedClips:
       (await createAdminClient().from('submissions').select('id', { count: 'exact', head: true }).eq('campaign_id', c.id).in('status', ['live_tracking', 'paid'])).count ?? 0,
+    poolShares: c.payout_model === 'pool' ? await poolSharesFor(c.id, creatorId) : undefined,
   };
 }
 
@@ -1027,4 +1030,15 @@ export async function getAccountSummary(): Promise<AccountSummary | null> {
   }
   const { data: b } = await admin.from('brands').select('name, avatar_url').eq('id', viewer.brandId!).maybeSingle();
   return { name: (b?.name as string) ?? '', email: viewer.email, avatar: (b?.avatar_url as string | null) ?? null, tier: null, founder: null };
+}
+
+/** Each clipper's share of a pool campaign's approved views (the same split the pool pays by). */
+async function poolSharesFor(campaignId: string, me: string): Promise<{ mine: boolean; views: number; share: number }[]> {
+  const admin = createAdminClient();
+  const { data } = await selectAll(() => admin.from('submissions').select('creator_id, current_view_count').eq('campaign_id', campaignId).in('status', ['live_tracking', 'paid']).order('id'));
+  const by = new Map<string, number>();
+  for (const s of data) by.set(s.creator_id as string, (by.get(s.creator_id as string) ?? 0) + Number(s.current_view_count));
+  const total = [...by.values()].reduce((a, b) => a + b, 0);
+  if (!total) return [];
+  return [...by.entries()].map(([id, views]) => ({ mine: id === me, views, share: views / total })).sort((a, b) => b.views - a.views);
 }
