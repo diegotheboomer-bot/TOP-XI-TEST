@@ -3,6 +3,7 @@
 // "How it works": pick a side (stream / clip), then step through three steps.
 // Steps advance on their own (paused on hover) and each shows a small preview.
 // Previews are illustrative; names and numbers are made up.
+import { depositRate, grossUp } from '@/lib/card-fees';
 import { useEffect, useState } from 'react';
 import { Check, Eye, Lock, Pin } from 'lucide-react';
 import { cn } from './ui/cn';
@@ -127,8 +128,9 @@ function Preview({ who, step, feePercent }: { who: Who; step: number; feePercent
   const key = `${who}${step}`;
   if (key === 'streamer0') {
     const budget = 5000;
-    // Launch pricing (feePercent 0): only Stripe's card processing, about 3.5% + $0.35.
-    const fee = feePercent ? (budget * feePercent) / 100 : Math.round(budget * 3.5 + 35) / 100;
+    // Launch pricing (feePercent 0): only Stripe's processing for a US card, grossed up so the campaign gets all $5,000.
+    const est = depositRate(null);
+    const fee = feePercent ? (budget * feePercent) / 100 : grossUp(budget, est.percent, est.fixed).fee;
     return (
       <div className={card}>
         <p className={label}>New campaign</p>
@@ -156,7 +158,7 @@ function Preview({ who, step, feePercent }: { who: Who; step: number; feePercent
         </div>
         <div className="mt-4 space-y-1 border-t border-zinc-200/80 pt-3 font-mono text-xs tabular-nums">
           <Row k="Budget" v={`$${budget.toLocaleString()}`} />
-          <Row k={feePercent ? `Fee ${feePercent}%` : 'Card processing'} v={`$${fee.toLocaleString()}`} />
+          <Row k={feePercent ? `Fee ${feePercent}%` : 'Stripe processing'} v={`$${fee.toLocaleString()}`} />
           <Row k="Total" v={`$${(budget + fee).toLocaleString()}`} strong />
         </div>
       </div>

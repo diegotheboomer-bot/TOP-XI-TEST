@@ -8,6 +8,7 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe, platformFeePercent, achEnabled, feeFor } from '@/lib/stripe';
 import { streamerCharge } from '@/lib/payout';
+import { depositRate, grossUp } from '@/lib/card-fees';
 import { planRefunds } from '@/lib/refunds';
 import { payClip } from '@/lib/pay-clip';
 import { HOLD_HOURS, streamerCanFlag } from '@/lib/payout-rules';
@@ -127,36 +128,75 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
   return { success: status === 'active' ? 'Your campaign is live.' : status === 'paused' ? 'Campaign paused.' : 'Campaign ended.' };
 }
 
-export type DepositIntentResult = { clientSecret: string } | { error: string };
+export type DepositQuote = { budget: number; fee: number; total: number; label: string };
+export type DepositIntentResult = { status: string; clientSecret: string } | { error: string };
 
 /**
- * Step 2 of the in-app checkout: the Payment Element has validated the card,
- * so create the PaymentIntent for budget + fee. The amount is recomputed here,
- * never taken from the browser. The webhook (payment_intent.succeeded) credits
- * only the budget to escrow.
+ * The exact charge for this deposit with the card (or bank) the business entered. With no
+ * service fee, the business pays only Stripe's cost for that card, grossed up so the campaign
+ * gets the whole budget. Read from the ConfirmationToken, so it's never taken from the browser.
  */
-export async function createDepositIntent(campaignId: string, amount: number): Promise<DepositIntentResult> {
+async function priceDeposit(brandEarly: boolean, budget: number, tokenId: string): Promise<DepositQuote> {
+  const plan = feeFor(brandEarly);
+  if (!plan.early) {
+    const c = streamerCharge(budget, plan.percent, plan.fixed);
+    return { ...c, label: `Service fee (${plan.percent}%, incl. card processing)` };
+  }
+  const token = await stripe().confirmationTokens.retrieve(tokenId);
+  const pm = token.payment_method_preview;
+  if (pm?.type === 'us_bank_account') {
+    // ACH: 0.8%, capped at $5.
+    const total = Math.round(Math.min(budget / (1 - 0.008), budget + 5) * 100) / 100;
+    return { budget, fee: Math.round((total - budget) * 100) / 100, total, label: 'Bank transfer (ACH) processing by Stripe' };
+  }
+  const card = pm?.card ?? null;
+  const rate = depositRate(card ? { country: card.country, funding: card.funding } : null);
+  const c = grossUp(budget, rate.percent, rate.fixed);
+  const where = card?.country ? ` (${card.country} ${card.funding ?? 'card'})` : '';
+  return { ...c, label: `Stripe processing${where}: ${rate.percent}% + ${usdCents(rate.fixed)}` };
+}
+
+/** Step 1 of paying: the exact total for the card the business entered, shown before they pay. */
+export async function quoteDeposit(campaignId: string, amount: number, tokenId: string): Promise<DepositQuote | { error: string }> {
+  const parsed = DepositSchema.safeParse(amount);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (isDemo) return { error: 'Stripe is off in demo mode.' };
+  const { admin, brandId } = await requireOwnCampaign(campaignId);
+  const { data: brand } = await admin.from('brands').select('early_partner').eq('id', brandId).single();
+  try {
+    return await priceDeposit(!!brand?.early_partner, parsed.data, tokenId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Couldn’t read the payment details.' };
+  }
+}
+
+/**
+ * Step 2: charge budget + exact fee and confirm it in one go with the ConfirmationToken.
+ * The amount is recomputed here, never taken from the browser. The webhook
+ * (payment_intent.succeeded) credits only the budget to the campaign.
+ */
+export async function createDepositIntent(campaignId: string, amount: number, tokenId: string): Promise<DepositIntentResult> {
   const parsed = DepositSchema.safeParse(amount);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (isDemo) return { error: 'Stripe is off in demo mode.' };
   const { campaign, admin, brandId } = await requireOwnCampaign(campaignId);
   if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
   const { data: brand } = await admin.from('brands').select('early_partner').eq('id', brandId).single();
-  const plan = feeFor(!!brand?.early_partner);
-  const fee = plan.percent;
-  const charge = streamerCharge(parsed.data, plan.percent, plan.fixed);
   const cents = (n: number) => Math.round(n * 100);
   try {
+    const charge = await priceDeposit(!!brand?.early_partner, parsed.data, tokenId);
     const intent = await stripe().paymentIntents.create({
       amount: cents(charge.total),
       currency: 'usd',
-      // Card (Apple Pay and Google Pay are card wallets) or US bank account (ACH: about 0.8%, capped at $5).
+      confirm: true,
+      confirmation_token: tokenId,
+      // Card (Apple Pay and Google Pay are card wallets) or US bank account (ACH).
       allowed_payment_method_types: achEnabled() ? ['card', 'us_bank_account'] : ['card'],
-      description: `Clipper budget ${usdCents(charge.budget)} + ${plan.early ? 'card processing' : `${fee}% service fee`}: ${campaign.title}`,
+      description: `Clipper budget ${usdCents(charge.budget)} + ${charge.label}: ${campaign.title}`,
       metadata: { kind: 'campaign_deposit', campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
       transfer_group: `campaign_${campaignId}`,
     });
-    return { clientSecret: intent.client_secret! };
+    return { status: intent.status, clientSecret: intent.client_secret! };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not start the payment.' };
   }

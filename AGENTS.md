@@ -13,7 +13,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Next.js 14 App Router (server components, server actions), TypeScript, Tailwind.
 - Supabase (Postgres + RLS + storage + auth). Project ref `ijpfxbnxfpbhfzrjhdmz`.
 - Stripe Connect Express (embedded onboarding, transfers). Discord bot + OAuth. Gemini support bot ("Nova").
-- Tests: vitest (`npm test`, 130 tests). Type check: `npx tsc --noEmit -p .`.
+- Tests: vitest (`npm test`, 132 tests). Type check: `npx tsc --noEmit -p .`.
 - Hosting: Render auto-deploys branch `claude/kind-galileo-egdt9r`.
 
 ## Workflow rules (agreed with the owner)
@@ -31,8 +31,11 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 
 ## Key places
 - Money: `src/lib/pay-clip.ts` (payouts), `src/actions/creator.ts` (`cashOut`), `src/lib/tiers.ts` (fees by tier).
-- Fees: clippers pay a flat 2% on cash-out (`feePct: 2` in `src/lib/tiers.ts`); businesses pay only Stripe card processing
-  (`NO_SERVICE_FEE=true` on Render). Tiers mean faster pay, more cash-outs, gated campaigns.
+- Fees: clippers pay a flat 2% on cash-out (`feePct: 2` in `src/lib/tiers.ts`); all Atlas margin comes from that.
+  Businesses pay only Stripe's exact cost for their card (`NO_SERVICE_FEE=true` on Render), grossed up so the campaign
+  gets the full budget: `src/lib/card-fees.ts`, priced from a Stripe ConfirmationToken in `quoteDeposit`/`createDepositIntent`
+  (`src/actions/brand.ts`). `STRIPE_FX_PERCENT` (default 2) = conversion fee; set 1 if USD settlement is on in Stripe.
+  Tiers mean faster pay, more cash-outs, gated campaigns.
 - Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. For an invited clipper's first 90 days
   their 2% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
 - Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper

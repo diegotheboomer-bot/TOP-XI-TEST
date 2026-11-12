@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Check, Lock, Plus } from 'lucide-react';
 import { streamerCharge } from '@/lib/payout';
+import { grossUp } from '@/lib/card-fees';
 import { DepositSchema } from '@/lib/schemas';
 import { compact, usd, usdCents } from '@/lib/format';
 import type { Campaign } from '@/lib/types';
@@ -21,7 +22,7 @@ export interface Quote {
 export type CheckoutCampaign = Pick<Campaign, 'id' | 'title' | 'payout_model' | 'cpm_rate' | 'status'>;
 
 /** What the payment section renders: a quote to charge (null while the amount is invalid) and a callback for success. */
-export type PaymentSlot = (quote: Quote | null, onPaid: (pending?: boolean) => void) => React.ReactNode;
+export type PaymentSlot = (quote: Quote | null, onPaid: (pending?: boolean, exact?: Quote) => void) => React.ReactNode;
 
 const QUICK_PICKS = [500, 1000, 5000, 10000];
 
@@ -119,7 +120,7 @@ function Checkout({
 }) {
   const [value, setValue] = useState(String(initialAmount ?? 1000));
   const parsed = DepositSchema.safeParse(value);
-  const quote: Quote | null = parsed.success ? toQuote(parsed.data, feePercent, feeFixed) : null;
+  const quote: Quote | null = parsed.success ? toQuote(parsed.data, feePercent, feeFixed, early) : null;
   const error = value.trim() && !parsed.success ? parsed.error.issues[0].message : undefined;
   const views = quote && campaign.payout_model !== 'cps_performance' && campaign.cpm_rate > 0 ? (quote.amount / campaign.cpm_rate) * 1000 : null;
 
@@ -170,13 +171,13 @@ function Checkout({
       <Breakdown quote={quote} feePercent={feePercent} feeFixed={feeFixed} early={early} className="mt-5" />
       <p className="mt-2.5 text-xs text-zinc-500">
         {early
-          ? 'Early partner: no service fee. The only fee is Stripe’s card processing, which isn’t refundable. All of the budget goes to clippers, and unspent budget is refunded if you cancel.'
+          ? 'No service fee. You pay only what Stripe charges for your card, so the campaign gets the full budget. Stripe’s processing isn’t refundable; unspent budget is refunded if you cancel.'
           : `All of the budget goes to clippers. If you cancel the campaign, unspent budget is refunded to your card; the ${feePercent}% fee isn’t refundable.`}
       </p>
 
       <div className="mt-6 border-t border-zinc-100 pt-5">
         <h3 className="mb-3 text-sm font-semibold">Payment</h3>
-        {payment(quote, (isPending) => quote && onPaid(quote, isPending))}
+        {payment(quote, (isPending, exact) => quote && onPaid(exact ?? quote, isPending))}
         <p className="mt-3 flex items-start gap-1.5 text-xs text-zinc-500">
           <Lock className="mt-px size-3.5 shrink-0" />
           <span>{note}</span>
@@ -220,8 +221,9 @@ function cleanAmount(raw: string): string {
   return rest.length ? `${whole}.${rest.join('').slice(0, 2)}` : whole;
 }
 
-export function toQuote(amount: number, feePercent: number, feeFixed = 0): Quote {
-  const c = streamerCharge(amount, feePercent, feeFixed);
+/** Budget plus fee. With no service fee the fee is Stripe's, grossed up so the campaign gets the whole budget. */
+export function toQuote(amount: number, feePercent: number, feeFixed = 0, early = false): Quote {
+  const c = early ? grossUp(amount, feePercent, feeFixed) : streamerCharge(amount, feePercent, feeFixed);
   return { amount: c.budget, fee: c.fee, total: c.total, totalCents: Math.round(c.total * 100) };
 }
 
@@ -234,7 +236,7 @@ function Breakdown({ quote, feePercent, feeFixed = 0, early = false, className }
         <dd className="tabular-nums">{quote ? usdCents(quote.amount) : '—'}</dd>
       </div>
       <div className={row}>
-        <dt className="text-zinc-500">{early ? `Card processing by Stripe (${feePercent}% + ${usdCents(feeFixed)}), the only fee` : `Service fee (${feePercent}%, incl. card processing, non-refundable)`}</dt>
+        <dt className="text-zinc-500">{early ? 'Stripe processing, the only fee (estimate for a US card; exact once you enter yours)' : `Service fee (${feePercent}%, incl. card processing, non-refundable)`}</dt>
         <dd className="tabular-nums">{quote ? usdCents(quote.fee) : '—'}</dd>
       </div>
       <div className={cn(row, 'border-t border-zinc-200 pt-2 font-semibold')}>

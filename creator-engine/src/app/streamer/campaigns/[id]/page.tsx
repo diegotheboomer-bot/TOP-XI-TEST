@@ -8,7 +8,7 @@ import { compact, rateParts, usd, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { achEnabled, feeFor } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { approveAllPending, cancelCampaign, createDepositIntent, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSync } from '@/actions/brand';
+import { approveAllPending, cancelCampaign, createDepositIntent, quoteDeposit, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
@@ -114,6 +114,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
                 early={plan.early}
                 publishableKey={publishableKey}
                 createIntent={createDepositIntent}
+                quoteDeposit={quoteDeposit}
                 payDemo={payDemoDeposit}
               />
             )
@@ -210,11 +211,12 @@ export default async function CampaignPage({ params, searchParams }: { params: {
                     early={plan.early}
                     publishableKey={publishableKey}
                     createIntent={createDepositIntent}
+                quoteDeposit={quoteDeposit}
                     payDemo={payDemoDeposit}
                     initialAmount={fund >= 50 && !searchParams.funded ? fund : undefined}
                   />
                   <p className="mt-2 text-xs text-zinc-500">
-                    {plan.early ? 'No service fee, only Stripe’s card processing. Unspent budget is refunded if you cancel.' : `${feePercent}% service fee on top. Unspent budget is refunded if you cancel; the fee isn’t.`}
+                    {plan.early ? 'No service fee: you pay only Stripe’s processing for your card, and the campaign gets the full budget. Unspent budget is refunded if you cancel.' : `${feePercent}% service fee on top. Unspent budget is refunded if you cancel; the fee isn’t.`}
                   </p>
                 </>
               )}
