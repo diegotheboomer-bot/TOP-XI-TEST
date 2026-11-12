@@ -386,7 +386,7 @@ export async function connectTikTok(): Promise<void> {
 
 /**
  * Cash out: send what's ready (approved and past the tier's hold) to the clipper's payout
- * method now, minus the 2% fee and Stripe's payout charge. The tier sets how often.
+ * method now, minus the 5% fee and Stripe's payout charge. The tier sets how often.
  */
 export async function cashOut(amount?: number): Promise<ActionState> {
   if (isDemo) return { success: 'Cashed out (demo).' };

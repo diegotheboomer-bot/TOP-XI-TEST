@@ -12,7 +12,7 @@ const STEP = 1_000;
 const compact = (n: number) => (n >= 1_000_000 ? '1M' : n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));
 
 const POINTS = [
-  'Free to join. Just 2% plus Stripe’s payout fee when you cash out.',
+  'Free to join. Just 5% plus Stripe’s payout fee when you cash out.',
   'No follower minimum. Views are what count.',
   'Rate and cap shown before you join.',
   'Post on TikTok, YouTube Shorts or Instagram Reels.',

@@ -38,7 +38,7 @@ export const CLIPPER_ACCOUNT_DEFAULTS = {
   },
 };
 
-/** Charged to streamers on top of the budget they fund. (Clippers pay 2% plus Stripe's payout fee on cash-outs; see tiers.ts and payout-costs.ts.) */
+/** Charged to streamers on top of the budget they fund. (Clippers pay 5% plus Stripe's payout fee on cash-outs; see tiers.ts and payout-costs.ts.) */
 export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 9);
 
 /** Whether Atlas has already paid this connected account this month (so Stripe's monthly fee is covered). */

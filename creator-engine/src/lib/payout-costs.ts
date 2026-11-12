@@ -1,7 +1,7 @@
 // Stripe's charges for paying a clipper, passed on to the clipper at cash-out.
 // Stripe (Portugal, "you handle pricing"): €0.10 + 0.25% per payout to a bank, and €2 for
 // each connected account paid in a month. Shown in dollars with a little room for the
-// exchange rate, so Atlas doesn't pay them out of its 2%.
+// exchange rate, so Atlas doesn't pay them out of its 5%.
 export const STRIPE_PAYOUT_PCT = 0.25;
 export const STRIPE_PAYOUT_FIXED = 0.15;
 export const STRIPE_MONTHLY = 2.4;

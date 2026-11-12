@@ -85,7 +85,7 @@ export default async function InvitePage() {
         <div className="mt-6 rounded-2xl bg-brand-a/10 p-4 ring-1 ring-inset ring-brand-a/30 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[rgb(var(--brand-ta))]">Example</p>
           <p className="mt-1 text-sm leading-relaxed sm:text-base">
-            Invite <b>10 friends</b>. Each cashes out <b>$500</b> in their first {REFERRAL_DAYS} days. That’s <b className="text-brand">$100 for you</b>, from one link you shared once. Invite 50 and it’s $500.
+            Invite <b>10 friends</b>. Each cashes out <b>$500</b> in their first {REFERRAL_DAYS} days. That’s <b className="text-brand">{usd(10 * 500 * FEE / 100)} for you</b>, from one link you shared once. Invite 50 and it’s {usd(50 * 500 * FEE / 100)}.
           </p>
           <p className="mt-1 text-xs text-zinc-500">An example of the math, not a promise: what you earn depends on what your friends cash out.</p>
         </div>

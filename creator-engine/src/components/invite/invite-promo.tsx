@@ -42,7 +42,7 @@ export function InvitePromo({ link }: { link: string }) {
           Make money while you sleep.
         </h2>
         <p className="relative mt-2 text-zinc-500">
-          Invite a friend. Every time they cash out in their first 90 days, <span className="font-semibold text-zinc-900">their 2% fee goes to you</span>. It costs them nothing extra.
+          Invite a friend. Every time they cash out in their first 90 days, <span className="font-semibold text-zinc-900">their 5% fee goes to you</span>. It costs them nothing extra.
         </p>
         <ul className="relative mt-4 grid grid-cols-3 gap-1.5 text-center text-[11px] text-zinc-500">
           {[

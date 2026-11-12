@@ -31,14 +31,14 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 
 ## Key places
 - Money: `src/lib/pay-clip.ts` (payouts), `src/actions/creator.ts` (`cashOut`), `src/lib/tiers.ts` (fees by tier).
-- Fees: clippers pay a flat 2% on cash-out (`feePct: 2` in `src/lib/tiers.ts`); all Atlas margin comes from that.
+- Fees: clippers pay a flat 5% on cash-out (`feePct: 5` in `src/lib/tiers.ts`); all Atlas margin comes from that.
   Businesses pay only Stripe's exact cost for their card (`NO_SERVICE_FEE=true` on Render), grossed up so the campaign
   gets the full budget: `src/lib/card-fees.ts`, priced from a Stripe ConfirmationToken in `quoteDeposit`/`createDepositIntent`
   (`src/actions/brand.ts`). `STRIPE_FX_PERCENT` (default 2) = conversion fee; set 1 if USD settlement is on in Stripe.
   Tiers mean faster pay, more cash-outs, gated campaigns.
 - Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. Page `/clipper/invite` (Invite & earn: pitch,
   how it works, who joined with Active/days left, no per-person money); Earnings strip and one-time home popup (`components/invite/*`). For an invited clipper's first 90 days
-  their 2% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
+  their 5% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
 - Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper
   (`src/lib/payout-costs.ts`: 0.25% + $0.15, plus $2.40 on the first Stripe payout of the month, covering Stripe's
   €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.

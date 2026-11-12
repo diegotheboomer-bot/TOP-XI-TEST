@@ -60,7 +60,7 @@ export async function sendCashOut(
   for (const s of ready) {
     if (remaining < 0.01) break;
     const take = Math.min(s.owed, remaining);
-    // Stripe's charge rides on the first clip that can carry it on top of the 2% fee.
+    // Stripe's charge rides on the first clip that can carry it on top of the 5% fee.
     const carry = cost > 0 && take * (1 - perks.feePct / 100) > cost + 0.01 ? cost : 0;
     const r = await payClip(admin, s.id, 0.01, take, carry);
     if (r.ok) {

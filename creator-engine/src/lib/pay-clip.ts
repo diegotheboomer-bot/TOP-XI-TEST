@@ -47,7 +47,7 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   const gross = maxGross == null ? owed : Math.min(owed, Math.floor(maxGross * 100) / 100);
   if (gross < minimum) return { ok: false, error: 'Nothing to pay out yet.' };
 
-  // The platform's fee depends on the clipper's tier (2%, see tiers.ts).
+  // The platform's fee depends on the clipper's tier (5%, see tiers.ts).
   const tier = await clipperTier(admin, sub.creator_id as string);
   const fee = payoutFee(gross, tier);
   if (fee + stripeCost >= gross) return { ok: false, error: 'Amount is too small to pay out.' };
@@ -91,7 +91,7 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
 
   // 4. Ledger + close out once the cap is fully paid.
   await admin.from('escrow_ledger').insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'creator_payout', amount: gross, stripe_object_id: externalId });
-  // Kept by the platform: the 2% fee plus Stripe's payout charge, which the platform pays Stripe.
+  // Kept by the platform: the 5% fee plus Stripe's payout charge, which the platform pays Stripe.
   if (fee + stripeCost > 0) await admin.from('escrow_ledger').insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'platform_fee', amount: Math.round((fee + stripeCost) * 100) / 100, stripe_object_id: externalId });
   // Invited in the last 90 days: the fee goes to whoever invited them.
   await creditReferral(admin, { creatorId: sub.creator_id as string, submissionId: sub.id as string, fee, sourceRef: externalId });

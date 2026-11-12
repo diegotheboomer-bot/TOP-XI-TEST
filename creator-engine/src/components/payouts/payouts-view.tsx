@@ -145,7 +145,7 @@ export function PayoutsView({
         )}
       </Card>
       <Card className="space-y-4 text-sm lg:sticky lg:top-6">
-        <Point title="Fees" body="A flat 2% at every tier, plus Stripe’s payout fee: 0.25% + $0.15, and $2.40 on the first cash-out each month. Both are shown before you confirm. Cash out from $5." />
+        <Point title="Fees" body="A flat 5% at every tier, plus Stripe’s payout fee: 0.25% + $0.15, and $2.40 on the first cash-out each month. Both are shown before you confirm. Cash out from $5." />
         <Point title="Bank account" body="Stripe checks who you are once: name, date of birth, address and your bank details. Sometimes a photo of your ID." />
         {methods.includes('paypal') && <Point title="PayPal or Venmo" body="We only need your email or mobile number. Payouts nobody claims come back after 30 days." />}
       </Card>
