@@ -3,7 +3,7 @@ import { selectAll } from './fetch-all';
 import { payClip } from './pay-clip';
 import { MIN_CASHOUT, cashoutReady } from './payout-rules';
 import { stripePayoutCost } from './payout-costs';
-import { paidThisMonth } from './stripe';
+import { paidThisMonth, stripeOwnsPricing } from './stripe';
 import { TIER_PERKS, type Tier } from './tiers';
 
 export type CashOutResult = { sent: number; gross: number; fee: number; stripeCost: number; errors: string[] };
@@ -16,6 +16,8 @@ export async function stripeCostFor(admin: SupabaseClient, creatorId: string): P
   ]);
   const viaStripe = (m?.method ?? 'stripe') === 'stripe' && !!c?.stripe_account_id;
   if (!viaStripe) return { viaStripe, firstThisMonth: false };
+  // Stripe-owned pricing: Stripe charges Atlas no payout fees for this account, so none are passed on.
+  if (await stripeOwnsPricing(c!.stripe_account_id as string).catch(() => false)) return { viaStripe: false, firstThisMonth: false };
   // If Stripe can't be asked, assume the monthly fee is due rather than leave Atlas paying it.
   const paid = await paidThisMonth(c!.stripe_account_id as string).catch(() => false);
   return { viaStripe, firstThisMonth: !paid };

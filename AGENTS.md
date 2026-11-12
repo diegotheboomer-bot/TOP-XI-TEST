@@ -71,8 +71,10 @@ Discover search/filters, phone layout pass, animated front page.
   - Turn on **USD settlement** in Stripe (≈1% instead of 2% conversion twice) and set `STRIPE_FX_PERCENT=1`.
   - Clipper payout accounts are created without `country`; country is immutable. Check in test mode and ask the clipper's country.
   - Cross-border 0.25% for non-EEA clippers isn't passed on in `payout-costs.ts` yet.
-  - Stripe preview API `2026-06-24.preview` allows Express accounts with `fees.payer = account` (Stripe-owned pricing,
-    no €2/active account for the platform). Untested; unclear for separate charges and transfers. Needs a Stripe test key.
+  - New clipper payout accounts try Stripe-owned pricing first (`createClipperAccount` in `src/lib/stripe.ts`:
+    `fees.payer = account`, `losses = stripe`; Stripe docs: no Connect fees for the platform or the account), falling back
+    to the old setup if Stripe refuses (logged as "Stripe-owned pricing account refused"). Accounts on Stripe-owned pricing get
+    no Stripe payout fee passed on at cash-out. Not yet verified with a real account. `STRIPE_OWNED_PRICING=false` turns it off.
   - Later, with revenue: a US entity + US Stripe account (US cards 2.9% + 30¢, ACH 0.8% capped $5, no FX for US users).
   - Referral ideas discussed, not built: "bring a business" reward (first access to that campaign, Connector badge,
     Discord role); count an invite only after the invitee's first approved clip; pay invite rewards as a fee discount.

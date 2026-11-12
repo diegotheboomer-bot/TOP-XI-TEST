@@ -41,6 +41,35 @@ export const CLIPPER_ACCOUNT_DEFAULTS = {
 /** Charged to streamers on top of the budget they fund. (Clippers pay 5% plus Stripe's payout fee on cash-outs; see tiers.ts and payout-costs.ts.) */
 export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 9);
 
+/**
+ * A clipper's payout account. First try Stripe-owned pricing (fees.payer = account,
+ * losses = stripe): Stripe then charges no Connect fees at all, so no €2 per active account
+ * and no per-payout fee for Atlas (docs.stripe.com/connect/direct-charges-fee-payer-behavior).
+ * Express accounts got this in Stripe's 2026-06-24 preview, so it's tried with the SDK's
+ * version, then that preview version. If Stripe refuses both, the account is created the old
+ * way (Atlas pays Connect fees, passed on at cash-out). STRIPE_OWNED_PRICING=false skips it.
+ */
+export async function createClipperAccount(creatorId: string): Promise<Stripe.Account> {
+  const base = { capabilities: { transfers: { requested: true } }, ...CLIPPER_ACCOUNT_DEFAULTS, metadata: { creator_id: creatorId } };
+  if (process.env.STRIPE_OWNED_PRICING?.trim() !== 'false') {
+    const params = { ...base, controller: { fees: { payer: 'account' as const }, losses: { payments: 'stripe' as const }, stripe_dashboard: { type: 'express' as const } } };
+    for (const apiVersion of [undefined, '2026-06-24.preview']) {
+      try {
+        return await stripe().accounts.create(params, apiVersion ? { apiVersion } : undefined);
+      } catch (err) {
+        console.warn(`Stripe-owned pricing account refused${apiVersion ? ` (${apiVersion})` : ''}:`, err instanceof Error ? err.message : err);
+      }
+    }
+  }
+  return stripe().accounts.create({ ...base, controller: { fees: { payer: 'application' }, losses: { payments: 'application' }, stripe_dashboard: { type: 'express' } } });
+}
+
+/** True when Stripe bills this account directly, so Atlas pays (and passes on) no payout fees. */
+export async function stripeOwnsPricing(accountId: string): Promise<boolean> {
+  const a = await stripe().accounts.retrieve(accountId);
+  return a.controller?.fees?.payer === 'account';
+}
+
 /** Whether Atlas has already paid this connected account this month (so Stripe's monthly fee is covered). */
 export async function paidThisMonth(accountId: string): Promise<boolean> {
   const list = await stripe().transfers.list({ destination: accountId, created: { gte: Math.floor(monthStart().getTime() / 1000) }, limit: 1 });

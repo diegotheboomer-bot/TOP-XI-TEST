@@ -16,7 +16,7 @@ import { hasDisclosure } from '@/lib/compliance';
 import { getYouTubeChannel, getYouTubeVideos, parseChannelInput } from '@/lib/platforms/youtube';
 import { youtubeVerifyCode } from '@/lib/youtube-verify';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
-import { stripe, CLIPPER_ACCOUNT_DEFAULTS } from '@/lib/stripe';
+import { stripe, createClipperAccount } from '@/lib/stripe';
 import { paypalConfigured } from '@/lib/paypal';
 import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
@@ -268,16 +268,7 @@ async function payoutAccount(creatorId: string): Promise<string> {
   const admin = createAdminClient();
   const { data: creator } = await admin.from('creators').select('stripe_account_id').eq('id', creatorId).single();
   if (creator?.stripe_account_id) return creator.stripe_account_id as string;
-  const account = await stripe().accounts.create({
-    controller: {
-      fees: { payer: 'application' },
-      losses: { payments: 'application' },
-      stripe_dashboard: { type: 'express' },
-    },
-    capabilities: { transfers: { requested: true } },
-    ...CLIPPER_ACCOUNT_DEFAULTS,
-    metadata: { creator_id: creatorId },
-  });
+  const account = await createClipperAccount(creatorId);
   await admin.from('creators').update({ stripe_account_id: account.id }).eq('id', creatorId);
   return account.id;
 }

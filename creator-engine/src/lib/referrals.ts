@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { stripe } from './stripe';
 import { MIN_CASHOUT } from './payout-rules';
 import { stripePayoutCost } from './payout-costs';
-import { paidThisMonth } from './stripe';
+import { paidThisMonth, stripeOwnsPricing } from './stripe';
 
 export const REFERRAL_DAYS = 90;
 export const REFERRAL_COOKIE = 'atlas_ref';
@@ -58,8 +58,10 @@ export async function payReferralEarnings(admin: SupabaseClient, referrerId: str
   const total = Math.round(rows.reduce((n, r) => n + Number(r.amount), 0) * 100) / 100;
   try {
     // Stripe's payout charge comes off, as on any cash-out.
-    const first = !(await paidThisMonth(who.stripe_account_id as string).catch(() => false));
-    const send = Math.round((total - stripePayoutCost(total, first)) * 100) / 100;
+    const acct = who.stripe_account_id as string;
+    const free = await stripeOwnsPricing(acct).catch(() => false);
+    const first = !free && !(await paidThisMonth(acct).catch(() => false));
+    const send = free ? total : Math.round((total - stripePayoutCost(total, first)) * 100) / 100;
     if (send <= 0) throw new Error('too small');
     const transfer = await stripe().transfers.create(
       { amount: Math.round(send * 100), currency: 'usd', destination: who.stripe_account_id as string, metadata: { kind: 'referral', referrer_id: referrerId, earned: String(total) } },
