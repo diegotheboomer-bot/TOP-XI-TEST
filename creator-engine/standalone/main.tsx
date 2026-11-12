@@ -32,7 +32,6 @@ import { Landing } from '@/components/landing';
 import { CopyField } from '@/components/copy-button';
 import { trackingLink } from '@/lib/attribution';
 import { RolePicker } from '@/components/role-picker';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Logo } from '@/components/logo';
 import { EarningsEstimator } from '@/components/estimator';
 import { CampaignFormBody } from '@/components/forms/campaign-form-body';
@@ -251,7 +250,6 @@ function App() {
         demo
         footer={
           <div className="flex gap-1 lg:block lg:space-y-0.5">
-            <ThemeToggle className="lg:w-full" labelClassName="hidden lg:inline" />
             <a href={other === 'streamer' ? '#brand' : '#creator'} className={footerItem}>
               <ArrowLeftRight /> <span className="hidden lg:inline">Switch to {other} view</span>
             </a>
@@ -282,7 +280,6 @@ function LandingHeader() {
           <Logo />
         </a>
         <nav className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm">
-          <ThemeToggle labelled={false} />
           <a href="#start" className={buttonClass('primary', 'sm')}>
             Get started
           </a>
