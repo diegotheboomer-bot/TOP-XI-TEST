@@ -11,10 +11,13 @@ import { FormMessage } from '../form-message';
 import { SubmitButton } from '../submit-button';
 import { Field, Input } from '../ui/field';
 import { cn } from '../ui/cn';
+import { OAuthButtons, type OAuthProvider } from './oauth-buttons';
 
-export function SignInForm() {
+export function SignInForm({ providers = [] }: { providers?: OAuthProvider[] }) {
   const [state, action] = useFormState(signIn, undefined);
   return (
+    <div className="space-y-4">
+    <OAuthButtons providers={providers} />
     <form action={action} className="space-y-4">
       <Field label="Email">
         <Input name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
@@ -35,6 +38,7 @@ export function SignInForm() {
         </Link>
       </div>
     </form>
+    </div>
   );
 }
 
@@ -115,14 +119,18 @@ function RoleCards({ role, onChange }: { role: Role; onChange: (r: Role) => void
 }
 
 /** Sign up: pick a side, name, email, password, then the 6-digit code from the email. */
-export function SignUpForm({ defaultRole = 'brand' }: { defaultRole?: Role }) {
+export function SignUpForm({ defaultRole = 'brand', providers = [] }: { defaultRole?: Role; providers?: OAuthProvider[] }) {
   const [state, action] = useFormState(signUp, undefined);
   const [role, setRole] = useState<Role>(defaultRole);
   const [email, setEmail] = useState('');
   if (state?.success) return <CodeStep email={email} kind="signup" />;
   return (
+    <div className="space-y-4">
+    {/* Pick a side first, so Google / Apple sign-up knows it too */}
+    <RoleCards role={role} onChange={setRole} />
+    <OAuthButtons providers={providers} role={role} />
     <form action={action} className="space-y-4">
-      <RoleCards role={role} onChange={setRole} />
+      <input type="hidden" name="role" value={role} />
       <Field label={role === 'creator' ? 'Display name' : role === 'agency' ? 'Agency name' : 'Name or brand'}>
         <Input name="name" required minLength={2} autoComplete="nickname" placeholder={role === 'creator' ? 'Rae' : role === 'agency' ? 'Reach Clipping' : 'Marlow Kade'} />
       </Field>
@@ -143,6 +151,7 @@ export function SignUpForm({ defaultRole = 'brand' }: { defaultRole?: Role }) {
         </Link>
       </p>
     </form>
+    </div>
   );
 }
 

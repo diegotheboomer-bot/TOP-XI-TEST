@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AuthShell } from '@/components/auth-shell';
 import { SignUpForm } from '@/components/forms/account-forms';
+import { enabledProviders } from '@/components/forms/oauth-buttons';
 import { isDemo } from '@/lib/env';
 import { getViewer } from '@/lib/session';
 
@@ -11,7 +12,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: { rol
   if (await getViewer()) redirect('/onboarding');
   return (
     <AuthShell title="Create your account" subtitle="Takes a minute. We’ll email you a code to confirm." wide>
-      <SignUpForm defaultRole={searchParams.role === 'creator' ? 'creator' : searchParams.role === 'agency' ? 'agency' : 'brand'} />
+      <SignUpForm providers={enabledProviders()} defaultRole={searchParams.role === 'creator' ? 'creator' : searchParams.role === 'agency' ? 'agency' : 'brand'} />
     </AuthShell>
   );
 }

@@ -21,12 +21,15 @@ export default async function OnboardingPage({ searchParams }: { searchParams: {
   // Signed up with a side and name already picked: create the profile and go straight in.
   const { data } = await createClient().auth.getUser();
   const meta = data.user?.user_metadata ?? {};
-  const name = typeof meta.name === 'string' ? meta.name.trim().slice(0, 120) : '';
-  if ((meta.role === 'brand' || meta.role === 'agency' || meta.role === 'creator') && name.length >= 2) {
+  const rawName = typeof meta.name === 'string' ? meta.name : typeof meta.full_name === 'string' ? meta.full_name : '';
+  const name = rawName.trim().slice(0, 120);
+  // Email sign-up stores the side in metadata; Google / Apple sign-up passes it in the URL.
+  const side = ['brand', 'agency', 'creator'].includes(meta.role) ? meta.role : ['brand', 'agency', 'creator'].includes(searchParams.role ?? '') ? searchParams.role : undefined;
+  if (side && name.length >= 2) {
     const admin = createAdminClient();
     const { error } =
-      meta.role !== 'creator'
-        ? await admin.from('brands').insert({ owner_id: viewer.userId, name, kind: meta.role === 'agency' ? 'agency' : 'streamer' })
+      side !== 'creator'
+        ? await admin.from('brands').insert({ owner_id: viewer.userId, name, kind: side === 'agency' ? 'agency' : 'streamer' })
         : await admin.from('creators').insert({ user_id: viewer.userId, display_name: name, referred_by: await referrerFor(admin, cookies().get(REFERRAL_COOKIE)?.value) });
     if (!error || error.code === '23505') redirect('/welcome');
   }

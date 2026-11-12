@@ -188,6 +188,18 @@ export async function createProfile(_prev: ActionState, form: FormData): Promise
   redirect('/welcome');
 }
 
+/** "Continue with Google / Apple": Supabase sends them to the provider and back to /auth/callback. */
+export async function oauthSignIn(form: FormData): Promise<void> {
+  if (isDemo) redirect('/');
+  const provider = form.get('provider') === 'apple' ? 'apple' : 'google';
+  const role = Role.safeParse(form.get('role'));
+  const next = new URL(`${appUrl()}/auth/callback`);
+  if (role.success) next.searchParams.set('role', role.data);
+  const { data, error } = await createClient().auth.signInWithOAuth({ provider, options: { redirectTo: next.toString() } });
+  if (error || !data.url) redirect('/login?error=oauth');
+  redirect(data.url);
+}
+
 export async function resetDemoData() {
   if (isDemo) resetDemo();
   redirect('/streamer');
