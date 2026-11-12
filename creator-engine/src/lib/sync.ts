@@ -11,6 +11,7 @@ import { getInstagramAccessToken, getTikTokAccessToken } from './tokens';
 import { queryInstagramReels } from './platforms/instagram';
 import type { Submission } from './types';
 import { payClip } from './pay-clip';
+import { payAllReferralEarnings } from './referrals';
 import { MIN_AUTO_PAYOUT, autoPayoutDue } from './payout-rules';
 import { clipperRecords } from './clipper-records';
 import { TIER_PERKS, tierFor } from './tiers';
@@ -100,6 +101,7 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
   }
   await recomputePools(admin, [...new Set(all.filter((s) => s.campaigns.payout_model === 'pool').map((s) => s.campaign_id))]);
   await runAutoPayouts(admin, report);
+  await payAllReferralEarnings(admin).catch(() => 0);
   return report;
 }
 

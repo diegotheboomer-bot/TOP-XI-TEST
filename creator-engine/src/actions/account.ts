@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resetDemo } from '@/lib/demo';
 import { DEMO_ERROR, type ActionState } from './result';
+import { REFERRAL_COOKIE, referrerFor } from '@/lib/referrals';
 
 const Email = z.string().trim().toLowerCase().email('Enter a valid email address.');
 const Password = z.string().min(8, 'Use at least 8 characters for your password.').max(72);
@@ -182,7 +183,7 @@ export async function createProfile(_prev: ActionState, form: FormData): Promise
   const { error } =
     input.data.role !== 'creator'
       ? await admin.from('brands').insert({ owner_id: data.user.id, name: input.data.name, kind: input.data.role === 'agency' ? 'agency' : 'streamer' })
-      : await admin.from('creators').insert({ user_id: data.user.id, display_name: input.data.name });
+      : await admin.from('creators').insert({ user_id: data.user.id, display_name: input.data.name, referred_by: await referrerFor(admin, cookies().get(REFERRAL_COOKIE)?.value) });
   if (error && error.code !== '23505') return { error: error.message };
   redirect('/welcome');
 }

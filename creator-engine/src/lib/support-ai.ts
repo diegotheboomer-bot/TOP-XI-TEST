@@ -29,6 +29,7 @@ Facts you can rely on:
 - Clipper tiers:
 ${tiers}
 - Payouts go to a bank account (IBAN) through Stripe; debit card only where Stripe supports it. First payout to a new account can take up to about 7 days, then usually 2-3 business days. No separate Stripe account is needed; the payout form creates one.
+- Clippers pay a flat 2% fee on each cash-out. Every clipper has an invite link on the Earnings page: when someone joins with it, that person's 2% fee goes to the inviter for their first 90 days (it doesn't cost the new clipper anything extra).
 - Unspent budget is refunded to the original card when a campaign is cancelled; card processing fees are not refundable.
 - Clips are checked against the clipper's own connected account and must be posted after joining the campaign. Bot-like views or duplicates are flagged.
 - FAQ:

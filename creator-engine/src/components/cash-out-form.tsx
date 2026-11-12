@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { cashOut } from '@/actions/creator';
 import type { ActionState } from '@/actions/result';
 import { cn } from './ui/cn';
-import { TierBadge } from './tier-badge';
 import { TIER_LABEL, TIER_PERKS, type Tier } from '@/lib/tiers';
 
 const cents = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -58,7 +57,7 @@ export function CashOutForm({ balance, feePct }: { balance: number; feePct: numb
         </div>
         {feePct > 0 && (
           <div className="flex justify-between">
-            <dt className="text-zinc-500">{feePct}% tier fee</dt>
+            <dt className="text-zinc-500">{feePct}% cash-out fee</dt>
             <dd className="tabular-nums">−{cents(fee)}</dd>
           </div>
         )}
@@ -152,7 +151,7 @@ export function OneTapCashOut({
           </div>
           <div className="flex items-center justify-between gap-2">
             <dt className="flex items-center gap-1.5 text-zinc-500">
-              Platform fee {feePct > 0 && <><TierBadge tier={tier} /> {feePct}%</>}
+              Cash-out fee {feePct > 0 && `${feePct}%`}
             </dt>
             <dd className="tabular-nums">{fee > 0 ? `−${cents(fee)}` : 'None'}</dd>
           </div>

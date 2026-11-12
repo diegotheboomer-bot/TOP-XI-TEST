@@ -38,5 +38,5 @@ export const CLIPPER_ACCOUNT_DEFAULTS = {
   },
 };
 
-/** Charged to streamers on top of the budget they fund. (Clipper payout fees are in tiers.ts; 0% at launch.) */
+/** Charged to streamers on top of the budget they fund. (Clippers pay a flat 2% on payouts; see tiers.ts.) */
 export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 9);

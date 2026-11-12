@@ -387,7 +387,7 @@ export async function connectTikTok(): Promise<void> {
 
 /**
  * Cash out: send everything that's ready (approved and past the tier's hold) to the
- * clipper's payout method now. The tier sets the fee (0% at launch) and
+ * clipper's payout method now. The fee is a flat 2% and the tier sets
  * how many cash-outs a week are allowed.
  */
 export async function cashOut(amount?: number): Promise<ActionState> {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BadgePercent, Check, Crown, CircleCheck, Eye, Layers, ShieldCheck, Sparkles, Target, Wallet, Zap } from 'lucide-react';
+import { Check, Crown, CircleCheck, Eye, Layers, ShieldCheck, Sparkles, Target, Wallet, Zap } from 'lucide-react';
 import { TIERS, TIER_LABEL, TIER_PERKS, TIER_RULES, approvalRate, compactViews, holdLabel, tierRank, tierFor, type ClipperRecord, type Tier } from '@/lib/tiers';
 import { Dialog } from './ui/dialog';
 import { MAJESTY_RIM } from './tier-badge';
@@ -77,7 +77,6 @@ export function TierGuideButton({ record, children, className }: { record?: Clip
                   <div>
                     <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-400">Perks</p>
                     <ul className="space-y-1.5">
-                      {perks.feePct > 0 && <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={BadgePercent} text={`${perks.feePct}% payout fee`} />}
                       <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={Zap} text={`Paid ${holdLabel(perks.holdHours)} after approval`} />
                       <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={Wallet} text={perks.cashoutsPerWeek === Infinity ? 'Unlimited cash-outs' : `${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} a week`} />
                       {t !== 'silver' && <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={Sparkles} text={`${TIER_LABEL[t]}-only campaigns, reviewed first`} />}

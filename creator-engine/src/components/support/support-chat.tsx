@@ -71,7 +71,7 @@ export function SupportChat({ audience = 'clipper' }: { audience?: 'clipper' | '
     setOptions([]);
     if (isTierQuestion(q)) {
       // Answered locally: same graphic every time, no AI call.
-      setTurns([...next, { role: 'assistant', text: 'Clippers move up tiers automatically from verified views, approved clips and approval rate. There are no fees at any tier; higher tiers get paid sooner:', graphic: 'tiers' }]);
+      setTurns([...next, { role: 'assistant', text: 'Clippers move up tiers automatically from verified views, approved clips and approval rate. Every tier pays the same 2% cash-out fee; higher tiers get paid sooner and cash out more often:', graphic: 'tiers' }]);
       setOptions(['How do I cash out?', 'Where is my money?']);
       return;
     }

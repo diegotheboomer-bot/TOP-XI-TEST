@@ -56,9 +56,9 @@ describe('automatic payouts (demo)', () => {
 });
 
 describe('cash-outs', () => {
-  it('takes no fee from payouts at launch', () => {
-    for (const t of ['silver', 'gold', 'platinum', 'diamond', 'majesty'] as const) expect(payoutFee(100, t)).toBe(0);
-    expect(payoutFee(12.34, 'silver')).toBe(0);
+  it('takes a flat 2% from each payout', () => {
+    for (const t of ['silver', 'gold', 'platinum', 'diamond', 'majesty'] as const) expect(payoutFee(100, t)).toBe(2);
+    expect(payoutFee(12.34, 'silver')).toBe(0.25);
   });
   it('pays higher tiers sooner', () => {
     const now = Date.parse('2026-11-10T12:00:00Z');

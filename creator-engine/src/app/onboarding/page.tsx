@@ -1,4 +1,6 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { REFERRAL_COOKIE, referrerFor } from '@/lib/referrals';
 import { Logo } from '@/components/site-header';
 import { Card } from '@/components/ui/card';
 import { OnboardingForm } from '@/components/forms/account-forms';
@@ -25,7 +27,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: {
     const { error } =
       meta.role !== 'creator'
         ? await admin.from('brands').insert({ owner_id: viewer.userId, name, kind: meta.role === 'agency' ? 'agency' : 'streamer' })
-        : await admin.from('creators').insert({ user_id: viewer.userId, display_name: name });
+        : await admin.from('creators').insert({ user_id: viewer.userId, display_name: name, referred_by: await referrerFor(admin, cookies().get(REFERRAL_COOKIE)?.value) });
     if (!error || error.code === '23505') redirect('/welcome');
   }
   return (

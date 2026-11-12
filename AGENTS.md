@@ -18,7 +18,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 
 ## Workflow rules (agreed with the owner)
 - Develop and push on branch `claude/kind-galileo-egdt9r`. No pull requests unless asked.
-- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0024_…`).
+- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0025_…`).
   The owner runs the SQL in the Supabase SQL Editor. **Don't push code that needs a new column
   until the owner confirms the SQL ran**, or the live site breaks.
 - Never commit secrets. Env vars live in Render (Stripe, Supabase, Discord, Gemini, TikTok, YouTube).
@@ -31,8 +31,10 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 
 ## Key places
 - Money: `src/lib/pay-clip.ts` (payouts), `src/actions/creator.ts` (`cashOut`), `src/lib/tiers.ts` (fees by tier).
-- Fees at launch: clippers pay 0% (all tiers `feePct: 0` in `src/lib/tiers.ts`); businesses pay only Stripe card processing
-  (`NO_SERVICE_FEE=true` on Render). Tiers now mean faster pay, more cash-outs, gated campaigns.
+- Fees: clippers pay a flat 2% on cash-out (`feePct: 2` in `src/lib/tiers.ts`); businesses pay only Stripe card processing
+  (`NO_SERVICE_FEE=true` on Render). Tiers mean faster pay, more cash-outs, gated campaigns.
+- Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. For an invited clipper's first 90 days
+  their 2% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
 - Founders: first 100 real clippers get `creators.founder_number` (trigger, migration 0022). Emerald badge + card.
 - Data loading: `src/lib/data.ts`. Server actions: `src/actions/*`.
 - Front page: `src/components/landing.tsx`, `landing-fx.tsx`, `views-chart-hero.tsx`.

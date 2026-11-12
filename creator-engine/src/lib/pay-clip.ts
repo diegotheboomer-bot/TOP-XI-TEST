@@ -6,6 +6,7 @@ import { stripe } from './stripe';
 import { sendPayPalPayout, paypalConfigured } from './paypal';
 import { PAYOUT_METHOD_LABEL, payoutReady, type PayoutMethod } from './payout-methods';
 import { usdCents } from './format';
+import { creditReferral } from './referrals';
 
 export type PayResult = { ok: true; gross: number; via: string; campaignId: string } | { ok: false; error: string };
 
@@ -45,7 +46,7 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   const gross = maxGross == null ? owed : Math.min(owed, Math.floor(maxGross * 100) / 100);
   if (gross < minimum) return { ok: false, error: 'Nothing to pay out yet.' };
 
-  // The platform's fee depends on the clipper's tier (0% at launch, see tiers.ts).
+  // The platform's fee depends on the clipper's tier (2%, see tiers.ts).
   const tier = await clipperTier(admin, sub.creator_id as string);
   const fee = payoutFee(gross, tier);
   if (fee >= gross) return { ok: false, error: 'Amount is too small to pay out.' };
@@ -90,6 +91,8 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   // 4. Ledger + close out once the cap is fully paid.
   await admin.from('escrow_ledger').insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'creator_payout', amount: gross, stripe_object_id: externalId });
   if (fee > 0) await admin.from('escrow_ledger').insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'platform_fee', amount: fee, stripe_object_id: externalId });
+  // Invited in the last 90 days: the fee goes to whoever invited them.
+  await creditReferral(admin, { creatorId: sub.creator_id as string, submissionId: sub.id as string, fee, sourceRef: externalId });
   if (after >= Number((sub.campaigns as unknown as { cpm_cap: number }).cpm_cap)) {
     await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
   }

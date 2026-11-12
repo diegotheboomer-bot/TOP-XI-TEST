@@ -170,7 +170,7 @@ export function Spark({ points }: { points: number[] }) {
   );
 }
 
-export function EarningsView({ d }: { d: CreatorDashboard }) {
+export function EarningsView({ d, extra }: { d: CreatorDashboard; extra?: React.ReactNode }) {
   const rows = rowsOf(d);
   const earned = rows.reduce((n, r) => n + r.sub.payout_earned, 0);
   const paid = rows.reduce((n, r) => n + r.sub.payout_transferred, 0);
@@ -258,6 +258,7 @@ export function EarningsView({ d }: { d: CreatorDashboard }) {
           </span>
         </Link>
       </div>
+      {extra}
       <ByCampaign rows={rows} />
     </div>
   );

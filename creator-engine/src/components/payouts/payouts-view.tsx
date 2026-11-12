@@ -145,7 +145,7 @@ export function PayoutsView({
         )}
       </Card>
       <Card className="space-y-4 text-sm lg:sticky lg:top-6">
-        <Point title="No fees" body="You keep 100% of what you earn. We cover the transfer costs." />
+        <Point title="Just 2%" body="A flat 2% comes off each cash-out, at every tier. We cover the transfer costs." />
         <Point title="Bank account" body="Stripe checks who you are once: name, date of birth, address and your bank details. Sometimes a photo of your ID." />
         {methods.includes('paypal') && <Point title="PayPal or Venmo" body="We only need your email or mobile number. Payouts nobody claims come back after 30 days." />}
       </Card>

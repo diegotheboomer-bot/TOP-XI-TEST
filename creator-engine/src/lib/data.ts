@@ -4,7 +4,8 @@ import { youtubeVerifyCode } from './youtube-verify';
 import { clipperRecords as loadRecords } from './clipper-records';
 import { selectAll, selectAllIn } from './fetch-all';
 import { approvalRate, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
-import { isDemo } from './env';
+import { appUrl, isDemo } from './env';
+import { inReferralWindow } from './referrals';
 import { getViewer } from './session';
 import { createClient } from './supabase/server';
 import { createAdminClient } from './supabase/admin';
@@ -1041,4 +1042,35 @@ async function poolSharesFor(campaignId: string, me: string): Promise<{ mine: bo
   const total = [...by.values()].reduce((a, b) => a + b, 0);
   if (!total) return [];
   return [...by.entries()].map(([id, views]) => ({ mine: id === me, views, share: views / total })).sort((a, b) => b.views - a.views);
+}
+
+export interface ReferralSummary {
+  link: string;
+  /** Clippers who signed up with your link. */
+  invited: number;
+  /** Of those, still inside their first 90 days (their fee is yours). */
+  active: number;
+  earned: number;
+  paid: number;
+}
+
+/** The clipper's invite link and what it has earned them. */
+export async function getReferralSummary(): Promise<ReferralSummary | null> {
+  if (isDemo) return null;
+  const creatorId = await requireRole('creator');
+  const admin = createAdminClient();
+  const [{ data: me }, { data: invited }, { data: earnings }] = await Promise.all([
+    admin.from('creators').select('referral_code').eq('id', creatorId).single(),
+    selectAll(() => admin.from('creators').select('id, created_at').eq('referred_by', creatorId).order('id')),
+    selectAll(() => admin.from('referral_earnings').select('id, amount, paid_at').eq('referrer_id', creatorId).order('id')),
+  ]);
+  if (!me?.referral_code) return null;
+  const sum = (rows: { amount: unknown }[]) => Math.round(rows.reduce((n, r) => n + Number(r.amount), 0) * 100) / 100;
+  return {
+    link: `${appUrl().replace(/\/$/, '')}/r/${me.referral_code}`,
+    invited: invited.length,
+    active: invited.filter((c) => inReferralWindow(c.created_at as string)).length,
+    earned: sum(earnings),
+    paid: sum(earnings.filter((e) => e.paid_at)),
+  };
 }
