@@ -80,8 +80,9 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
               </div>
 
               {/* Pay, numbers and budget in one strip */}
-              <div className="relative -mx-4 -mb-4 mt-4 overflow-hidden rounded-b-2xl border-t border-brand-b/40 bg-white p-4 sm:-mx-6 sm:-mb-6 sm:p-5">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-28" style={{ background: 'radial-gradient(80% 100% at 0% 0%, rgb(var(--brand-a) / 0.22), transparent 70%)' }} />
+              <div className="relative -mx-4 -mb-4 mt-2 rounded-b-2xl p-4 sm:-mx-6 sm:-mb-6 sm:p-5">
+                {/* Soft green glow that fades in, no hard edge */}
+                <div aria-hidden className="pointer-events-none absolute -top-40 left-0 h-80 w-full" style={{ background: 'radial-gradient(60% 50% at 15% 50%, rgb(var(--brand-a) / 0.13), transparent 75%)' }} />
                 <p className="relative text-[11px] font-medium uppercase tracking-wider text-zinc-500">You earn</p>
                 <div className="relative mt-0.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <p className="flex items-baseline gap-1.5">
