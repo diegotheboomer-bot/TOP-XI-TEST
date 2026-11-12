@@ -1,5 +1,6 @@
 @import '../styles/tokens.css';
 @import '../styles/hero.css';
+@import '../styles/atlas-landing.css';
 
 @tailwind base;
 @tailwind components;
