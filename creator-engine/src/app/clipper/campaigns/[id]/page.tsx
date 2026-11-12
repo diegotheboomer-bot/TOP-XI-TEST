@@ -59,7 +59,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-6">
           {/* Hero: cover, who, what, and how busy it is. */}
           <section className="order-first overflow-hidden rounded-2xl lg:order-none lg:col-start-1 lg:row-start-1 border border-zinc-200/80 bg-white shadow-card">
-            <CampaignCover campaign={c} brandName={c.brandName} variant="card" showTitle={false} />
+            <CampaignCover campaign={c} brandName={c.brandName} variant="card" showTitle={false} className="max-sm:aspect-[2/1]" />
             <div className="p-4 sm:p-6">
               <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-600">
                 <StreamerAvatar name={c.brandName} src={c.brandAvatar} />
@@ -74,13 +74,58 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   </span>
                 ))}
               </div>
-              <h1 className="balance mt-3 text-xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
-              <PlatformChips platforms={c.platforms} className="mt-3" />
-              <dl className="mt-5 grid grid-cols-3 divide-x divide-zinc-100 rounded-xl border border-zinc-100 text-center">
-                <Fact icon={<Users className="size-4" />} label="Clippers" value={String(c.creators)} />
-                <Fact icon={<BadgeCheck className="size-4" />} label="Approved" value={String(d.approvedClips ?? 0)} />
-                <Fact icon={<Wallet className="size-4" />} label="Budget left" value={usdCompact(c.budget.available)} />
-              </dl>
+              <div className="mt-2 flex items-start justify-between gap-3">
+                <h1 className="balance min-w-0 text-xl font-semibold tracking-tight sm:text-3xl">{c.title}</h1>
+                <PlatformChips platforms={c.platforms} className="mt-1 hidden shrink-0 sm:flex" />
+              </div>
+
+              {/* Pay, numbers and budget in one strip */}
+              <div className="mt-4 rounded-xl border border-brand-b/30 bg-brand-a/5 p-3 sm:p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-semibold tabular-nums tracking-tight text-[rgb(var(--brand-ta))] sm:text-3xl">{r.rate}</span>
+                    <span className="text-sm text-zinc-500">{r.unit}</span>
+                  </p>
+                  {split.length > 0 && (
+                    <span className="flex gap-2 text-xs text-zinc-500">
+                      {split.map((p) => (
+                        <span key={p.platform} className="inline-flex items-center gap-1">
+                          <PlatformIcon platform={p.platform as Platform} className="size-3" />
+                          {usdCents(p.rate)}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </div>
+                <dl className="mt-3 grid grid-cols-4 gap-1 text-center">
+                  {(
+                    [
+                      ['Max / clip', c.payout_model === 'pool' ? '—' : usdCompact(c.cpm_cap)],
+                      ['Min payout', Number(c.min_payout) > 0 ? usd(Number(c.min_payout)) : 'None'],
+                      ['Clippers', String(c.creators)],
+                      ['Approved', String(d.approvedClips ?? 0)],
+                    ] as const
+                  ).map(([k, v]) => (
+                    <div key={k} className="rounded-lg bg-white px-1 py-2">
+                      <dd className="text-sm font-semibold tabular-nums sm:text-base">{v}</dd>
+                      <dt className="truncate text-[10px] text-zinc-500 sm:text-[11px]">{k}</dt>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-3">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                    <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(used, 1.5)}%` }} />
+                  </div>
+                  <p className="mt-1.5 flex justify-between text-[11px] text-zinc-500">
+                    <span>{usdCompact(c.budget.available)} left of {usdCompact(c.budget.deposited)}</span>
+                    <span className="flex gap-1.5 sm:hidden">
+                      {c.platforms.map((p) => (
+                        <PlatformIcon key={p} platform={p} className="size-3" />
+                      ))}
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
           </section>
         <div className="order-last min-w-0 space-y-6 lg:order-none lg:col-start-1 lg:row-start-2">
@@ -149,48 +194,6 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
               <span className="shrink-0 text-sm font-semibold">Post →</span>
             </a>
           )}
-          {/* The rate, front and centre. */}
-          <section className="relative overflow-hidden rounded-2xl border border-brand-b/40 bg-white p-4 shadow-card sm:p-5">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-28" style={{ background: 'radial-gradient(80% 100% at 0% 0%, rgb(var(--brand-a) / 0.22), transparent 70%)' }} />
-            <div className="relative">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">You earn</p>
-              <p className="mt-1 flex items-baseline gap-2">
-                <span className="text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">{r.rate}</span>
-                <span className="text-sm text-zinc-500">{r.unit}</span>
-              </p>
-              {split.length > 0 && (
-                <ul className="mt-3 grid grid-cols-3 gap-2">
-                  {split.map((p) => (
-                    <li key={p.platform} className="rounded-xl bg-zinc-50 px-2 py-2 text-center">
-                      <PlatformIcon platform={p.platform as Platform} className="mx-auto size-4 text-zinc-500" />
-                      <p className="mt-1 text-sm font-semibold tabular-nums">{usdCents(p.rate)}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:mt-4">
-                <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
-                  <p className="text-[11px] text-zinc-500">Max per clip</p>
-                  <p className="font-semibold tabular-nums">{c.payout_model === 'pool' ? '—' : usd(c.cpm_cap)}</p>
-                </div>
-                <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
-                  <p className="text-[11px] text-zinc-500">Min to get paid</p>
-                  <p className="font-semibold tabular-nums">{Number(c.min_payout) > 0 ? usd(Number(c.min_payout)) : 'None'}</p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <div className="flex items-baseline justify-between text-xs">
-                  <span className="text-zinc-500">
-                    {usdCompact(c.budget.committed)} of {usdCompact(c.budget.deposited)} used
-                  </span>
-                  <span className="font-medium">{Math.round(100 - used)}% left</span>
-                </div>
-                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-zinc-100">
-                  <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(used, 1.5)}%` }} />
-                </div>
-              </div>
-            </div>
-          </section>
 
           {mine.length > 0 && (
             <Card>
