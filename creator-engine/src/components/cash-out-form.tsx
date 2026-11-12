@@ -7,18 +7,23 @@ import type { ActionState } from '@/actions/result';
 import { cn } from './ui/cn';
 import { TIER_LABEL, TIER_PERKS, type Tier } from '@/lib/tiers';
 import { MIN_CASHOUT } from '@/lib/payout-rules';
+import { STRIPE_MONTHLY, stripePayoutCost } from '@/lib/payout-costs';
+
+/** How the cash-out is sent: through Stripe (which charges per payout) or not. */
+export type PayoutCost = { viaStripe: boolean; firstThisMonth: boolean };
 
 const cents = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Pick how much of the balance to send: type an amount or tap a quick pick, see the fee and what lands. */
-export function CashOutForm({ balance, feePct }: { balance: number; feePct: number }) {
+export function CashOutForm({ balance, feePct, payout }: { balance: number; feePct: number; payout: PayoutCost }) {
   const router = useRouter();
   const [value, setValue] = useState(balance.toFixed(2));
   const [state, setState] = useState<ActionState>();
   const [pending, start] = useTransition();
   const amount = Math.min(balance, Math.max(0, Math.floor((Number(value) || 0) * 100) / 100));
   const fee = Math.round(amount * feePct) / 100;
-  const net = Math.max(0, amount - fee);
+  const stripeFee = payout.viaStripe && amount > 0 ? stripePayoutCost(amount, payout.firstThisMonth) : 0;
+  const net = Math.max(0, Math.round((amount - fee - stripeFee) * 100) / 100);
   const tooMuch = (Number(value) || 0) > balance + 0.001;
   const tooLittle = amount < MIN_CASHOUT;
 
@@ -63,6 +68,15 @@ export function CashOutForm({ balance, feePct }: { balance: number; feePct: numb
             <dd className="tabular-nums">−{cents(fee)}</dd>
           </div>
         )}
+        {stripeFee > 0 && (
+          <div className="flex justify-between gap-2">
+            <dt className="text-zinc-500">
+              Stripe payout fee
+              {payout.firstThisMonth && <span className="block text-[11px]">Includes {cents(STRIPE_MONTHLY)} monthly fee, first cash-out this month</span>}
+            </dt>
+            <dd className="shrink-0 whitespace-nowrap tabular-nums">−{cents(stripeFee)}</dd>
+          </div>
+        )}
         <div className="flex justify-between border-t border-zinc-200 pt-1.5 font-semibold">
           <dt>You receive</dt>
           <dd className="tabular-nums text-brand">{cents(net)}</dd>
@@ -102,6 +116,7 @@ export function CashOutForm({ balance, feePct }: { balance: number; feePct: numb
 export function OneTapCashOut({
   balance,
   feePct,
+  payout,
   payoutsReady,
   blocked,
   nextUnlock,
@@ -110,6 +125,7 @@ export function OneTapCashOut({
   tier: Tier;
   balance: number;
   feePct: number;
+  payout: PayoutCost;
   payoutsReady: boolean;
   /** Why cashing out isn't possible right now (e.g. weekly limit), if it isn't. */
   blocked?: string;
@@ -122,7 +138,8 @@ export function OneTapCashOut({
   const [state, setState] = useState<ActionState>();
   const [pending, start] = useTransition();
   const fee = Math.round(balance * feePct) / 100;
-  const net = Math.max(0, balance - fee);
+  const stripeFee = payout.viaStripe ? stripePayoutCost(balance, payout.firstThisMonth) : 0;
+  const net = Math.max(0, Math.round((balance - fee - stripeFee) * 100) / 100);
   const big = 'flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold transition';
 
   if (!payoutsReady)
@@ -156,7 +173,7 @@ export function OneTapCashOut({
         <p className="mt-2 text-center text-xs text-zinc-500">{blocked ?? (nextUnlock ? `Your next money unlocks ${nextUnlock}.` : 'Approved earnings unlock after the hold.')}</p>
       </div>
     );
-  if (custom) return <CashOutForm balance={balance} feePct={feePct} />;
+  if (custom) return <CashOutForm balance={balance} feePct={feePct} payout={payout} />;
   if (confirm) {
     const silverFee = Math.round(balance * TIER_PERKS.silver.feePct) / 100;
     return (
@@ -172,6 +189,15 @@ export function OneTapCashOut({
             </dt>
             <dd className="tabular-nums">{fee > 0 ? `−${cents(fee)}` : 'None'}</dd>
           </div>
+          {stripeFee > 0 && (
+          <div className="flex justify-between gap-2">
+            <dt className="text-zinc-500">
+              Stripe payout fee
+              {payout.firstThisMonth && <span className="block text-[11px]">Includes {cents(STRIPE_MONTHLY)} monthly fee, first cash-out this month</span>}
+            </dt>
+            <dd className="shrink-0 whitespace-nowrap tabular-nums">−{cents(stripeFee)}</dd>
+          </div>
+        )}
           <div className="flex justify-between border-t border-zinc-200 pt-2 text-base font-semibold">
             <dt>You receive</dt>
             <dd className="tabular-nums text-brand">{cents(net)}</dd>

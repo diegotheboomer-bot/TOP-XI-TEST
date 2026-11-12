@@ -13,7 +13,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Next.js 14 App Router (server components, server actions), TypeScript, Tailwind.
 - Supabase (Postgres + RLS + storage + auth). Project ref `ijpfxbnxfpbhfzrjhdmz`.
 - Stripe Connect Express (embedded onboarding, transfers). Discord bot + OAuth. Gemini support bot ("Nova").
-- Tests: vitest (`npm test`, 127 tests). Type check: `npx tsc --noEmit -p .`.
+- Tests: vitest (`npm test`, 130 tests). Type check: `npx tsc --noEmit -p .`.
 - Hosting: Render auto-deploys branch `claude/kind-galileo-egdt9r`.
 
 ## Workflow rules (agreed with the owner)
@@ -35,8 +35,9 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   (`NO_SERVICE_FEE=true` on Render). Tiers mean faster pay, more cash-outs, gated campaigns.
 - Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. For an invited clipper's first 90 days
   their 2% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
-- Minimum cash-out $20 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`), also for auto payouts and referral transfers:
-  Stripe charges €0.10 + 0.25% per bank payout and €2 per account paid in a month.
+- Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper
+  (`src/lib/payout-costs.ts`: 0.25% + $0.15, plus $2.40 on the first Stripe payout of the month, covering Stripe's
+  €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.
 - Founders: first 100 real clippers get `creators.founder_number` (trigger, migration 0022). Emerald badge + card.
 - Data loading: `src/lib/data.ts`. Server actions: `src/actions/*`.
 - Front page: `src/components/landing.tsx`, `landing-fx.tsx`, `views-chart-hero.tsx`.

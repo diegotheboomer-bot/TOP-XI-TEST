@@ -193,7 +193,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                   {usd(c.base_payout)} once your clip is approved, plus {r.rate} {r.unit}.
                 </li>
               )}
-              <li>Each clip earns up to {usd(c.cpm_cap)}{Number(c.min_payout) > 0 && <>, and starts paying once it reaches {usd(Number(c.min_payout))}</>}. A 2% fee comes off when you cash out.</li>
+              <li>Each clip earns up to {usd(c.cpm_cap)}{Number(c.min_payout) > 0 && <>, and starts paying once it reaches {usd(Number(c.min_payout))}</>}. When you cash out, a 2% fee and Stripe’s payout fee come off.</li>
               <li>{c.brandName} reviews and approves every clip. Once approved, you’re paid automatically.</li>
             </ul>
           </section>

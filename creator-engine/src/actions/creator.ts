@@ -20,8 +20,7 @@ import { stripe, CLIPPER_ACCOUNT_DEFAULTS } from '@/lib/stripe';
 import { paypalConfigured } from '@/lib/paypal';
 import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
-import { payClip } from '@/lib/pay-clip';
-import { MIN_CASHOUT, cashoutReady } from '@/lib/payout-rules';
+import { sendCashOut } from '@/lib/cash-out';
 import { TIER_LABEL, TIER_PERKS, atLeast, tierFor, type Tier } from '@/lib/tiers';
 import { clipperRecords } from '@/lib/data';
 import { clipperTier } from '@/lib/clipper-records';
@@ -386,16 +385,14 @@ export async function connectTikTok(): Promise<void> {
 }
 
 /**
- * Cash out: send everything that's ready (approved and past the tier's hold) to the
- * clipper's payout method now. The fee is a flat 2% and the tier sets
- * how many cash-outs a week are allowed.
+ * Cash out: send what's ready (approved and past the tier's hold) to the clipper's payout
+ * method now, minus the 2% fee and Stripe's payout charge. The tier sets how often.
  */
 export async function cashOut(amount?: number): Promise<ActionState> {
   if (isDemo) return { success: 'Cashed out (demo).' };
   const creatorId = await requireCreator();
   const admin = createAdminClient();
-  const [{ data: subs }, { data: recent }, tier] = await Promise.all([
-    selectAll(() => admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred, campaigns(payout_model, status)').eq('creator_id', creatorId).order('id')),
+  const [{ data: recent }, tier] = await Promise.all([
     admin.from('cashouts').select('created_at').eq('creator_id', creatorId).gte('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString()).order('created_at'),
     clipperTier(admin, creatorId),
   ]);
@@ -404,40 +401,14 @@ export async function cashOut(amount?: number): Promise<ActionState> {
     const nextAt = new Date(new Date(recent![0].created_at as string).getTime() + 7 * 86_400_000);
     return { error: `${TIER_LABEL[tier]} clippers can cash out ${perks.cashoutsPerWeek === 1 ? 'once' : `${perks.cashoutsPerWeek} times`} a week. Your next cash-out opens ${nextAt.toLocaleDateString('en-US', { weekday: 'long' })}.` };
   }
-  const ready = (subs ?? [])
-    .map((s) => ({ ...s, owed: Math.round((Number(s.payout_earned) - Number(s.payout_transferred)) * 100) / 100 }))
-    .filter((s) => {
-      const c = s.campaigns as unknown as { payout_model: string; status: string } | null;
-      const openPool = c?.payout_model === 'pool' && c.status !== 'completed';
-      return s.owed > 0 && !openPool && cashoutReady(s as { status: 'live_tracking'; approved_at: string | null }, Date.now(), perks.holdHours);
-    })
-    .sort((a, b) => b.owed - a.owed);
-  if (!ready.length) return { error: 'Nothing is ready to cash out yet.' };
-  const balance = Math.round(ready.reduce((n, s) => n + s.owed, 0) * 100) / 100;
-  // The clipper can take out part of their balance; the rest stays for later.
-  let remaining = amount == null ? balance : Math.min(balance, Math.floor(Number(amount) * 100) / 100);
-  if (!(remaining >= 0.01)) return { error: 'Enter an amount to cash out.' };
-  if (remaining < MIN_CASHOUT) return { error: `The smallest cash-out is ${usdCents(MIN_CASHOUT)}. You have ${usdCents(balance)} ready.` };
-
-  let sent = 0;
-  let gross = 0;
-  const errors: string[] = [];
-  for (const s of ready) {
-    if (remaining < 0.01) break;
-    const take = Math.min(s.owed, remaining);
-    const r = await payClip(admin, s.id, 0.01, take);
-    if (r.ok) {
-      sent += r.gross;
-      gross += take;
-      remaining = Math.round((remaining - take) * 100) / 100;
-    } else errors.push(r.error);
-  }
-  const fee = Math.round((gross - sent) * 100) / 100;
-  if (sent > 0) await admin.from('cashouts').insert({ creator_id: creatorId, amount: Math.round(sent * 100) / 100, fee });
+  const r = await sendCashOut(admin, creatorId, tier, { amount });
+  if ('error' in r) return { error: r.error };
+  if (r.sent > 0) await admin.from('cashouts').insert({ creator_id: creatorId, amount: r.sent, fee: Math.round((r.fee + r.stripeCost) * 100) / 100 });
   revalidatePath('/clipper/earnings');
   revalidatePath('/clipper/payouts');
-  if (!sent) return { error: errors[0] ?? 'Couldn’t cash out. Try again.' };
-  return { success: fee > 0 ? `${usdCents(sent)} is on its way (${perks.feePct}% ${TIER_LABEL[tier]} fee: ${usdCents(fee)}).` : `${usdCents(sent)} is on its way.` };
+  if (!r.sent) return { error: r.errors[0] ?? 'Couldn’t cash out. Try again.' };
+  const parts = [r.fee > 0 && `${perks.feePct}% fee ${usdCents(r.fee)}`, r.stripeCost > 0 && `Stripe payout fee ${usdCents(r.stripeCost)}`].filter(Boolean);
+  return { success: `${usdCents(r.sent)} is on its way${parts.length ? ` (${parts.join(', ')})` : ''}.` };
 }
 
 export async function connectInstagram(): Promise<void> {

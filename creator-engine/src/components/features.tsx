@@ -8,7 +8,7 @@ import { cn } from './ui/cn';
 const FEATURES: [string, string, () => React.ReactNode][] = [
   ['Verified clippers', 'Every clip is checked against the clipper’s own TikTok, Instagram or YouTube, and you approve each one.', CodeArt],
   ['Fake views don’t pay', 'Bot spikes and re-uploads are caught and held before any money moves.', SpikeArt],
-  ['Clippers level up', 'Proven clippers reach Gold, Diamond and Majesty: faster pay and their own campaigns. Clippers pay just 2% on cash-out; streamers pay {feeText} on top.', KeepArt],
+  ['Clippers level up', 'Proven clippers reach Gold, Diamond and Majesty: faster pay and their own campaigns. Clippers pay just 2% plus Stripe’s payout fee; streamers pay {feeText} on top.', KeepArt],
 ];
 
 export function Features({ feePercent }: { feePercent: number }) {

@@ -4,11 +4,8 @@
 
 /** Hours between approval and the automatic payout (also the streamer's window to flag). */
 export const HOLD_HOURS = 72;
-/**
- * Smallest cash-out (and automatic payout). Stripe charges Atlas for every payout to a bank
- * (€0.10 + 0.25%) and €2 for each account paid in a month, so tiny payouts cost more than the 2% fee.
- */
-export const MIN_CASHOUT = 20;
+/** Smallest cash-out (and automatic payout). Stripe's payout costs come off each cash-out (see payout-costs.ts). */
+export const MIN_CASHOUT = 5;
 export const MIN_AUTO_PAYOUT = MIN_CASHOUT;
 
 const HOUR = 3_600_000;

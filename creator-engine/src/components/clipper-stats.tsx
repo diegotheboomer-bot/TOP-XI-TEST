@@ -6,7 +6,7 @@ import type { Submission, SubmissionStatus } from '@/lib/types';
 import { cashoutReady } from '@/lib/payout-rules';
 import { TIER_LABEL, TIER_PERKS, holdLabel } from '@/lib/tiers';
 import { TierBadge } from './tier-badge';
-import { OneTapCashOut } from './cash-out-form';
+import { OneTapCashOut, type PayoutCost } from './cash-out-form';
 import { clipRef, compact, usd, usdCents } from '@/lib/format';
 import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
@@ -170,7 +170,7 @@ export function Spark({ points }: { points: number[] }) {
   );
 }
 
-export function EarningsView({ d, extra }: { d: CreatorDashboard; extra?: React.ReactNode }) {
+export function EarningsView({ d, extra, payout }: { d: CreatorDashboard; extra?: React.ReactNode; payout: PayoutCost }) {
   const rows = rowsOf(d);
   const earned = rows.reduce((n, r) => n + r.sub.payout_earned, 0);
   const paid = rows.reduce((n, r) => n + r.sub.payout_transferred, 0);
@@ -206,6 +206,7 @@ export function EarningsView({ d, extra }: { d: CreatorDashboard; extra?: React.
         </div>
         <div className="relative mt-5">
           <OneTapCashOut
+            payout={payout}
             balance={Math.round(ready * 100) / 100}
             feePct={perks.feePct}
             payoutsReady={d.payoutsEnabled}

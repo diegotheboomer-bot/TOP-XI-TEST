@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { requireEnv } from './env';
+import { monthStart } from './payout-costs';
 
 let client: Stripe | null = null;
 export function stripe(): Stripe {
@@ -38,5 +39,11 @@ export const CLIPPER_ACCOUNT_DEFAULTS = {
   },
 };
 
-/** Charged to streamers on top of the budget they fund. (Clippers pay a flat 2% on payouts; see tiers.ts.) */
+/** Charged to streamers on top of the budget they fund. (Clippers pay 2% plus Stripe's payout fee on cash-outs; see tiers.ts and payout-costs.ts.) */
 export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT ?? 9);
+
+/** Whether Atlas has already paid this connected account this month (so Stripe's monthly fee is covered). */
+export async function paidThisMonth(accountId: string): Promise<boolean> {
+  const list = await stripe().transfers.list({ destination: accountId, created: { gte: Math.floor(monthStart().getTime() / 1000) }, limit: 1 });
+  return list.data.length > 0;
+}

@@ -26,7 +26,7 @@ const STEPS_OWNER: [string, string][] = [
 const STEPS_CLIPPER: [string, string][] = [
   ['Join a campaign', 'Free, no follower minimum. Pick what you like clipping.'],
   ['Post your clips', 'Post from your connected account and paste the link.'],
-  ['Get paid and level up', 'Earn per 1,000 views. Just 2% on cash-out. Higher tiers get paid faster.'],
+  ['Get paid and level up', 'Earn per 1,000 views. Just 2% plus Stripe’s fee on cash-out. Higher tiers get paid faster.'],
 ];
 
 export function Landing({

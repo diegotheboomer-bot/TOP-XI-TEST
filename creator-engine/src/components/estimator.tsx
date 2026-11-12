@@ -55,7 +55,7 @@ export function EarningsEstimator({ terms }: { terms: PayoutTerms }) {
           <p className="text-2xl font-semibold tracking-tight tabular-nums">{usdCents(net)}</p>
         </div>
         <p className="text-right text-xs text-zinc-500">
-          After the 2% cash-out fee
+          After the 2% fee, before Stripe’s payout fee
           {capped && <span className="block font-medium text-amber-700">Capped at {usd(terms.cpm_cap)}</span>}
         </p>
       </div>

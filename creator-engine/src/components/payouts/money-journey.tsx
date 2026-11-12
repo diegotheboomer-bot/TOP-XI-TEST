@@ -3,14 +3,14 @@ import { BadgeCheck, Building2, Clock, HandCoins, HelpCircle } from 'lucide-reac
 const STEPS = [
   { icon: BadgeCheck, title: 'Clip approved', body: 'The streamer approves your clip. It earns for every 1,000 verified views.' },
   { icon: Clock, title: 'Short hold', body: '3 days at Silver, down to 12 hours at Majesty. The streamer can still flag it in this time.' },
-  { icon: HandCoins, title: 'You cash out', body: 'Tap Cash out on Earnings. The 2% fee comes off and the rest goes to your payout account.' },
+  { icon: HandCoins, title: 'You cash out', body: 'Tap Cash out on Earnings. The 2% fee and Stripe’s payout fee come off and the rest goes to your payout account.' },
   { icon: Building2, title: 'Lands in your bank', body: 'Stripe sends it to your IBAN or card automatically: usually 2–3 business days, up to 7 for your very first payout.' },
 ];
 
 const FAQ: [string, string][] = [
   ['I cashed out. Where is the money?', 'It’s in your Stripe payout account, on its way to your bank. Use “Open Stripe dashboard” above to see the exact arrival date.'],
   ['Why does my first payout take longer?', 'Banks and Stripe check new accounts once. After the first payout, the next ones are faster.'],
-  ['Why is the amount a little lower?', 'The 2% cash-out fee and, for other currencies, the exchange rate. Earnings shows the fee before you cash out.'],
+  ['Why is the amount a little lower?', 'The 2% fee, Stripe’s payout fee (0.25% + $0.15, plus $2.40 on your first cash-out each month) and, for other currencies, the exchange rate. Earnings shows the fees before you cash out.'],
   ['Do I need my own Stripe account?', 'No. The form above creates your payout account for you. You only add your details and bank once.'],
 ];
 

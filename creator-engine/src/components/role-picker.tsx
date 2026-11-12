@@ -18,7 +18,7 @@ const ROLES = [
     title: 'I clip',
     lead: 'Clip creators and brands you like, post on TikTok, Shorts or Reels, and get paid for the views.',
     photo: 'couch-coop.jpg',
-    points: ['Pick a campaign', 'Clip a moment and post it', 'Get paid per 1,000 views, and just 2% on cash-out'],
+    points: ['Pick a campaign', 'Clip a moment and post it', 'Get paid per 1,000 views, with just 2% off when you cash out'],
     cta: 'Start clipping',
   },
 ] as const;

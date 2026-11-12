@@ -10,9 +10,9 @@ import { getYouTubeVideos } from './platforms/youtube';
 import { getInstagramAccessToken, getTikTokAccessToken } from './tokens';
 import { queryInstagramReels } from './platforms/instagram';
 import type { Submission } from './types';
-import { payClip } from './pay-clip';
+import { sendCashOut } from './cash-out';
 import { payAllReferralEarnings } from './referrals';
-import { MIN_AUTO_PAYOUT, autoPayoutDue } from './payout-rules';
+import { MIN_AUTO_PAYOUT, holdHoursLeft } from './payout-rules';
 import { clipperRecords } from './clipper-records';
 import { TIER_PERKS, tierFor } from './tiers';
 
@@ -143,17 +143,22 @@ async function runAutoPayouts(admin: SupabaseClient, report: SyncReport) {
   );
   const rows = ((data ?? []) as unknown as { id: string; creator_id: string; status: 'live_tracking'; approved_at: string; payout_earned: number; payout_transferred: number; social_platform_video_id: string; campaigns: { status: string } }[]).filter((r) => !isTestClip(r));
   const records = await clipperRecords(admin, rows.map((r) => r.creator_id));
+  // Clippers cash out when they like; only money from ended campaigns is sent automatically,
+  // as one cash-out per clipper once it adds up to the minimum.
+  const due = new Map<string, number>();
   for (const row of rows) {
-    const owed = Number(row.payout_earned) - Number(row.payout_transferred);
-    const campaignEnded = row.campaigns.status === 'completed';
-    // Clippers cash out when they like; only money from ended campaigns is sent automatically.
-    if (!campaignEnded) continue;
+    if (row.campaigns.status !== 'completed') continue;
     const hold = TIER_PERKS[tierFor(records.get(row.creator_id)!)].holdHours;
-    if (!autoPayoutDue({ status: row.status, approved_at: row.approved_at, owed, campaignEnded }, Date.now(), hold)) continue;
-    const result = await payClip(admin, row.id, MIN_AUTO_PAYOUT);
-    if (result.ok) report.paid++;
+    if (holdHoursLeft(row.approved_at, Date.now(), hold) > 0) continue;
+    due.set(row.creator_id, (due.get(row.creator_id) ?? 0) + Number(row.payout_earned) - Number(row.payout_transferred));
+  }
+  for (const [creatorId, owed] of due) {
+    if (owed < MIN_AUTO_PAYOUT) continue;
+    const result = await sendCashOut(admin, creatorId, tierFor(records.get(creatorId)!), { endedOnly: true });
+    if (!('error' in result) && result.sent > 0) report.paid++;
     // Clippers who haven't finished payout setup are skipped quietly; they're paid once they do.
-    else if (!/payout setup/.test(result.error)) report.failed.push({ submissionId: row.id, error: result.error });
+    const error = 'error' in result ? result.error : result.errors.find((e) => !/payout setup/.test(e));
+    if (error && !/payout setup|Nothing is ready/.test(error)) report.failed.push({ submissionId: creatorId, error });
   }
 }
 
