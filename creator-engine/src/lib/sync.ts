@@ -150,7 +150,7 @@ async function runAutoPayouts(admin: SupabaseClient, report: SyncReport) {
     if (!campaignEnded) continue;
     const hold = TIER_PERKS[tierFor(records.get(row.creator_id)!)].holdHours;
     if (!autoPayoutDue({ status: row.status, approved_at: row.approved_at, owed, campaignEnded }, Date.now(), hold)) continue;
-    const result = await payClip(admin, row.id, campaignEnded ? 1 : MIN_AUTO_PAYOUT);
+    const result = await payClip(admin, row.id, MIN_AUTO_PAYOUT);
     if (result.ok) report.paid++;
     // Clippers who haven't finished payout setup are skipped quietly; they're paid once they do.
     else if (!/payout setup/.test(result.error)) report.failed.push({ submissionId: row.id, error: result.error });

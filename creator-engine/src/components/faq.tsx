@@ -19,7 +19,7 @@ export const FAQ: [string, string][] = [
   ],
   [
     'How do I get paid, and are there fees?',
-    'Once a clip is approved and its short hold has passed, you can cash out to your bank account (or a debit card in countries where Stripe supports it, like the US). A flat 2% fee comes off each cash-out, nothing else. Invite other clippers and their 2% goes to you for their first 90 days, with no limit on how many you invite or how much you earn. As you grow through Gold, Diamond and Majesty, you get paid sooner and can cash out more often.',
+    'Once a clip is approved and its short hold has passed, you can cash out to your bank account (or a debit card in countries where Stripe supports it, like the US). A flat 2% fee comes off each cash-out, nothing else. The smallest cash-out is $20. Invite other clippers and their 2% goes to you for their first 90 days, with no limit on how many you invite or how much you earn. As you grow through Gold, Diamond and Majesty, you get paid sooner and can cash out more often.',
   ],
   [
     'What do campaign owners get?',

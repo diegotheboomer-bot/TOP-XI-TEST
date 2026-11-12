@@ -6,6 +6,7 @@ import { cashOut } from '@/actions/creator';
 import type { ActionState } from '@/actions/result';
 import { cn } from './ui/cn';
 import { TIER_LABEL, TIER_PERKS, type Tier } from '@/lib/tiers';
+import { MIN_CASHOUT } from '@/lib/payout-rules';
 
 const cents = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -19,6 +20,7 @@ export function CashOutForm({ balance, feePct }: { balance: number; feePct: numb
   const fee = Math.round(amount * feePct) / 100;
   const net = Math.max(0, amount - fee);
   const tooMuch = (Number(value) || 0) > balance + 0.001;
+  const tooLittle = amount < MIN_CASHOUT;
 
   return (
     <div>
@@ -71,9 +73,10 @@ export function CashOutForm({ balance, feePct }: { balance: number; feePct: numb
         </div>
       </dl>
       {tooMuch && <p className="mt-2 text-sm text-rose-600">You have {cents(balance)} available.</p>}
+      {!tooMuch && tooLittle && <p className="mt-2 text-sm text-zinc-500">The smallest cash-out is {cents(MIN_CASHOUT)}.</p>}
       <button
         type="button"
-        disabled={pending || amount < 0.01 || tooMuch}
+        disabled={pending || tooLittle || tooMuch}
         onClick={() =>
           start(async () => {
             const r = await cashOut(amount);
@@ -130,6 +133,20 @@ export function OneTapCashOut({
     );
   if (state?.success)
     return <p className="rounded-xl bg-brand-a/10 px-4 py-4 text-center text-sm font-medium ring-1 ring-inset ring-brand-a/30">{state.success}</p>;
+  if (!blocked && balance >= 0.01 && balance < MIN_CASHOUT)
+    return (
+      <div>
+        <button type="button" disabled className={cn(big, 'bg-zinc-100 text-zinc-400')}>
+          Cash out from {cents(MIN_CASHOUT)}
+        </button>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, (balance / MIN_CASHOUT) * 100)}%` }} />
+        </div>
+        <p className="mt-2 text-center text-xs text-zinc-500">
+          {cents(MIN_CASHOUT - balance)} more to go. {nextUnlock ? `Your next money unlocks ${nextUnlock}.` : 'Keep clipping.'}
+        </p>
+      </div>
+    );
   if (blocked || balance < 0.01)
     return (
       <div>

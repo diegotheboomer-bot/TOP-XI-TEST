@@ -1,6 +1,7 @@
 import { Gift } from 'lucide-react';
 import type { ReferralSummary } from '@/lib/data';
 import { REFERRAL_DAYS } from '@/lib/referrals';
+import { MIN_CASHOUT } from '@/lib/payout-rules';
 import { TIER_PERKS } from '@/lib/tiers';
 import { usdCents } from '@/lib/format';
 import { CopyField } from './copy-button';
@@ -37,7 +38,7 @@ export function ReferralPanel({ r }: { r: ReferralSummary }) {
           </div>
         ))}
       </dl>
-      {pending > 0 && <p className="relative mt-3 text-center text-xs text-zinc-500">{usdCents(pending)} is sent to your payout account once it’s set up.</p>}
+      {pending > 0 && <p className="relative mt-3 text-center text-xs text-zinc-500">{usdCents(pending)} waiting. It’s sent to your payout account once it reaches {usdCents(MIN_CASHOUT)} and payouts are set up.</p>}
     </section>
   );
 }

@@ -35,6 +35,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   (`NO_SERVICE_FEE=true` on Render). Tiers mean faster pay, more cash-outs, gated campaigns.
 - Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. For an invited clipper's first 90 days
   their 2% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
+- Minimum cash-out $20 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`), also for auto payouts and referral transfers:
+  Stripe charges €0.10 + 0.25% per bank payout and €2 per account paid in a month.
 - Founders: first 100 real clippers get `creators.founder_number` (trigger, migration 0022). Emerald badge + card.
 - Data loading: `src/lib/data.ts`. Server actions: `src/actions/*`.
 - Front page: `src/components/landing.tsx`, `landing-fx.tsx`, `views-chart-hero.tsx`.

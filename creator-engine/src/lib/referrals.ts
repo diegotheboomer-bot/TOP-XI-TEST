@@ -2,6 +2,7 @@
 // clipper's payouts for their first 90 days. Otherwise Atlas keeps the fee.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { stripe } from './stripe';
+import { MIN_CASHOUT } from './payout-rules';
 
 export const REFERRAL_DAYS = 90;
 export const REFERRAL_COOKIE = 'atlas_ref';
@@ -46,6 +47,9 @@ export async function creditReferral(admin: SupabaseClient, input: { creatorId: 
 export async function payReferralEarnings(admin: SupabaseClient, referrerId: string): Promise<number> {
   const { data: who } = await admin.from('creators').select('stripe_account_id, payouts_enabled').eq('id', referrerId).single();
   if (!who?.stripe_account_id || !who.payouts_enabled) return 0;
+  // Sent once it adds up to the minimum cash-out, like a clipper's own earnings.
+  const { data: owed } = await admin.from('referral_earnings').select('amount').eq('referrer_id', referrerId).is('transfer_id', null);
+  if ((owed ?? []).reduce((n, r) => n + Number(r.amount), 0) < MIN_CASHOUT) return 0;
   const claim = `claim:${crypto.randomUUID()}`;
   const { data: rows } = await admin.from('referral_earnings').update({ transfer_id: claim }).eq('referrer_id', referrerId).is('transfer_id', null).select('id, amount');
   if (!rows?.length) return 0;

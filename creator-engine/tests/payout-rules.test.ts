@@ -24,7 +24,8 @@ describe('payout rules', () => {
     expect(autoPayoutDue({ ...base, approved_at: ago(24), owed: 50 }, now)).toBe(false); // still holding
     expect(autoPayoutDue({ ...base, approved_at: ago(HOLD_HOURS + 1), owed: 50 }, now)).toBe(true);
     expect(autoPayoutDue({ ...base, approved_at: ago(HOLD_HOURS + 1), owed: 4 }, now)).toBe(false); // under the minimum
-    expect(autoPayoutDue({ ...base, approved_at: ago(HOLD_HOURS + 1), owed: 4, campaignEnded: true }, now)).toBe(true);
+    expect(autoPayoutDue({ ...base, approved_at: ago(HOLD_HOURS + 1), owed: 4, campaignEnded: true }, now)).toBe(false); // still under the minimum
+    expect(autoPayoutDue({ ...base, approved_at: ago(HOLD_HOURS + 1), owed: 20, campaignEnded: true }, now)).toBe(true);
     expect(autoPayoutDue({ ...base, status: 'flagged' as never, approved_at: ago(500), owed: 50 }, now)).toBe(false);
   });
 });

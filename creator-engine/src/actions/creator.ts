@@ -21,7 +21,7 @@ import { paypalConfigured } from '@/lib/paypal';
 import { PayoutHandleSchema, payoutDestination } from '@/lib/payout-methods';
 import * as demo from '@/lib/demo';
 import { payClip } from '@/lib/pay-clip';
-import { cashoutReady } from '@/lib/payout-rules';
+import { MIN_CASHOUT, cashoutReady } from '@/lib/payout-rules';
 import { TIER_LABEL, TIER_PERKS, atLeast, tierFor, type Tier } from '@/lib/tiers';
 import { clipperRecords } from '@/lib/data';
 import { clipperTier } from '@/lib/clipper-records';
@@ -417,6 +417,7 @@ export async function cashOut(amount?: number): Promise<ActionState> {
   // The clipper can take out part of their balance; the rest stays for later.
   let remaining = amount == null ? balance : Math.min(balance, Math.floor(Number(amount) * 100) / 100);
   if (!(remaining >= 0.01)) return { error: 'Enter an amount to cash out.' };
+  if (remaining < MIN_CASHOUT) return { error: `The smallest cash-out is ${usdCents(MIN_CASHOUT)}. You have ${usdCents(balance)} ready.` };
 
   let sent = 0;
   let gross = 0;

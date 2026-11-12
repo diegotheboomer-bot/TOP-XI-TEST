@@ -4,8 +4,12 @@
 
 /** Hours between approval and the automatic payout (also the streamer's window to flag). */
 export const HOLD_HOURS = 72;
-/** Smallest amount paid out automatically, to keep per-payout costs down. The rest goes out when the campaign ends. */
-export const MIN_AUTO_PAYOUT = 10;
+/**
+ * Smallest cash-out (and automatic payout). Stripe charges Atlas for every payout to a bank
+ * (€0.10 + 0.25%) and €2 for each account paid in a month, so tiny payouts cost more than the 2% fee.
+ */
+export const MIN_CASHOUT = 20;
+export const MIN_AUTO_PAYOUT = MIN_CASHOUT;
 
 const HOUR = 3_600_000;
 
@@ -31,7 +35,7 @@ export function streamerCanFlag(c: ClipState, now = Date.now(), holdHours = HOLD
 export function autoPayoutDue(c: ClipState & { owed: number; campaignEnded: boolean }, now = Date.now(), holdHours = HOLD_HOURS): boolean {
   if (c.status !== 'live_tracking' || !c.approved_at) return false;
   if (holdHoursLeft(c.approved_at, now, holdHours) > 0) return false;
-  return c.owed >= (c.campaignEnded ? 1 : MIN_AUTO_PAYOUT);
+  return c.owed >= MIN_AUTO_PAYOUT;
 }
 
 // Cash-outs: clippers choose when to get paid. The fee, how often they can cash out and
