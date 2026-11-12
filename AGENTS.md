@@ -43,7 +43,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.
 - Founders: first 100 real clippers get `creators.founder_number` (trigger, migration 0022). Emerald badge + card.
 - Data loading: `src/lib/data.ts`. Server actions: `src/actions/*`.
-- Front page: `src/components/landing.tsx`, `landing-fx.tsx`, `views-chart-hero.tsx`.
+- Front page: `src/components/landing.tsx`; hero `atlas-landing-hero.tsx` + `src/styles/atlas-landing.css`;
+  scroll-pinned story `scroll-story.tsx` (section pins while scrolling, moment → clips → views → pay, then scrolls on).
 - Clipper pages: `src/app/clipper/*`. Business pages: `src/app/streamer/*`. Settings: `src/app/account`.
 - Admin (owner emails in `ADMIN_EMAILS`): `/admin/support`, `/admin/verify`, `/admin/clips` (find by CLP- ref),
   `/admin/test-data` (load/remove fake @atlas.test data).
@@ -57,6 +58,26 @@ Scout with filters and mass invite, tiers, founders, cards, one-tap cash-out, pa
 clip references, support bot + tickets, Discord linking/verify, Settings tabs, account menu,
 Discover search/filters, phone layout pass, animated front page.
 
+## Money flow and Stripe facts (researched, Nov 2026)
+- Platform Stripe account is in **Portugal** (EUR). Users are mostly tier-1 (US/UK/CA/AU/EU). Charges are in USD.
+- Deposit: card charged on the platform (separate charges and transfers). Stripe PT: international cards 3.15% + €0.25,
+  UK 2.5%, EEA 1.5% (premium 2.8%), +2% currency conversion USD→EUR, Radar ~€0.05. Business pays exactly this on top.
+- Budgets sit in the platform Stripe balance; `campaigns.escrow_balance` tracks each campaign's share.
+- Cash-out: Stripe transfer to the clipper's Express account (created with `fees.payer = application`), then Stripe pays
+  their bank. Connect "you handle pricing": €2 per active account per month, 0.25% + €0.10 per payout, cross-border from 0.25%.
+- Ideas not done yet (owner decides):
+  - Owner should set platform payouts to **Manual** in Stripe, or Stripe pays held budgets out to the owner's bank.
+  - Turn on **USD settlement** in Stripe (≈1% instead of 2% conversion twice) and set `STRIPE_FX_PERCENT=1`.
+  - Clipper payout accounts are created without `country`; country is immutable. Check in test mode and ask the clipper's country.
+  - Cross-border 0.25% for non-EEA clippers isn't passed on in `payout-costs.ts` yet.
+  - Stripe preview API `2026-06-24.preview` allows Express accounts with `fees.payer = account` (Stripe-owned pricing,
+    no €2/active account for the platform). Untested; unclear for separate charges and transfers. Needs a Stripe test key.
+  - Later, with revenue: a US entity + US Stripe account (US cards 2.9% + 30¢, ACH 0.8% capped $5, no FX for US users).
+  - Referral ideas discussed, not built: "bring a business" reward (first access to that campaign, Connector badge,
+    Discord role); count an invite only after the invitee's first approved clip; pay invite rewards as a fee discount.
+    Self-referral via alt accounts is possible today; terms allow withholding rewards for fake accounts.
+  - Inviters pay Stripe's $2.40 monthly fee on invite-reward transfers; owner may decide Atlas covers it.
+
 ## Open to-do
 1. Slow pages with lots of data (Discover, Campaigns, Clips, Profile load every clip): add limits/pagination.
 2. Fallback cover when a campaign thumbnail fails to load.
@@ -64,4 +85,5 @@ Discover search/filters, phone layout pass, animated front page.
 4. Business campaign page: sticky Approve-all bar, tabs Waiting / Live / Paid.
 5. Instagram tracking waits on the owner's Meta developer app. X (Twitter) not supported (API is paid).
 6. PayPal payouts wait on the owner's PayPal Business account.
-7. Before launch: rotate keys that were shared in chat, remove test data, test one real cash-out.
+7. Before launch: rotate keys that were shared in chat, remove test data, test one real deposit (exact budget lands)
+   and one real cash-out (fees match the confirm screen), and one invite-link signup.

@@ -9,6 +9,7 @@ import { Faq } from './faq';
 import { LogoMark } from './logo';
 import { buttonClass } from './ui/button';
 import { ActivityTicker, Reveal } from './landing-fx';
+import { ScrollStory } from './scroll-story';
 
 const AUDIENCES: [React.ElementType, string, string][] = [
   [Radio, 'Streamers & creators', 'Your best moments, cut and posted every day.'],
@@ -71,6 +72,9 @@ export function Landing({
           ))}
         </div>
       </section>
+
+      {/* Scroll story: pins while you scroll, then the page moves on */}
+      <ScrollStory />
 
       {/* Who it's for */}
       <section className="py-20">
