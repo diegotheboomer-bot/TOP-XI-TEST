@@ -8,6 +8,7 @@ import { ClipperPitch } from './clipper-pitch';
 import { Faq } from './faq';
 import { LogoMark } from './logo';
 import { buttonClass } from './ui/button';
+import { ActivityTicker, Reveal, Spotlight } from './landing-fx';
 
 const AUDIENCES: [React.ElementType, string, string][] = [
   [Radio, 'Streamers & creators', 'Your best moments, cut and posted every day.'],
@@ -51,6 +52,7 @@ export function Landing({
       {/* Hero */}
       <section className="relative isolate grid grid-cols-1 items-center gap-10 pb-16 pt-10 sm:pb-20 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:pb-16 lg:pt-12">
         <div className="hero-grid pointer-events-none absolute inset-x-0 -top-16 bottom-0 -z-10" aria-hidden />
+        <Spotlight />
         <div className="text-center lg:text-left">
           <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-600 backdrop-blur">
             <span className="hero-pulse size-1.5 rounded-full bg-brand-a" /> The clipping marketplace
@@ -90,6 +92,8 @@ export function Landing({
         </div>
       </section>
 
+      <ActivityTicker />
+
       {/* Platforms */}
       <section className="flex flex-col items-center gap-4 border-y border-zinc-200/80 py-8 sm:flex-row sm:justify-between">
         <p className="text-sm text-zinc-500">Clips go out on the platforms that matter</p>
@@ -114,14 +118,16 @@ export function Landing({
         <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Who it’s for</p>
         <h2 className="balance mt-2 max-w-2xl text-2xl font-semibold tracking-tight sm:text-3xl">Anyone with content worth clipping</h2>
         <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {AUDIENCES.map(([Icon, title, body]) => (
-            <div key={title} className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card">
-              <span className="platform-tile relative grid size-10 place-items-center overflow-hidden rounded-xl bg-brand text-brand-ink">
+          {AUDIENCES.map(([Icon, title, body], i) => (
+            <Reveal key={title} delay={i * 90}>
+            <div className="group h-full rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:border-brand-b/50 hover:shadow-[0_20px_40px_-20px_rgb(var(--brand-b)/0.5)]">
+              <span className="platform-tile relative grid size-10 place-items-center overflow-hidden rounded-xl bg-brand text-brand-ink transition duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]">
                 <Icon className="relative size-5" />
               </span>
               <h3 className="mt-4 font-semibold tracking-tight">{title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-zinc-600">{body}</p>
             </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -133,8 +139,9 @@ export function Landing({
             ['For campaign owners', STEPS_OWNER, startHref, 'Launch a campaign'],
             ['For clippers', STEPS_CLIPPER, clipperStartHref, 'Start clipping'],
           ] as const
-        ).map(([title, steps, href, cta]) => (
-          <div key={title} className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-8">
+        ).map(([title, steps, href, cta], i) => (
+          <Reveal key={title} delay={i * 120}>
+          <div className="h-full rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card sm:p-8">
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{title}</p>
             <ol className="mt-5 space-y-5">
               {steps.map(([t, b], i) => (
@@ -151,14 +158,21 @@ export function Landing({
               {cta}
             </Link>
           </div>
+          </Reveal>
         ))}
       </section>
 
+      <Reveal>
       <Features feePercent={feePercent} />
+      </Reveal>
 
+      <Reveal>
       <ClipperPitch link={Link} href={clipperStartHref} />
+      </Reveal>
 
+      <Reveal>
       <Faq />
+      </Reveal>
 
       <section className="flex flex-col items-center gap-4 border-t border-zinc-200/80 py-20 text-center">
         <LogoMark className="size-14" />
