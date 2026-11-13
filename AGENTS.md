@@ -113,7 +113,7 @@ Discover search/filters, phone layout pass, animated front page.
 2. Fallback cover when a campaign thumbnail fails to load.
 3. Earnings "By campaign" and Payout history: show top 10 + "Show all".
 4. Business campaign page: sticky Approve-all bar, tabs Waiting / Live / Paid.
-5. Instagram uses Meta Unified Login (`src/lib/platforms/instagram.ts`: facebook.com/dialog/oauth with `config_id`, graph.facebook.com, `/me/assigned_instagram_accounts`; `INSTAGRAM_APP_ID`/`SECRET` = the Meta app ID/secret, `INSTAGRAM_CONFIG_ID` optional). Waits on owner testing + App Review (hidden until `NEXT_PUBLIC_INSTAGRAM_ENABLED=true`: campaigns can't pick Reels, Settings shows "Coming soon"). X (Twitter) not supported (API is paid).
+5. Instagram tracking waits on the owner's Meta developer app (hidden until `NEXT_PUBLIC_INSTAGRAM_ENABLED=true`: campaigns can't pick Reels, Settings shows "Coming soon"). X (Twitter) not supported (API is paid).
 6. PayPal payouts wait on the owner's PayPal Business account.
 7. Before launch: rotate keys that were shared in chat, remove test data, test one real deposit (exact budget lands)
    and one real cash-out (fees match the confirm screen), and one invite-link signup.
