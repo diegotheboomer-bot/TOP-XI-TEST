@@ -1104,8 +1104,13 @@ export interface BrandReferralSummary {
   link: string;
   invited: number;
   active: number;
-  /** Budget added to your campaigns from invited clippers' fees. */
+  /** Everything earned from invited clippers' fees. */
   credited: number;
+  /** Not used yet: can go to a campaign or be cashed out. */
+  balance: number;
+  payoutsEnabled: boolean;
+  /** Campaigns the balance can be added to. */
+  campaigns: { id: string; title: string; status: string }[];
   people: ReferralPerson[];
 }
 
@@ -1114,14 +1119,17 @@ export async function getBrandReferralSummary(): Promise<BrandReferralSummary | 
   if (isDemo) return null;
   const brandId = await requireRole('brand');
   const admin = createAdminClient();
-  const [{ data: me }, { data: invited }, { data: camps }] = await Promise.all([
-    admin.from('brands').select('referral_code').eq('id', brandId).single(),
+  const [{ data: me }, { data: invited }, { data: camps }, { data: earnings }] = await Promise.all([
+    admin.from('brands').select('referral_code, payouts_enabled').eq('id', brandId).single(),
     selectAll(() => admin.from('creators').select('id, display_name, avatar_url, created_at').eq('referred_by_brand', brandId).order('id')),
-    admin.from('campaigns').select('id').eq('brand_id', brandId),
+    admin.from('campaigns').select('id, title, status').eq('brand_id', brandId).order('created_at', { ascending: false }),
+    admin.from('brand_affiliate_earnings').select('amount, status').eq('brand_id', brandId),
   ]);
   if (!me?.referral_code) return null;
   const ids = (camps ?? []).map((c) => c.id as string);
-  const { data: credits } = await selectAllIn(ids, (chunk) => admin.from('escrow_ledger').select('amount').eq('entry_type', 'referral_credit').in('campaign_id', chunk).order('id'));
+  // Earlier invite credits went straight into a campaign (ledger rows 'refcredit:…'); newer ones are in the balance table.
+  const { data: credits } = await selectAllIn(ids, (chunk) => admin.from('escrow_ledger').select('amount').eq('entry_type', 'referral_credit').like('stripe_object_id', 'refcredit:%').in('campaign_id', chunk).order('id'));
+  const sumOf = (rows: { amount: unknown }[]) => Math.round(rows.reduce((n, r) => n + Number(r.amount), 0) * 100) / 100;
   const people: ReferralPerson[] = invited
     .map((c) => {
       const joinedAt = c.created_at as string;
@@ -1134,7 +1142,10 @@ export async function getBrandReferralSummary(): Promise<BrandReferralSummary | 
     link: `${appUrl().replace(/\/$/, '')}/r/${me.referral_code}`,
     invited: invited.length,
     active: people.filter((x) => x.active).length,
-    credited: Math.round((credits ?? []).reduce((n, r) => n + Number(r.amount), 0) * 100) / 100,
+    credited: sumOf([...(credits ?? []), ...(earnings ?? [])]),
+    balance: sumOf((earnings ?? []).filter((e) => e.status === 'available')),
+    payoutsEnabled: !!me.payouts_enabled,
+    campaigns: (camps ?? []).filter((c) => c.status !== 'completed').map((c) => ({ id: c.id as string, title: c.title as string, status: c.status as string })).sort((a, b) => ['active', 'paused', 'draft'].indexOf(a.status) - ['active', 'paused', 'draft'].indexOf(b.status)),
     people,
   };
 }

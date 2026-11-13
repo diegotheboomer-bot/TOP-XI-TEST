@@ -191,6 +191,8 @@ export async function createDepositIntent(campaignId: string, amount: number, to
       description: `Clipper budget ${usdCents(charge.budget)} + ${charge.label}: ${campaign.title}`,
       metadata: { kind: 'campaign_deposit', campaign_id: campaignId, budget_cents: String(cents(charge.budget)), fee_cents: String(cents(charge.fee)) },
       transfer_group: `campaign_${campaignId}`,
+      // Stripe emails an official receipt, so the business always has proof of what it paid.
+      receipt_email: (await getViewer())?.email ?? undefined,
     });
     return { status: intent.status, clientSecret: intent.client_secret! };
   } catch (err) {

@@ -154,6 +154,9 @@ export function Landing({
           </a>
           {legal && (
             <>
+              <Link href="/trust" className="text-xs font-medium text-zinc-700 hover:text-zinc-900">
+                Is Atlas safe?
+              </Link>
               <Link href={legal.privacy} className="text-xs hover:text-zinc-900">
                 Privacy
               </Link>

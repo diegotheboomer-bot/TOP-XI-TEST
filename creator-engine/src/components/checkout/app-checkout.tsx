@@ -43,7 +43,7 @@ export function AppAddBudget({
       initialAmount={initialAmount}
       // Stripe confirms the deposit by webhook, so the balance can lag a moment behind.
       onDone={() => router.refresh()}
-      note={publishableKey ? 'Payments are processed by Stripe. Card details never touch our servers.' : 'Demo mode: mock money only.'}
+      note={publishableKey ? <>Payments are processed by Stripe and you get a receipt by email. Card details never touch our servers. <a href="/trust" className="underline">Is Atlas safe?</a></> : 'Demo mode: mock money only.'}
       payment={(quote, onPaid) =>
         publishableKey ? (
           <StripePayment publishableKey={publishableKey} quote={quote} campaignId={campaign.id} createIntent={createIntent} quoteDeposit={quoteDeposit} onPaid={onPaid} bankTransfer={bankTransfer} />

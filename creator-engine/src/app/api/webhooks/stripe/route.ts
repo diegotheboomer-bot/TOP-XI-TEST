@@ -58,6 +58,7 @@ export async function POST(req: Request) {
   if (event.type === 'account.updated') {
     const account = event.data.object;
     await admin.from('creators').update({ payouts_enabled: account.payouts_enabled ?? false }).eq('stripe_account_id', account.id);
+    await admin.from('brands').update({ payouts_enabled: account.payouts_enabled ?? false }).eq('stripe_account_id', account.id);
   }
 
   return NextResponse.json({ received: true });

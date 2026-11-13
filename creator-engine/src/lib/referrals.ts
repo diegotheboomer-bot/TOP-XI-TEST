@@ -98,7 +98,7 @@ export async function creditReferral(admin: SupabaseClient, input: { creatorId: 
   try {
     const { data: c } = await admin.from('creators').select('referred_by, referred_by_brand, created_at').eq('id', input.creatorId).single();
     if (c?.referred_by_brand && inReferralWindow(c.created_at as string)) {
-      await creditBrand(admin, c.referred_by_brand as string, input);
+      await creditBrand(admin, c.referred_by_brand as string, { creatorId: input.creatorId, fee: input.fee, sourceRef: input.sourceRef });
       return;
     }
     if (!c?.referred_by || c.referred_by === input.creatorId || !inReferralWindow(c.created_at as string)) return;
@@ -112,22 +112,10 @@ export async function creditReferral(admin: SupabaseClient, input: { creatorId: 
   }
 }
 
-/**
- * A business's invite reward: the fee goes into one of its campaign budgets, as a
- * 'referral_credit' ledger row (never refunded to a card). The campaign the fee came from
- * if it's theirs and still running, otherwise their newest running campaign. With none
- * running, Atlas keeps the fee.
- */
-async function creditBrand(admin: SupabaseClient, brandId: string, input: { campaignId?: string; fee: number; sourceRef: string }): Promise<void> {
-  const { data: camps } = await admin.from('campaigns').select('id, status').eq('brand_id', brandId).in('status', ['active', 'paused']).order('created_at', { ascending: false });
-  const open = camps ?? [];
-  const target = open.find((x) => x.id === input.campaignId) ?? open.find((x) => x.status === 'active') ?? open[0];
-  if (!target) return;
-  const { error } = await admin
-    .from('escrow_ledger')
-    .insert({ campaign_id: target.id, entry_type: 'referral_credit', amount: input.fee, stripe_object_id: `refcredit:${input.sourceRef}` });
-  if (error) return; // already credited (unique per payout)
-  await admin.rpc('escrow_credit', { p_campaign: target.id, p_amount: input.fee });
+/** A business's invite reward: added to its affiliate balance (cash out, or use as campaign budget). */
+async function creditBrand(admin: SupabaseClient, brandId: string, input: { creatorId?: string; fee: number; sourceRef: string }): Promise<void> {
+  // Unique source_ref: a payout is only ever counted once.
+  await admin.from('brand_affiliate_earnings').insert({ brand_id: brandId, referred_id: input.creatorId ?? null, amount: input.fee, source_ref: input.sourceRef });
 }
 
 /** Blocks rewards from invited accounts that pay out to the same bank account or PayPal as the inviter. */

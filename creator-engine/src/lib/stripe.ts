@@ -50,7 +50,19 @@ export const platformFeePercent = () => Number(process.env.PLATFORM_FEE_PERCENT 
  * way (Atlas pays Connect fees, passed on at cash-out). STRIPE_OWNED_PRICING=false skips it.
  */
 export async function createClipperAccount(creatorId: string): Promise<Stripe.Account> {
-  const base = { capabilities: { transfers: { requested: true } }, ...CLIPPER_ACCOUNT_DEFAULTS, metadata: { creator_id: creatorId } };
+  return createPayoutAccount({ ...CLIPPER_ACCOUNT_DEFAULTS, metadata: { creator_id: creatorId } });
+}
+
+/** A business's payout account, only used to cash out affiliate earnings. Stripe asks whether it's a person or a company. */
+export async function createBrandAccount(brandId: string): Promise<Stripe.Account> {
+  return createPayoutAccount({
+    business_profile: { url: 'https://atlasclipping.com', product_description: 'Receives affiliate earnings for referring clippers to Atlas Clipping.' },
+    metadata: { brand_id: brandId },
+  });
+}
+
+async function createPayoutAccount(extra: Omit<Stripe.AccountCreateParams, 'controller' | 'capabilities'>): Promise<Stripe.Account> {
+  const base = { capabilities: { transfers: { requested: true } }, ...extra };
   if (process.env.STRIPE_OWNED_PRICING?.trim() !== 'false') {
     const params = { ...base, controller: { fees: { payer: 'account' as const }, losses: { payments: 'stripe' as const }, stripe_dashboard: { type: 'express' as const } } };
     for (const apiVersion of [undefined, '2026-06-24.preview']) {

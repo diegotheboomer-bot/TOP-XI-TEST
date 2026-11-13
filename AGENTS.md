@@ -18,7 +18,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 
 ## Workflow rules (agreed with the owner)
 - Develop and push on branch `claude/kind-galileo-egdt9r`. No pull requests unless asked.
-- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0027_…`).
+- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0028_…`).
   The owner runs the SQL in the Supabase SQL Editor. **Don't push code that needs a new column
   until the owner confirms the SQL ran**, or the live site breaks.
 - Never commit secrets. Env vars live in Render (Stripe, Supabase, Discord, Gemini, TikTok, YouTube).
@@ -48,6 +48,10 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   per account (`user_devices`, recorded in AppLayout and at sign-up). `/r/CODE` checks `isSelfInvite` when the link is opened
   (signed in as the inviter, a device the inviter used, a connection the inviter used in the last 14 days (`net:` rows,
   catches in-app browsers from Instagram/Discord), or the inviter's sign-up network) and doesn't remember the invite.
+- Streamer affiliate balance (migration 0027): invite earnings land in `brand_affiliate_earnings` (status available/applied/paid).
+  On `/streamer/invite` the business adds it to a campaign as budget (`applyAffiliateBalance`) or cashes out
+  (`cashOutAffiliate`, needs a business payout account from `/streamer/payouts`, `createBrandAccount` in stripe.ts).
+- Trust: public `/trust` page ("Is Atlas safe?", linked in the footer and checkout); deposits send a Stripe receipt (`receipt_email`).
 - Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper
   (`src/lib/payout-costs.ts`: 0.25% + $0.15, plus $2.40 on the first Stripe payout of the month, covering Stripe's
   €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.

@@ -6,6 +6,9 @@ import { REFERRAL_DAYS } from '@/lib/referrals';
 import { TIER_PERKS } from '@/lib/tiers';
 import { usd, usdCents } from '@/lib/format';
 import { ShareLink } from '@/components/invite/share-link';
+import { AffiliateBalance } from '@/components/invite/affiliate-balance';
+import { applyAffiliateBalance, cashOutAffiliate } from '@/actions/affiliate';
+import { MIN_CASHOUT } from '@/lib/payout-rules';
 import { InviteSteps, type Step } from '@/components/invite/steps';
 import { StreamerAvatar } from '@/components/views';
 import { cn } from '@/components/ui/cn';
@@ -17,7 +20,7 @@ const FEE = TIER_PERKS.silver.feePct;
 const STEPS: Step[] = [
   { icon: Megaphone, title: 'Share it', short: 'Discord, panels, on stream', more: 'Your viewers know your content best, so they make the best clippers.' },
   { icon: UserPlus, title: 'They join', short: 'As clippers, via your link', more: 'They open your link and sign up. We remember it for 30 days on the phone or computer they opened it on.' },
-  { icon: PiggyBank, title: `${FEE}% → your budget`, short: `For ${REFERRAL_DAYS} days`, more: `For each clipper’s first ${REFERRAL_DAYS} days, the ${FEE}% fee on their cash-outs is added to your running campaign’s budget. It isn’t refunded to your card if you cancel.` },
+  { icon: PiggyBank, title: `You earn ${FEE}%`, short: `Cash out or use as budget`, more: `For each clipper’s first ${REFERRAL_DAYS} days, the ${FEE}% fee on their cash-outs goes to your affiliate balance. Add it to any campaign as a discount, or cash it out to your bank from $5 (Stripe’s payout fee comes off). Budget added to a campaign isn’t refunded to your card.` },
 ];
 
 /** Business invite link: clippers who join through it add their cash-out fee to the business's campaign budget. */
@@ -40,7 +43,7 @@ export default async function BrandInvitePage({ searchParams }: { searchParams: 
           Turn your community into <span className="text-brand">your clippers.</span>
         </h1>
         <p className="relative mt-3 max-w-xl text-zinc-500 sm:text-lg">
-          Clippers who join with your link add their {FEE}% fee to your budget for {REFERRAL_DAYS} days.
+          Clippers who join with your link earn you their {FEE}% fee for {REFERRAL_DAYS} days. Cash it out or use it as budget.
         </p>
         {r.unlocked ? (
           <ShareLink link={r.link} className="relative mt-6" message="Clip my streams on Atlas and get paid per view. Join with my link:" />
@@ -63,7 +66,7 @@ export default async function BrandInvitePage({ searchParams }: { searchParams: 
             [
               ['Joined', String(r.invited)],
               ['Active', String(r.active)],
-              ['Budget added', usdCents(r.credited)],
+              ['Earned', usdCents(r.credited)],
             ] as const
           ).map(([k, v], i) => (
             <div key={k} className={cn('flex flex-col-reverse rounded-xl px-3 py-3 ring-1 ring-inset sm:px-4', i === 2 ? 'bg-brand-a/10 ring-brand-a/30' : 'bg-zinc-100/60 ring-zinc-200/50')}>
@@ -72,6 +75,11 @@ export default async function BrandInvitePage({ searchParams }: { searchParams: 
             </div>
           ))}
         </dl>
+        {r.unlocked && (
+          <div className="relative mt-4">
+            <AffiliateBalance balance={r.balance} minCashout={MIN_CASHOUT} payoutsEnabled={r.payoutsEnabled} campaigns={r.campaigns} apply={applyAffiliateBalance} cashOut={cashOutAffiliate} />
+          </div>
+        )}
       </section>
 
       <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-8">
@@ -82,7 +90,7 @@ export default async function BrandInvitePage({ searchParams }: { searchParams: 
         <div className="mt-6 rounded-2xl bg-brand-a/10 p-4 ring-1 ring-inset ring-brand-a/30 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[rgb(var(--brand-ta))]">Example</p>
           <p className="mt-1 text-sm leading-relaxed sm:text-base">
-            20 viewers cash out $200 each → <b className="text-brand">{usd((20 * 200 * FEE) / 100)}</b> free budget.
+            20 viewers cash out $200 each → <b className="text-brand">{usd((20 * 200 * FEE) / 100)}</b> for you.
           </p>
         </div>
       </section>
