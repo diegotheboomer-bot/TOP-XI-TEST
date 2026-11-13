@@ -2,7 +2,7 @@ import { selectAll } from './fetch-all';
 import { isTestClip } from './test-data';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, poolShares, type PayoutTerms } from './payout';
-import { detectBotVelocity, detectLowEngagement, hashSimilarity, DUPLICATE_THRESHOLD, LOW_ENGAGEMENT_REASON } from './fraud';
+import { assessViews, hashSimilarity, DUPLICATE_THRESHOLD, REVIEW_REASON, type StatsSample } from './fraud';
 import { perceptualHashFromUrl } from './phash';
 import { hasDisclosure } from './compliance';
 import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
@@ -177,13 +177,13 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
     return 'flagged';
   }
 
-  const { data: prev } = await admin
+  // The last few samples, so a check can see how the views grew, not just the latest jump.
+  const { data: recent } = await admin
     .from('social_metrics_logs')
-    .select('captured_at, view_count, comment_count')
+    .select('captured_at, view_count, like_count, comment_count, share_count')
     .eq('submission_id', sub.id)
     .order('captured_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(5);
 
   await admin.from('social_metrics_logs').insert({
     submission_id: sub.id,
@@ -203,41 +203,28 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
     last_synced_at: now.toISOString(),
   };
 
-  if (prev) {
-    const check = detectBotVelocity(
-      { capturedAt: new Date(prev.captured_at), views: prev.view_count, comments: prev.comment_count },
-      { capturedAt: now, views: v.views, comments: v.comments },
-    );
-    if (check.flagged) {
-      // Pause accrual: payout_earned is left at its previous value.
-      await admin
-        .from('submissions')
-        .update({
-          ...metrics,
-          status: 'flagged',
-          fraud_score: 90,
-          flag_reason: `Bot farm activity: ${Math.round(check.viewsPerMinute).toLocaleString('en-US')} views/min, ${(check.commentRatio * 100).toFixed(3)}% comment ratio`,
-        })
-        .eq('id', sub.id);
-      return 'flagged';
-    }
-  }
-
-  if (!sub.engagement_cleared) {
-    const low = detectLowEngagement({ views: v.views, likes: v.likes, comments: v.comments });
-    if (low.flagged) {
-      // Hold: payout_earned stays where it was until the streamer approves the clip.
-      await admin
-        .from('submissions')
-        .update({
-          ...metrics,
-          status: 'flagged',
-          fraud_score: 60,
-          flag_reason: `${LOW_ENGAGEMENT_REASON}: ${(low.ratio * 100).toFixed(2)}% likes and comments per view at ${v.views.toLocaleString('en-US')} views. Check it isn’t paid-promoted, then approve.`,
-        })
-        .eq('id', sub.id);
-      return 'flagged';
-    }
+  const history: StatsSample[] = [
+    ...(recent ?? []).reverse().map((r) => ({ capturedAt: new Date(r.captured_at as string), views: Number(r.view_count), likes: Number(r.like_count), comments: Number(r.comment_count), shares: Number(r.share_count) })),
+    { capturedAt: now, views: v.views, likes: v.likes, comments: v.comments, shares: v.shares },
+  ];
+  const check = assessViews(history, { cleared: !!sub.engagement_cleared, hasShares: sub.platform === 'tiktok' });
+  if (check.level !== 'ok') {
+    // Earnings pause: payout_earned stays where it was. Fraud stays flagged; a review hold
+    // waits for the business to look and approve.
+    const why = check.reasons.join('; ');
+    await admin
+      .from('submissions')
+      .update({
+        ...metrics,
+        status: 'flagged',
+        fraud_score: check.score,
+        flag_reason:
+          check.level === 'fraud'
+            ? `Suspicious views: ${why}`
+            : `${REVIEW_REASON}: ${why}. Make sure the views aren’t bought or paid-promoted, then approve.`,
+      })
+      .eq('id', sub.id);
+    return 'flagged';
   }
 
   // Clips are only ever approved by the streamer; until then just keep the numbers fresh.

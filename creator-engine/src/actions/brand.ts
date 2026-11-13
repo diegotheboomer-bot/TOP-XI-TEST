@@ -17,7 +17,7 @@ import { usdCents } from '@/lib/format';
 import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError, CampaignEditSchema } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import { REF_MAX_BYTES } from '@/lib/references';
-import { LOW_ENGAGEMENT_REASON } from '@/lib/fraud';
+import { LOW_ENGAGEMENT_REASON, REVIEW_REASON } from '@/lib/fraud';
 import { clipperTier } from '@/lib/clipper-records';
 import { TIER_PERKS, holdLabel } from '@/lib/tiers';
 import type { ActionState } from './result';
@@ -306,8 +306,8 @@ export async function reviewSubmission(submissionId: string, decision: 'approve'
           flag_reason: null,
           fraud_score: 0,
           approved_at: new Date().toISOString(),
-          // Approving a low-engagement hold means the streamer checked it.
-          ...(sub.flag_reason?.startsWith(LOW_ENGAGEMENT_REASON) ? { engagement_cleared: true } : {}),
+          // Approving a view-check hold means the business checked it: its ratios aren't raised again.
+          ...(sub.flag_reason?.startsWith(LOW_ENGAGEMENT_REASON) || sub.flag_reason?.startsWith(REVIEW_REASON) ? { engagement_cleared: true } : {}),
         }
       : { status: 'flagged', flag_reason: 'Flagged by the streamer' };
   await admin.from('submissions').update(update).eq('id', submissionId);

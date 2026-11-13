@@ -53,6 +53,10 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   `/admin/test-data` (load/remove fake @atlas.test data).
 - Discord: `src/lib/discord.ts` (role sync), `src/app/api/discord/interactions` (#verify button flow),
   `src/app/api/oauth/discord/*` (Connect Discord in Settings).
+- View checks on every sync: `assessViews` in `src/lib/fraud.ts` (5-minute bot burst, hollow jump = many new views with
+  almost no new likes/comments/shares, sudden speed-up, low engagement overall, too many likes, more comments than likes,
+  no shares on TikTok, views dropping). Fraud (score ≥85) stays flagged; review (≥50) holds the clip for the business,
+  approving clears the ratio checks (`engagement_cleared`) but not new jumps. Also duplicate clips (pHash) and deleted videos.
 - Test data guard: fake clips have video ids starting `atlastest` and are never synced or paid (`src/lib/test-data.ts`).
 
 ## Current state (Nov 2026)
