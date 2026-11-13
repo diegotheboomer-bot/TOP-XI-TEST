@@ -10,7 +10,7 @@ const AUTH_URL = 'https://www.facebook.com/dialog/oauth';
 const VERSION = 'v27.0';
 const GRAPH = `https://graph.facebook.com/${VERSION}`;
 /** The login configuration from the App Dashboard (not a secret). */
-const CONFIG_ID = () => process.env.INSTAGRAM_CONFIG_ID?.trim() || '1134912728946286';
+const CONFIG_ID = () => process.env.INSTAGRAM_CONFIG_ID?.trim() || '29535809842723584';
 export const INSTAGRAM_SCOPES = ['instagram_basic', 'instagram_manage_insights'];
 
 export const instagramRedirectUri = () => `${appUrl()}/api/oauth/instagram/callback`;
