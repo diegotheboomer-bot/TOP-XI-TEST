@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { youtubeVerifyCode } from './youtube-verify';
 import { clipperRecords as loadRecords } from './clipper-records';
 import { selectAll, selectAllIn } from './fetch-all';
-import { approvalRate, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
+import { approvalRate, isTrusted, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
 import { appUrl, isDemo } from './env';
 import { REFERRAL_DAYS, inReferralWindow } from './referrals';
 import { getViewer } from './session';
@@ -30,6 +30,8 @@ export type SubmissionRow = Submission & {
   creator_verified?: boolean;
   /** Founding clipper number (1–100), if any. */
   creator_founder?: number | null;
+  /** Platinum+ with no fraud flags in 90 days. */
+  creator_trusted?: boolean;
   /** Share of the clipper's reviewed clips that were approved, 0–1. */
   creator_approval?: number;
 };
@@ -418,6 +420,7 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
       creator_founder: names.get(s.creator_id as string)?.founder ?? null,
       creator_profile: acct ? profileUrl(acct.platform as string, acct.username as string | null, acct.platform_user_id as string | null) : null,
       creator_tier: rec ? tierFor(rec) : ('silver' as Tier),
+      creator_trusted: rec ? isTrusted(rec) : false,
       creator_approval: rec ? approvalRate(rec) : 1,
     };
   });

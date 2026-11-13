@@ -119,10 +119,6 @@ export async function setCampaignStatus(campaignId: string, status: 'active' | '
   const { admin, campaign } = await requireOwnCampaign(campaignId);
   if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
   if (status === 'active' && Number(campaign.escrow_balance) <= 0) return { error: 'Add a budget before launching.' };
-  if (status === 'active' && campaign.invite_only) {
-    const { count } = await admin.from('campaign_invites').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId);
-    if (!count) return { error: 'This campaign is invite only. Invite at least one clipper from Scout first.' };
-  }
   await admin.from('campaigns').update({ status }).eq('id', campaignId);
   revalidatePath(`/streamer/campaigns/${campaignId}`);
   return { success: status === 'active' ? 'Your campaign is live.' : status === 'paused' ? 'Campaign paused.' : 'Campaign ended.' };

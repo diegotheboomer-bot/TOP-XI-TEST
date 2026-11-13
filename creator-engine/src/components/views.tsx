@@ -13,7 +13,7 @@ import { holdHoursLeft, streamerCanFlag } from '@/lib/payout-rules';
 import { cn } from './ui/cn';
 import { PlatformIcon } from './platform-icon';
 import { CampaignBadge, FraudBadge, SubmissionBadge } from './status';
-import { TierBadge } from './tier-badge';
+import { TierBadge, TrustedBadge } from './tier-badge';
 import { TIER_PERKS } from '@/lib/tiers';
 
 // `a`, or a router link component such as next/link.
@@ -350,6 +350,7 @@ export function SubmissionTable({
                     <a href={s.creator_id ? `/streamer/clippers/${s.creator_id}` : undefined} className="truncate font-semibold hover:underline">
                       {s.creator_name}
                     </a>
+                    {s.creator_trusted && <TrustedBadge className="self-center" />}
                     {s.creator_profile && (
                       <a href={s.creator_profile.url} target="_blank" rel="noreferrer" className="truncate text-xs text-zinc-500 hover:text-zinc-900">
                         {s.creator_profile.handle}

@@ -68,6 +68,11 @@ export function tierFor(r: ClipperRecord): Tier {
 }
 
 export const tierRank = (t: Tier) => TIERS.indexOf(t);
+
+/** Tier from which clippers can earn the Trusted badge. */
+export const TRUSTED_FROM: Tier = 'platinum';
+/** Trusted: Platinum or higher and no fraud flags in the last 90 days. Shown to businesses on their clips. */
+export const isTrusted = (r: ClipperRecord) => tierRank(tierFor(r)) >= tierRank(TRUSTED_FROM) && r.recentFraud === 0;
 export const atLeast = (t: Tier, min: Tier) => tierRank(t) >= tierRank(min);
 
 /** What's still missing for the next tier, as progress 0–1 per requirement. */

@@ -44,6 +44,12 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.
 - Google / Apple sign-in: Supabase OAuth (`oauthSignIn` in `src/actions/account.ts`, `components/forms/oauth-buttons.tsx`).
   Buttons show only with `AUTH_GOOGLE=true` / `AUTH_APPLE=true` on Render, after the provider is set up in Supabase.
+- Private campaigns are link-only: `src/lib/private-link.ts` (signed key) + `/join/[id]` route (adds an accepted invite, which
+  RLS uses to show the campaign; signed-out visitors sign up first, `atlas_join` cookie finishes it on clipper home).
+  Scout is hidden for now (`SCOUT_ENABLED=true` shows it); plan: bring it back as a paid business feature.
+- Trusted badge: `isTrusted` in `tiers.ts` (Platinum+ and no fraud flags in 90 days), shown to businesses on clips and profiles.
+- Tier perk ideas kept for later: business-paid "tier bonus" rate (e.g. +10% for Diamond+), early access to new campaigns,
+  longer invite earnings for higher tiers, Discord tier channels.
 - Founders: first 100 real clippers get `creators.founder_number` (trigger, migration 0022). Emerald badge + card.
 - Data loading: `src/lib/data.ts`. Server actions: `src/actions/*`.
 - Front page: `src/components/landing.tsx`; hero `atlas-landing-hero.tsx` + `src/styles/atlas-landing.css`;

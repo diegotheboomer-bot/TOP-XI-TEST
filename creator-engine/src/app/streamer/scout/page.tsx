@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Check, Clapperboard, Lock, Telescope } from 'lucide-react';
 import { cn } from '@/components/ui/cn';
 import { getInvitableCampaigns, getScoutClippers, type InvitableCampaign, type ScoutClipper } from '@/lib/data';
@@ -33,6 +34,8 @@ const FILTERS: FilterDef[] = [
 const fit = (c: ScoutClipper, topic: string) => (c.clipped.includes(topic) ? 2 : 0) + (c.interests.includes(topic) ? 1 : 0);
 
 export default async function ScoutPage({ searchParams: sp }: { searchParams: Search }) {
+  // Held back for now; it comes back as a paid feature.
+  if (process.env.SCOUT_ENABLED?.trim() !== 'true') redirect('/streamer');
   const topic = TOPICS.includes(sp.topic ?? '') ? sp.topic : undefined;
   const minTier = (TIERS as readonly string[]).includes(sp.tier ?? '') ? (sp.tier as Tier) : undefined;
   const [all, campaigns] = await Promise.all([getScoutClippers(topic), getInvitableCampaigns()]);

@@ -19,6 +19,22 @@ const GOLD_TEXT = 'linear-gradient(180deg, #fff7cc 0%, #fcd34d 45%, #d97706 100%
 const gradient = (stops: string[], angle = 135) => `linear-gradient(${angle}deg, ${stops.map((c, i) => `${c} ${Math.round((i / (stops.length - 1)) * 100)}%`).join(', ')})`;
 
 /** A small shiny pill: metal gradient, bevel highlight, soft glow and a light sweep. Majesty gets its own treatment. */
+/** "Trusted" mark businesses see on a clipper: Platinum or higher, no fraud flags in 90 days. */
+export function TrustedBadge({ className }: { className?: string }) {
+  return (
+    <span
+      title="Trusted clipper: Platinum or higher, no fraud flags in the last 90 days"
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400 ring-1 ring-inset ring-sky-400/30 ${className ?? ''}`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="size-3" aria-hidden>
+        <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+      Trusted
+    </span>
+  );
+}
+
 export function TierBadge({ tier, size = 'sm', className, iconOnly, founder }: { tier: Tier; size?: 'sm' | 'lg'; className?: string; iconOnly?: boolean; /** Founder number (1–100): the emerald founder hexagon. */ founder?: number | null }) {
   if (iconOnly) return founder ? <FounderEmblem tier={tier} size={20} number={founder} className={className} /> : <TierDot tier={tier} className={className} />;
   const sizing = size === 'sm' ? 'px-2 py-0.5 text-[10px] [&_svg]:size-3' : 'px-3.5 py-1.5 text-sm [&_svg]:size-4';

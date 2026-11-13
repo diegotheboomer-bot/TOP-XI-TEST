@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, Crown, CircleCheck, Eye, Layers, ShieldCheck, Sparkles, Target, Wallet, Zap } from 'lucide-react';
-import { TIERS, TIER_LABEL, TIER_PERKS, TIER_RULES, approvalRate, compactViews, holdLabel, tierRank, tierFor, type ClipperRecord, type Tier } from '@/lib/tiers';
+import { TIERS, TIER_LABEL, TIER_PERKS, TIER_RULES, TRUSTED_FROM, approvalRate, compactViews, holdLabel, tierRank, tierFor, type ClipperRecord, type Tier } from '@/lib/tiers';
 import { Dialog } from './ui/dialog';
 import { MAJESTY_RIM } from './tier-badge';
 import { TierBadge } from './tier-badge';
@@ -80,6 +80,7 @@ export function TierGuideButton({ record, children, className }: { record?: Clip
                       <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={Zap} text={`Paid ${holdLabel(perks.holdHours)} after approval`} />
                       <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={Wallet} text={perks.cashoutsPerWeek === Infinity ? 'Unlimited cash-outs' : `${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} a week`} />
                       {t !== 'silver' && <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={Sparkles} text={`${TIER_LABEL[t]}-only campaigns, reviewed first`} />}
+                      {tierRank(t) >= tierRank(TRUSTED_FROM) && <Perk royal={t === 'majesty'} tint={t === 'majesty' ? undefined : THEME[t].tile} icon={ShieldCheck} text="Trusted badge businesses see on your clips" />}
                     </ul>
                   </div>
                 </div>

@@ -173,7 +173,7 @@ export function InstructionsFields({
                 </button>
               ))}
             </div>
-            {priv && <p className="mt-2 text-xs text-zinc-500">You’ll invite clippers from Scout before you launch.</p>}
+            {priv && <p className="mt-2 text-xs text-zinc-500">Hidden from Discover. You get a private link to share; anyone with it can join.</p>}
           </div>
           <div className="mt-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
             <input type="hidden" name="max_clips_per_clipper" value={limitOn ? String(Math.max(1, Math.round(Number(limit) || 1))) : ''} />

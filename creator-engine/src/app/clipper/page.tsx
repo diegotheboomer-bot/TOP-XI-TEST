@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { JOIN_COOKIE } from '@/lib/private-link';
 import Link from 'next/link';
 import { BadgeCheck, Clapperboard, DollarSign, Eye, FolderOpen, Mail, TrendingUp, Upload, Wallet } from 'lucide-react';
 import { getCreatorDashboard } from '@/lib/data';
@@ -38,6 +40,9 @@ const tiktokMessages: Record<string, [string, boolean]> = {
 
 export default async function CreatorPage({ searchParams }: { searchParams: { tiktok?: string; instagram?: string } }) {
   if (await needsWelcome()) redirect('/welcome');
+  // Opened a private campaign link before signing up: finish it now.
+  const pendingJoin = cookies().get(JOIN_COOKIE)?.value?.split('.');
+  if (pendingJoin?.length === 2) redirect(`/join/${pendingJoin[0]}?k=${encodeURIComponent(pendingJoin[1])}`);
   const [d, invites, history, referral] = await Promise.all([getCreatorDashboard(), getMyInvites(), getCreatorViewHistory(), getReferralSummary()]);
   const subs = d.enrollments.flatMap((e) => e.submissions);
   const earned = subs.reduce((a, s) => a + s.payout_earned, 0);

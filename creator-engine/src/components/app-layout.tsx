@@ -18,7 +18,7 @@ const SECTIONS: Record<Role, NavSection[]> = {
         { href: '/streamer/campaigns/new', label: 'New campaign', icon: <Plus />, primary: true },
         { href: '/streamer', label: 'Campaigns', icon: <LayoutList />, also: ['/streamer/campaigns'] },
         { href: '/streamer/creators', label: 'Creators', icon: <Users /> },
-        { href: '/streamer/scout', label: 'Scout', icon: <Telescope /> },
+        ...(process.env.SCOUT_ENABLED?.trim() === 'true' ? [{ href: '/streamer/scout', label: 'Scout', icon: <Telescope /> }] : []),
       ],
     },
     {

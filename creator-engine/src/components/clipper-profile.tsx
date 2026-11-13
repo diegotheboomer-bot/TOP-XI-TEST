@@ -7,7 +7,8 @@ import type { Platform } from '@/lib/types';
 import { PlatformIcon } from './platform-icon';
 import { StreamerAvatar } from './views';
 import { ClipperCard } from './clipper-card';
-import { TierBadge, TierEmblem } from './tier-badge';
+import { TierBadge, TierEmblem, TrustedBadge } from './tier-badge';
+import { isTrusted } from '@/lib/tiers';
 
 
 /** A clipper's tier, record and campaigns. `own` adds tier progress and the perks table. */
@@ -38,6 +39,7 @@ export function ClipperProfileView({ p, own = false, campaignHref }: { p: Clippe
             <p className="text-sm font-medium" style={{ color: p.founder ? '#10b981' : undefined }}>
               {p.founder ? `Founding clipper #${String(p.founder).padStart(3, '0')} · ` : ''}
               {TIER_LABEL[p.tier]}
+              {isTrusted(p.record) && <TrustedBadge className="ml-2 align-middle" />}
             </p>
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
               {p.handles.length ? (
