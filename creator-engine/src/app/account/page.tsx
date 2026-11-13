@@ -15,6 +15,7 @@ import { ButtonLink } from '@/components/ui/button-link';
 import { ConnectionCard } from '@/components/views';
 import { PlatformIcon } from '@/components/platform-icon';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
+import { youtubeGoogleEnabled } from '@/lib/platforms/youtube';
 import { AccountSettingsForm } from '@/components/forms/account-settings-form';
 import { AccountSecurityForms } from '@/components/forms/account-security-forms';
 import { disconnectDiscord } from '@/actions/profile';
@@ -32,6 +33,14 @@ const DISCORD_NOTE: Record<string, [string, boolean]> = {
   error: ['Couldn’t connect Discord. Try again.', false],
 };
 
+const YOUTUBE_NOTE: Record<string, [string, boolean]> = {
+  connected: ['YouTube connected. Any Short from that channel now counts as yours.', true],
+  no_channel: ['That Google account has no YouTube channel. Pick the account (or brand channel) you post Shorts on.', false],
+  already_linked: ['That YouTube channel is already connected to another Atlas account.', false],
+  cancelled: ['YouTube connection cancelled.', false],
+  error: ['Couldn’t connect YouTube. Try again.', false],
+};
+
 const DiscordLogo = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
     <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.1 14.1 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.011c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
@@ -41,7 +50,7 @@ const DiscordLogo = () => (
 type Tab = 'profile' | 'account' | 'connections';
 
 /** Settings: profile, account (email, password) and, for clippers, connected accounts. */
-export default async function AccountPage({ searchParams }: { searchParams: { tab?: string; discord?: string } }) {
+export default async function AccountPage({ searchParams }: { searchParams: { tab?: string; discord?: string; youtube?: string } }) {
   if (isDemo) redirect('/');
   const viewer = await getViewer();
   if (!viewer) redirect('/login');
@@ -57,8 +66,8 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
     ['account', 'Email & password', KeyRound],
     ...(clipper ? ([['connections', 'Connections', Link2]] as [Tab, string, React.ElementType][]) : []),
   ];
-  const tab: Tab = searchParams.discord && clipper ? 'connections' : tabs.some(([t]) => t === searchParams.tab) ? (searchParams.tab as Tab) : 'profile';
-  const note = searchParams.discord ? DISCORD_NOTE[searchParams.discord] : undefined;
+  const tab: Tab = (searchParams.discord || searchParams.youtube) && clipper ? 'connections' : tabs.some(([t]) => t === searchParams.tab) ? (searchParams.tab as Tab) : 'profile';
+  const note = searchParams.discord ? DISCORD_NOTE[searchParams.discord] : searchParams.youtube ? YOUTUBE_NOTE[searchParams.youtube] : undefined;
   const d = clipper && tab === 'connections' ? await getCreatorDashboard() : null;
 
   return (
@@ -124,7 +133,7 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                   title="YouTube Shorts"
                   connected={!!d.youtube}
                   detail={d.youtube ? `${d.youtube.channel ?? 'Channel'}${d.youtube.subscribers != null ? ` · ${compact(d.youtube.subscribers)} subscribers` : ''}` : 'Verify your channel once to submit Shorts'}
-                  action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} />}
+                  action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} google={youtubeGoogleEnabled()} />}
                 />
                 <ConnectionCard
                   icon={<PlatformIcon platform="instagram" />}

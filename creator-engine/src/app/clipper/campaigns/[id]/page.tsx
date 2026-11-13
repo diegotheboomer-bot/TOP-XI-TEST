@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/components/action-button';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
+import { youtubeGoogleEnabled } from '@/lib/platforms/youtube';
 import { SubmitVideoForm } from '@/components/forms/submit-video-form';
 import { VerifiedMark, CampaignCover, MomentBoard, NextStep, PlatformChips, ReferenceList, RequirementList, StreamerAvatar } from '@/components/views';
 
@@ -270,7 +271,7 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                     {c.platforms.includes('youtube') && !d.youtubeVerified && (
                       <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
                         <span>Posting Shorts? Connect your YouTube channel first.</span>
-                        <YouTubeVerify code={d.youtubeCode} verified={false} />
+                        <YouTubeVerify code={d.youtubeCode} verified={false} google={youtubeGoogleEnabled()} />
                       </div>
                     )}
                   </div>

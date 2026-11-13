@@ -70,6 +70,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Clipper pages: `src/app/clipper/*`. Business pages: `src/app/streamer/*`. Settings: `src/app/account`.
 - Admin (owner emails in `ADMIN_EMAILS`): `/admin/support`, `/admin/verify`, `/admin/clips` (find by CLP- ref),
   `/admin/test-data` (load/remove fake @atlas.test data).
+- YouTube: "Connect with Google" (`/api/oauth/youtube/*`, `youtube.readonly`, channels.list mine=true; no token kept, stats use `YOUTUBE_API_KEY`).
+  Shows when `YOUTUBE_CLIENT_ID`/`YOUTUBE_CLIENT_SECRET` are set; otherwise the old code-in-description dialog.
 - Discord: `src/lib/discord.ts` (role sync), `src/app/api/discord/interactions` (#verify button flow),
   `src/app/api/oauth/discord/*` (Connect Discord in Settings).
 - View checks on every sync: `assessViews` in `src/lib/fraud.ts` (5-minute bot burst, hollow jump = many new views with
