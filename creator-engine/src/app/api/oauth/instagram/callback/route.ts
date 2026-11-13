@@ -3,6 +3,7 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { exchangeInstagramCode, getInstagramUser, INSTAGRAM_SCOPES } from '@/lib/platforms/instagram';
 import { encryptSecret } from '@/lib/crypto';
+import { storeSocialAvatar } from '@/lib/social-avatar';
 import { appUrl } from '@/lib/env';
 import { finishOAuth } from '@/lib/oauth-popup';
 
@@ -21,7 +22,9 @@ export async function GET(req: NextRequest) {
     const tokens = await exchangeInstagramCode(code);
     const user = await getInstagramUser(tokens.accessToken);
     const now = Date.now();
-    const { error } = await createAdminClient()
+    const admin = createAdminClient();
+    const avatar = await storeSocialAvatar(admin, viewer.creatorId, 'instagram', user.picture);
+    const { error } = await admin
       .from('social_accounts')
       .upsert(
         {
@@ -30,6 +33,7 @@ export async function GET(req: NextRequest) {
           platform_user_id: user.userId,
           username: user.username,
           follower_count: user.followers,
+          ...(avatar ? { avatar_url: avatar } : {}),
           access_token_enc: encryptSecret(tokens.accessToken),
           refresh_token_enc: null,
           // Our login configuration's token never expires; keep a far date so the column stays filled.

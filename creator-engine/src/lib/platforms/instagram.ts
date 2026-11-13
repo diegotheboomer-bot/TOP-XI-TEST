@@ -56,16 +56,16 @@ export async function exchangeInstagramCode(code: string): Promise<{ accessToken
 }
 
 /** The Instagram professional account the clipper shared (the first one if they shared several). */
-export async function getInstagramUser(token: string): Promise<{ userId: string; username: string | null; followers: number | null }> {
+export async function getInstagramUser(token: string): Promise<{ userId: string; username: string | null; followers: number | null; picture: string | null }> {
   const list = await getJson<{ data: { id: string; username?: string }[] }>(
     `${GRAPH}/me/assigned_instagram_accounts?${new URLSearchParams({ fields: 'id,username', access_token: token })}`,
   );
   const acct = list.data?.[0];
   if (!acct) throw new Error('No Instagram account was shared.');
-  const u = await getJson<{ username?: string; followers_count?: number }>(
-    `${GRAPH}/${acct.id}?${new URLSearchParams({ fields: 'username,followers_count', access_token: token })}`,
-  ).catch(() => ({}) as { username?: string; followers_count?: number });
-  return { userId: acct.id, username: u.username ?? acct.username ?? null, followers: u.followers_count ?? null };
+  const u = await getJson<{ username?: string; followers_count?: number; profile_picture_url?: string }>(
+    `${GRAPH}/${acct.id}?${new URLSearchParams({ fields: 'username,followers_count,profile_picture_url', access_token: token })}`,
+  ).catch(() => ({}) as { username?: string; followers_count?: number; profile_picture_url?: string });
+  return { userId: acct.id, username: u.username ?? acct.username ?? null, followers: u.followers_count ?? null, picture: u.profile_picture_url ?? null };
 }
 
 interface IgMedia {

@@ -18,7 +18,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 
 ## Workflow rules (agreed with the owner)
 - Develop and push on branch `claude/kind-galileo-egdt9r`. No pull requests unless asked.
-- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0028_…`).
+- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0029_…`).
   The owner runs the SQL in the Supabase SQL Editor. **Don't push code that needs a new column
   until the owner confirms the SQL ran**, or the live site breaks.
 - Never commit secrets. Env vars live in Render (Stripe, Supabase, Discord, Gemini, TikTok, YouTube).

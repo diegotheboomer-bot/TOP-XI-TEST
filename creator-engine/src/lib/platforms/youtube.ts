@@ -68,6 +68,8 @@ export interface YouTubeChannel {
   title: string;
   description: string;
   subscribers: number | null;
+  /** Channel picture. */
+  picture: string | null;
 }
 
 export async function getYouTubeChannel(ref: ChannelRef): Promise<YouTubeChannel | null> {
@@ -78,10 +80,10 @@ export async function getYouTubeChannel(ref: ChannelRef): Promise<YouTubeChannel
   const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?${params}`);
   const json = await res.json();
   if (!res.ok) throw new Error(`YouTube API: ${json.error?.message ?? res.status}`);
-  const c = json.items?.[0] as { id: string; snippet?: { title?: string; description?: string }; statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean } } | undefined;
+  const c = json.items?.[0] as { id: string; snippet?: { title?: string; description?: string; thumbnails?: { medium?: { url?: string }; default?: { url?: string } } }; statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean } } | undefined;
   if (!c) return null;
   const subs = c.statistics?.hiddenSubscriberCount ? null : Number(c.statistics?.subscriberCount ?? NaN);
-  return { id: c.id, title: c.snippet?.title ?? '', description: c.snippet?.description ?? '', subscribers: Number.isFinite(subs) ? subs : null };
+  return { id: c.id, title: c.snippet?.title ?? '', description: c.snippet?.description ?? '', subscribers: Number.isFinite(subs) ? subs : null, picture: c.snippet?.thumbnails?.medium?.url ?? c.snippet?.thumbnails?.default?.url ?? null };
 }
 
 // ── Connect with Google ─────────────────────────────────────────────────────
@@ -129,8 +131,8 @@ export async function getConnectedYouTubeChannel(code: string): Promise<YouTubeC
   });
   const json = await r.json();
   if (!r.ok) throw new Error(`YouTube API: ${json.error?.message ?? r.status}`);
-  const c = json.items?.[0] as { id: string; snippet?: { title?: string; description?: string }; statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean } } | undefined;
+  const c = json.items?.[0] as { id: string; snippet?: { title?: string; description?: string; thumbnails?: { medium?: { url?: string }; default?: { url?: string } } }; statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean } } | undefined;
   if (!c) return null;
   const subs = c.statistics?.hiddenSubscriberCount ? null : Number(c.statistics?.subscriberCount ?? NaN);
-  return { id: c.id, title: c.snippet?.title ?? '', description: c.snippet?.description ?? '', subscribers: Number.isFinite(subs) ? subs : null };
+  return { id: c.id, title: c.snippet?.title ?? '', description: c.snippet?.description ?? '', subscribers: Number.isFinite(subs) ? subs : null, picture: c.snippet?.thumbnails?.medium?.url ?? c.snippet?.thumbnails?.default?.url ?? null };
 }

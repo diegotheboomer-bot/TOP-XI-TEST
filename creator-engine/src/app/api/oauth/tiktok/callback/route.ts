@@ -3,6 +3,7 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { exchangeTikTokCode, getTikTokUser } from '@/lib/platforms/tiktok';
 import { encryptSecret } from '@/lib/crypto';
+import { storeSocialAvatar } from '@/lib/social-avatar';
 import { appUrl } from '@/lib/env';
 import { finishOAuth } from '@/lib/oauth-popup';
 
@@ -22,8 +23,10 @@ export async function GET(req: NextRequest) {
     if (!granted.includes('video.list')) return back('missing_scope');
     const user = await getTikTokUser(tokens.access_token);
     const now = Date.now();
+    const admin = createAdminClient();
+    const avatar = await storeSocialAvatar(admin, viewer.creatorId, 'tiktok', user.avatar_url);
 
-    const { error } = await createAdminClient()
+    const { error } = await admin
       .from('social_accounts')
       .upsert(
         {
@@ -32,6 +35,7 @@ export async function GET(req: NextRequest) {
           platform_user_id: tokens.open_id,
           username: user.display_name ?? null,
           follower_count: user.follower_count ?? null,
+          ...(avatar ? { avatar_url: avatar } : {}),
           access_token_enc: encryptSecret(tokens.access_token),
           refresh_token_enc: encryptSecret(tokens.refresh_token),
           access_expires_at: new Date(now + tokens.expires_in * 1000).toISOString(),

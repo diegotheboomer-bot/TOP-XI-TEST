@@ -117,6 +117,7 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
               <div className="space-y-5">
                 <ConnectionCard
                   icon={<PlatformIcon platform="tiktok" />}
+                  avatar={d.tiktok?.avatar}
                   title="TikTok"
                   connected={!!d.tiktok}
                   detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips'}
@@ -128,6 +129,7 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                 />
                 <ConnectionCard
                   icon={<PlatformIcon platform="youtube" />}
+                  avatar={d.youtube?.avatar}
                   title="YouTube Shorts"
                   connected={!!d.youtube}
                   detail={d.youtube ? `${d.youtube.channel ?? 'Channel'}${d.youtube.subscribers != null ? ` · ${compact(d.youtube.subscribers)} subscribers` : ''}` : 'Verify your channel once to submit Shorts'}
@@ -135,6 +137,7 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                 />
                 <ConnectionCard
                   icon={<PlatformIcon platform="instagram" />}
+                  avatar={d.instagram?.avatar}
                   title="Instagram Reels"
                   connected={!!d.instagram}
                   detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? 'Creator or Business account' : 'Reels tracking is coming soon'}

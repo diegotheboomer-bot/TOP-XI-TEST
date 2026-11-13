@@ -15,6 +15,7 @@ import { checkDuplicate } from '@/lib/sync';
 import { hasDisclosure } from '@/lib/compliance';
 import { getYouTubeChannel, getYouTubeVideos, parseChannelInput } from '@/lib/platforms/youtube';
 import { youtubeVerifyCode } from '@/lib/youtube-verify';
+import { storeSocialAvatar } from '@/lib/social-avatar';
 import { generateDiscountCode, refParam } from '@/lib/attribution';
 import { stripe, createClipperAccount } from '@/lib/stripe';
 import { paypalConfigured } from '@/lib/paypal';
@@ -250,9 +251,11 @@ export async function verifyYouTubeChannel(_prev: ActionState, form: FormData): 
   if (!channel.description.toUpperCase().includes(code)) {
     return { error: `${code} isn’t in ${channel.title}’s description yet. Saved changes can take a minute to show.` };
   }
-  const { error } = await createAdminClient()
+  const admin = createAdminClient();
+  const avatar = await storeSocialAvatar(admin, creatorId, 'youtube', channel.picture);
+  const { error } = await admin
     .from('social_accounts')
-    .upsert({ creator_id: creatorId, platform: 'youtube', platform_user_id: channel.id, username: channel.title, follower_count: channel.subscribers, updated_at: new Date().toISOString() }, { onConflict: 'creator_id,platform' });
+    .upsert({ creator_id: creatorId, platform: 'youtube', platform_user_id: channel.id, username: channel.title, follower_count: channel.subscribers, ...(avatar ? { avatar_url: avatar } : {}), updated_at: new Date().toISOString() }, { onConflict: 'creator_id,platform' });
   if (error?.code === '23505') return { error: 'That channel is already verified on another account.' };
   if (error) return { error: 'Couldn’t save. Try again.' };
   revalidatePath('/clipper');

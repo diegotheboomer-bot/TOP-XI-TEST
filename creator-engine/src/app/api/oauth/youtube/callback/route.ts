@@ -4,6 +4,7 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getConnectedYouTubeChannel } from '@/lib/platforms/youtube';
 import { appUrl } from '@/lib/env';
+import { storeSocialAvatar } from '@/lib/social-avatar';
 import { finishOAuth } from '@/lib/oauth-popup';
 
 /** Google sends the clipper back here; we save the channel they signed in with. */
@@ -25,10 +26,12 @@ export async function GET(req: NextRequest) {
   try {
     const channel = await getConnectedYouTubeChannel(code);
     if (!channel) return back('no_channel');
-    const { error } = await createAdminClient()
+    const admin = createAdminClient();
+    const avatar = await storeSocialAvatar(admin, viewer.creatorId, 'youtube', channel.picture);
+    const { error } = await admin
       .from('social_accounts')
       .upsert(
-        { creator_id: viewer.creatorId, platform: 'youtube', platform_user_id: channel.id, username: channel.title, follower_count: channel.subscribers, updated_at: new Date().toISOString() },
+        { creator_id: viewer.creatorId, platform: 'youtube', platform_user_id: channel.id, username: channel.title, follower_count: channel.subscribers, ...(avatar ? { avatar_url: avatar } : {}), updated_at: new Date().toISOString() },
         { onConflict: 'creator_id,platform' },
       );
     if (error) return back(error.code === '23505' ? 'already_linked' : 'error');

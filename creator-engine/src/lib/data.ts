@@ -100,10 +100,10 @@ export interface CreatorEnrollment {
 
 export interface CreatorDashboard {
   name: string;
-  tiktok: { username: string | null; followers: number | null } | null;
+  tiktok: { username: string | null; followers: number | null; avatar?: string | null } | null;
   /** Verified YouTube channel, and the code to verify one. */
-  youtube: { channel: string | null; subscribers: number | null } | null;
-  instagram: { username: string | null; followers: number | null } | null;
+  youtube: { channel: string | null; subscribers: number | null; avatar?: string | null } | null;
+  instagram: { username: string | null; followers: number | null; avatar?: string | null } | null;
   youtubeCode: string;
   /** Cash-outs in the last 7 days (the first each week is free). */
   recentCashouts: number;
@@ -458,7 +458,7 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   const db = createClient();
   const [{ data: creator }, { data: account }, { data: enrollments }, { data: open }, { data: subs }] = await Promise.all([
     db.from('creators').select('display_name, payouts_enabled, interests, founder_number, created_at').eq('id', creatorId).single(),
-    createAdminClient().from('social_accounts').select('platform, username, follower_count').eq('creator_id', creatorId),
+    createAdminClient().from('social_accounts').select('platform, username, follower_count, avatar_url').eq('creator_id', creatorId),
     db.from('campaign_creators').select('*, campaigns(*, brands(name, avatar_url, verified), conversion_pixels(shop_domain))').eq('creator_id', creatorId),
     db.from('campaigns').select('*, brands(name, avatar_url, verified)').eq('status', 'active').order('created_at', { ascending: false }),
     selectAll(() => db.from('submissions').select('*').eq('creator_id', creatorId).order('id')),
@@ -482,9 +482,9 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
     interests: ((creator as { interests?: string[] } | null)?.interests ?? []) as string[],
     founder: ((creator as { founder_number?: number | null } | null)?.founder_number ?? null) as number | null,
     joinedAt: ((creator as { created_at?: string } | null)?.created_at ?? null) as string | null,
-    tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count } : null,
-    youtube: youtube ? { channel: youtube.username, subscribers: youtube.follower_count } : null,
-    instagram: instagram ? { username: instagram.username, followers: instagram.follower_count } : null,
+    tiktok: tiktok ? { username: tiktok.username, followers: tiktok.follower_count, avatar: tiktok.avatar_url as string | null } : null,
+    youtube: youtube ? { channel: youtube.username, subscribers: youtube.follower_count, avatar: youtube.avatar_url as string | null } : null,
+    instagram: instagram ? { username: instagram.username, followers: instagram.follower_count, avatar: instagram.avatar_url as string | null } : null,
     youtubeCode: youtubeVerifyCode(creatorId),
     recentCashouts: recentCashouts ?? 0,
     ...(() => {

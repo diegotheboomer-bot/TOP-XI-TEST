@@ -480,9 +480,17 @@ export function Checklist({ steps, title = 'Get started' }: { steps: ChecklistSt
   );
 }
 
-export function ConnectionCard({ icon, title, connected, detail, action, status = 'Connected' }: { icon: React.ReactNode; title: string; connected: boolean; detail: string; action: React.ReactNode; status?: string }) {
+export function ConnectionCard({ icon, title, connected, detail, action, status = 'Connected', avatar }: { icon: React.ReactNode; title: string; connected: boolean; detail: string; action: React.ReactNode; status?: string; avatar?: string | null }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
+      {connected && avatar ? (
+        // The account's own picture, with the platform as a small badge.
+        <span className="relative shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={avatar} alt="" className="size-9 rounded-full object-cover ring-1 ring-zinc-200" />
+          <span className="platform-tile absolute -bottom-1 -right-1 grid size-[18px] place-items-center rounded-md bg-brand text-brand-ink ring-2 ring-white [&>svg]:size-2.5">{icon}</span>
+        </span>
+      ) : (
       <span className="relative shrink-0">
         <span
           className={cn(
@@ -499,6 +507,7 @@ export function ConnectionCard({ icon, title, connected, detail, action, status 
           </span>
         )}
       </span>
+      )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{title}</p>
         <p className="truncate text-xs text-zinc-500">

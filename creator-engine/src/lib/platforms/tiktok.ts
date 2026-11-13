@@ -61,8 +61,8 @@ async function apiCall<T>(path: string, accessToken: string, init?: RequestInit)
 }
 
 export async function getTikTokUser(accessToken: string) {
-  const data = await apiCall<{ user: { open_id: string; display_name?: string; follower_count?: number } }>(
-    '/user/info/?fields=open_id,display_name,follower_count',
+  const data = await apiCall<{ user: { open_id: string; display_name?: string; follower_count?: number; avatar_url?: string } }>(
+    '/user/info/?fields=open_id,display_name,follower_count,avatar_url',
     accessToken,
   );
   return data.user;
