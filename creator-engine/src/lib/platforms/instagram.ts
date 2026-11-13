@@ -1,22 +1,29 @@
 import { requireEnv, appUrl } from '../env';
 import type { VideoStats } from './tiktok';
 
-// Instagram API with Instagram Login (professional accounts: Creator or Business).
-// https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login
+// Instagram API with Unified Login (built on Facebook Login for Business). New Meta apps can't use
+// the older "Instagram Login", so clippers log in with Instagram or Facebook through this dialog.
+// https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-unified-login/get-started
 // https://developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights
-const AUTH_URL = 'https://www.instagram.com/oauth/authorize';
-const GRAPH = 'https://graph.instagram.com';
+// INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET are the Meta app's ID and secret (App settings → Basic).
+const AUTH_URL = 'https://www.facebook.com/dialog/oauth';
 const VERSION = 'v27.0';
-export const INSTAGRAM_SCOPES = ['instagram_business_basic', 'instagram_business_manage_insights'];
+const GRAPH = `https://graph.facebook.com/${VERSION}`;
+/** The login configuration from the App Dashboard (not a secret). */
+const CONFIG_ID = () => process.env.INSTAGRAM_CONFIG_ID?.trim() || '1134912728946286';
+export const INSTAGRAM_SCOPES = ['instagram_basic', 'instagram_manage_insights'];
 
 export const instagramRedirectUri = () => `${appUrl()}/api/oauth/instagram/callback`;
 
 export function instagramAuthorizeUrl(state: string): string {
   const params = new URLSearchParams({
     client_id: requireEnv('INSTAGRAM_APP_ID'),
+    config_id: CONFIG_ID(),
     redirect_uri: instagramRedirectUri(),
     response_type: 'code',
-    scope: INSTAGRAM_SCOPES.join(','),
+    override_default_response_type: 'true',
+    // Always offer both the Instagram and the Facebook login.
+    prompt: 'login',
     state,
   });
   return `${AUTH_URL}?${params}`;
@@ -29,41 +36,36 @@ async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
-/** Code → short-lived token → long-lived token (about 60 days). */
-export async function exchangeInstagramCode(code: string): Promise<{ accessToken: string; expiresIn: number; userId: string; permissions: string[] }> {
-  const short = await getJson<{ data?: { access_token: string; user_id: string | number; permissions: string }[]; access_token?: string; user_id?: string | number; permissions?: string | string[] }>(
-    'https://api.instagram.com/oauth/access_token',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: requireEnv('INSTAGRAM_APP_ID'),
-        client_secret: requireEnv('INSTAGRAM_APP_SECRET'),
-        grant_type: 'authorization_code',
-        redirect_uri: instagramRedirectUri(),
-        code: code.replace(/#_$/, ''),
-      }),
-    },
-  );
-  const row = short.data?.[0] ?? short;
-  const perms = row.permissions ?? '';
-  const long = await getJson<{ access_token: string; expires_in: number }>(
-    `${GRAPH}/access_token?${new URLSearchParams({ grant_type: 'ig_exchange_token', client_secret: requireEnv('INSTAGRAM_APP_SECRET'), access_token: row.access_token! })}`,
-  );
-  return { accessToken: long.access_token, expiresIn: long.expires_in, userId: String(row.user_id), permissions: Array.isArray(perms) ? perms : perms.split(',') };
+/** A connected Instagram account: the access token and the Instagram account it reads. */
+export interface IgConnection {
+  token: string;
+  igUserId: string;
 }
 
-/** A long-lived token can be refreshed once it's a day old and not yet expired. */
-export async function refreshInstagramToken(token: string): Promise<{ accessToken: string; expiresIn: number }> {
-  const t = await getJson<{ access_token: string; expires_in: number }>(`${GRAPH}/refresh_access_token?${new URLSearchParams({ grant_type: 'ig_refresh_token', access_token: token })}`);
-  return { accessToken: t.access_token, expiresIn: t.expires_in };
+/** Code → Business Integration System User access token (expiry is set in the login configuration; ours never expires). */
+export async function exchangeInstagramCode(code: string): Promise<{ accessToken: string; expiresIn: number | null }> {
+  const t = await getJson<{ access_token: string; expires_in?: number }>(
+    `${GRAPH}/oauth/access_token?${new URLSearchParams({
+      client_id: requireEnv('INSTAGRAM_APP_ID'),
+      client_secret: requireEnv('INSTAGRAM_APP_SECRET'),
+      redirect_uri: instagramRedirectUri(),
+      code,
+    })}`,
+  );
+  return { accessToken: t.access_token, expiresIn: t.expires_in ?? null };
 }
 
-export async function getInstagramUser(token: string): Promise<{ userId: string; username: string | null; followers: number | null; accountType: string | null }> {
-  const u = await getJson<{ user_id?: string; id?: string; username?: string; followers_count?: number; account_type?: string }>(
-    `${GRAPH}/${VERSION}/me?${new URLSearchParams({ fields: 'user_id,username,followers_count,account_type', access_token: token })}`,
+/** The Instagram professional account the clipper shared (the first one if they shared several). */
+export async function getInstagramUser(token: string): Promise<{ userId: string; username: string | null; followers: number | null }> {
+  const list = await getJson<{ data: { id: string; username?: string }[] }>(
+    `${GRAPH}/me/assigned_instagram_accounts?${new URLSearchParams({ fields: 'id,username', access_token: token })}`,
   );
-  return { userId: String(u.user_id ?? u.id), username: u.username ?? null, followers: u.followers_count ?? null, accountType: u.account_type ?? null };
+  const acct = list.data?.[0];
+  if (!acct) throw new Error('No Instagram account was shared.');
+  const u = await getJson<{ username?: string; followers_count?: number }>(
+    `${GRAPH}/${acct.id}?${new URLSearchParams({ fields: 'username,followers_count', access_token: token })}`,
+  ).catch(() => ({}) as { username?: string; followers_count?: number });
+  return { userId: acct.id, username: u.username ?? acct.username ?? null, followers: u.followers_count ?? null };
 }
 
 interface IgMedia {
@@ -79,14 +81,14 @@ interface IgMedia {
 }
 
 /**
- * Stats for the given Reel shortcodes, looked up in the token owner's own
+ * Stats for the given Reel shortcodes, looked up in the connected account's own
  * media, so a match also proves the Reel is theirs. Pages through up to
  * `maxPages` × 50 recent posts. Returns VideoStats with id = shortcode.
  */
-export async function queryInstagramReels(token: string, shortcodes: string[], maxPages = 10): Promise<VideoStats[]> {
+export async function queryInstagramReels({ token, igUserId }: IgConnection, shortcodes: string[], maxPages = 10): Promise<VideoStats[]> {
   const wanted = new Set(shortcodes);
   const found = new Map<string, IgMedia>();
-  let url: string | null = `${GRAPH}/${VERSION}/me/media?${new URLSearchParams({
+  let url: string | null = `${GRAPH}/${igUserId}/media?${new URLSearchParams({
     fields: 'id,shortcode,timestamp,caption,like_count,comments_count,media_product_type,thumbnail_url,media_url',
     limit: '50',
     access_token: token,
@@ -99,7 +101,7 @@ export async function queryInstagramReels(token: string, shortcodes: string[], m
   const out: VideoStats[] = [];
   for (const [shortcode, m] of found) {
     const insights = await getJson<{ data: { name: string; values: { value: number }[] }[] }>(
-      `${GRAPH}/${VERSION}/${m.id}/insights?${new URLSearchParams({ metric: 'views', access_token: token })}`,
+      `${GRAPH}/${m.id}/insights?${new URLSearchParams({ metric: 'views', access_token: token })}`,
     ).catch(() => ({ data: [] }));
     const views = insights.data.find((d) => d.name === 'views')?.values?.[0]?.value ?? 0;
     out.push({

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { decryptSecret, encryptSecret } from './crypto';
 import { refreshTikTokToken } from './platforms/tiktok';
-import { refreshInstagramToken } from './platforms/instagram';
+import type { IgConnection } from './platforms/instagram';
 
 /** Returns a valid TikTok access token for a creator, refreshing it if it expires within 5 minutes. */
 export async function getTikTokAccessToken(admin: SupabaseClient, creatorId: string): Promise<string> {
@@ -34,29 +34,16 @@ export async function getTikTokAccessToken(admin: SupabaseClient, creatorId: str
   return t.access_token;
 }
 
-/**
- * Returns a creator's Instagram token. Long-lived tokens last about 60 days and
- * are refreshed once they're inside the last 10 days (each sync keeps them alive).
- */
-export async function getInstagramAccessToken(admin: SupabaseClient, creatorId: string): Promise<string> {
+/** A creator's Instagram connection. The token comes from Unified Login and doesn't expire on its own. */
+export async function getInstagramAccessToken(admin: SupabaseClient, creatorId: string): Promise<IgConnection> {
   const { data: acct, error } = await admin
     .from('social_accounts')
-    .select('id, access_token_enc, access_expires_at, updated_at')
+    .select('access_token_enc, access_expires_at, platform_user_id')
     .eq('creator_id', creatorId)
     .eq('platform', 'instagram')
     .maybeSingle();
   if (error) throw error;
   if (!acct?.access_token_enc) throw new Error('Creator has not connected Instagram');
-  const token = decryptSecret(acct.access_token_enc);
-  const expiresAt = new Date(acct.access_expires_at).getTime();
-  if (expiresAt < Date.now()) throw new Error('Instagram connection expired. Connect it again.');
-  const dayOld = Date.now() - new Date(acct.updated_at).getTime() > 24 * 3_600_000;
-  if (expiresAt - Date.now() > 10 * 24 * 3_600_000 || !dayOld) return token;
-  const t = await refreshInstagramToken(token);
-  const now = Date.now();
-  await admin
-    .from('social_accounts')
-    .update({ access_token_enc: encryptSecret(t.accessToken), access_expires_at: new Date(now + t.expiresIn * 1000).toISOString(), updated_at: new Date(now).toISOString() })
-    .eq('id', acct.id);
-  return t.accessToken;
+  if (acct.access_expires_at && new Date(acct.access_expires_at).getTime() < Date.now()) throw new Error('Instagram connection expired. Connect it again.');
+  return { token: decryptSecret(acct.access_token_enc), igUserId: acct.platform_user_id as string };
 }

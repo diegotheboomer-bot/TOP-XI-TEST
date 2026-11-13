@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { exchangeInstagramCode, getInstagramUser } from '@/lib/platforms/instagram';
+import { exchangeInstagramCode, getInstagramUser, INSTAGRAM_SCOPES } from '@/lib/platforms/instagram';
 import { encryptSecret } from '@/lib/crypto';
 import { appUrl } from '@/lib/env';
 
@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const tokens = await exchangeInstagramCode(code);
-    if (!tokens.permissions.includes('instagram_business_manage_insights')) return back('missing_scope');
     const user = await getInstagramUser(tokens.accessToken);
     const now = Date.now();
     const { error } = await createAdminClient()
@@ -27,14 +26,15 @@ export async function GET(req: NextRequest) {
         {
           creator_id: viewer.creatorId,
           platform: 'instagram',
-          platform_user_id: user.userId || tokens.userId,
+          platform_user_id: user.userId,
           username: user.username,
           follower_count: user.followers,
           access_token_enc: encryptSecret(tokens.accessToken),
           refresh_token_enc: null,
-          access_expires_at: new Date(now + tokens.expiresIn * 1000).toISOString(),
+          // Our login configuration's token never expires; keep a far date so the column stays filled.
+          access_expires_at: new Date(now + (tokens.expiresIn ?? 10 * 365 * 86_400) * 1000).toISOString(),
           refresh_expires_at: null,
-          scopes: tokens.permissions,
+          scopes: INSTAGRAM_SCOPES,
           updated_at: new Date(now).toISOString(),
         },
         { onConflict: 'creator_id,platform' },
