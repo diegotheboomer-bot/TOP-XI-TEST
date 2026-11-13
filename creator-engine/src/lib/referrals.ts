@@ -8,6 +8,7 @@
 import { createHmac } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { requireEnv } from './env';
+import { usedDevice } from './device';
 import { stripe } from './stripe';
 import { MIN_CASHOUT } from './payout-rules';
 import { stripePayoutCost } from './payout-costs';
@@ -40,22 +41,42 @@ export function signupFingerprint(ip: string | null | undefined): string | null 
   return createHmac('sha256', requireEnv('TOKEN_ENCRYPTION_KEY')).update(`ip:${v}`).digest('base64url').slice(0, 22);
 }
 
+/** The inviter behind a code: their user (for device checks) and who gets the reward. */
+async function inviterFor(admin: SupabaseClient, code: string): Promise<{ userId: string; creatorId?: string; brandId?: string; signupFingerprint?: string | null } | null> {
+  if (isBrandCode(code)) {
+    const { data } = await admin.from('brands').select('id, owner_id').eq('referral_code', code).maybeSingle();
+    return data?.id ? { userId: data.owner_id as string, brandId: data.id as string } : null;
+  }
+  const { data } = await admin.from('creators').select('id, user_id, signup_fingerprint').eq('referral_code', code).maybeSingle();
+  return data?.id ? { userId: data.user_id as string, creatorId: data.id as string, signupFingerprint: data.signup_fingerprint as string | null } : null;
+}
+
 /**
- * Who a new clipper was invited by, from the invite cookie. A clipper invite made from the same
- * network as the inviter's own sign-up doesn't count (likely a second account).
+ * True when an invite link is being used by the inviter themselves: they're signed in as the
+ * inviter, it's opened on a device the inviter has used, or (clipper invites) from the inviter's
+ * own sign-up network. Checked when the link is opened, so nothing is attached.
  */
-export async function referralFields(admin: SupabaseClient, code: string | undefined, fingerprint: string | null): Promise<{ referred_by?: string; referred_by_brand?: string }> {
+export async function isSelfInvite(admin: SupabaseClient, code: string, ctx: { ip: string | null; device: string | null; viewerUserId?: string | null }): Promise<boolean> {
+  const c = code.trim().toUpperCase();
+  if (!validCode(c)) return false;
+  const inviter = await inviterFor(admin, c);
+  if (!inviter) return false;
+  if (ctx.viewerUserId && ctx.viewerUserId === inviter.userId) return true;
+  if (await usedDevice(admin, inviter.userId, ctx.device)) return true;
+  return !!inviter.creatorId && !!ctx.ip && inviter.signupFingerprint === ctx.ip;
+}
+
+/**
+ * Who a new clipper was invited by, from the invite cookie. Self-invites (see isSelfInvite) don't
+ * count; businesses must have funded a campaign first.
+ */
+export async function referralFields(admin: SupabaseClient, code: string | undefined, ctx: { ip: string | null; device: string | null }): Promise<{ referred_by?: string; referred_by_brand?: string }> {
   const c = code?.trim().toUpperCase();
   if (!validCode(c)) return {};
-  if (isBrandCode(c!)) {
-    const { data } = await admin.from('brands').select('id').eq('referral_code', c).maybeSingle();
-    // Only businesses that have funded a campaign can bring in clippers this way.
-    return data?.id && (await brandCanInvite(admin, data.id as string)) ? { referred_by_brand: data.id as string } : {};
-  }
-  const { data } = await admin.from('creators').select('id, signup_fingerprint').eq('referral_code', c).maybeSingle();
-  if (!data?.id) return {};
-  if (fingerprint && data.signup_fingerprint === fingerprint) return {};
-  return { referred_by: data.id as string };
+  const inviter = await inviterFor(admin, c!);
+  if (!inviter || (await isSelfInvite(admin, c!, ctx))) return {};
+  if (inviter.brandId) return (await brandCanInvite(admin, inviter.brandId)) ? { referred_by_brand: inviter.brandId } : {};
+  return { referred_by: inviter.creatorId! };
 }
 
 /** The inviter's creator id for a code, if it's a real clipper. */

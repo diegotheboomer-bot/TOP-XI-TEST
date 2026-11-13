@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn, CircleUser, FolderOpen, LifeBuoy, Settings, Telescope, Users, Gift } from 'lucide-react';
 import { isDemo } from '@/lib/env';
+import { cookies } from 'next/headers';
+import { getViewer } from '@/lib/session';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { DEVICE_COOKIE, deviceHash, recordDevice } from '@/lib/device';
 import { resetDemoData, signOut } from '@/actions/account';
 import { NextShell } from './next-shell';
 import { TierBadge } from './tier-badge';
@@ -70,7 +74,9 @@ const footerItem = 'flex items-center gap-2 rounded-lg p-2 text-sm lg:w-full lg:
 
 /** Sidebar layout for /streamer and /clipper. Each side only shows its own menu. */
 export async function AppLayout({ role, children }: { role: Role; children: React.ReactNode }) {
-  const [tier, me] = await Promise.all([role === 'clipper' ? getMyTier() : null, getAccountSummary()]);
+  const [tier, me, viewer] = await Promise.all([role === 'clipper' ? getMyTier() : null, getAccountSummary(), getViewer()]);
+  // Remember this device for the account (invite anti-fraud).
+  if (viewer && !isDemo) await recordDevice(createAdminClient(), viewer.userId, deviceHash(cookies().get(DEVICE_COOKIE)?.value));
   const sections: NavSection[] = SECTIONS[role].map((sec) => ({
     ...sec,
     items: sec.items.map((i) => (tier && i.href === '/clipper/profile' ? { ...i, badge: <TierBadge tier={tier} /> } : i)),

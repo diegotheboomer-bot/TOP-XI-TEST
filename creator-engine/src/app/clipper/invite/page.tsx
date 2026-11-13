@@ -28,11 +28,16 @@ const FAQ: [string, string][] = [
   ['Can I invite myself with a second account?', 'No. Fake or self-made accounts don’t earn rewards, and rewards from them can be withheld.'],
 ];
 
-export default async function InvitePage() {
+export default async function InvitePage({ searchParams }: { searchParams: { own?: string } }) {
   const r = await getReferralSummary();
   if (!r) redirect('/clipper');
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {searchParams.own && (
+        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          You opened your own invite link. It only counts when someone new signs up on their own phone or computer, so share it instead.
+        </p>
+      )}
       {/* Hero: the pitch, the link and your totals in one card */}
       <section className="relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-8">
         <div aria-hidden className="pointer-events-none absolute -top-32 left-0 h-72 w-full" style={{ background: 'radial-gradient(55% 55% at 20% 50%, rgb(var(--brand-a) / 0.2), transparent 75%)' }} />

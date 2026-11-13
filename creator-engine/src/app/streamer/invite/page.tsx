@@ -20,11 +20,16 @@ const STEPS = [
 ];
 
 /** Business invite link: clippers who join through it add their cash-out fee to the business's campaign budget. */
-export default async function BrandInvitePage() {
+export default async function BrandInvitePage({ searchParams }: { searchParams: { own?: string } }) {
   const r = await getBrandReferralSummary();
   if (!r) redirect('/streamer');
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {searchParams.own && (
+        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          You opened your own invite link. It only counts when someone new signs up on their own phone or computer, so share it instead.
+        </p>
+      )}
       <section className="relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-8">
         <div aria-hidden className="pointer-events-none absolute -top-32 left-0 h-72 w-full" style={{ background: 'radial-gradient(55% 55% at 20% 50%, rgb(var(--brand-a) / 0.2), transparent 75%)' }} />
         <p className="relative inline-flex items-center gap-1.5 rounded-full bg-brand-a/15 px-3 py-1 text-xs font-semibold text-[rgb(var(--brand-ta))]">
