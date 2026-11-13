@@ -130,13 +130,17 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                   icon={<PlatformIcon platform="instagram" />}
                   title="Instagram Reels"
                   connected={!!d.instagram}
-                  detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : 'Creator or Business account'}
+                  detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? 'Creator or Business account' : 'Reels tracking is coming soon'}
                   action={
-                    <form action={connectInstagram}>
-                      <Button size="sm" variant={d.instagram ? 'ghost' : 'secondary'}>
-                        {d.instagram ? 'Reconnect' : 'Connect'}
-                      </Button>
-                    </form>
+                    process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? (
+                      <form action={connectInstagram}>
+                        <Button size="sm" variant={d.instagram ? 'ghost' : 'secondary'}>
+                          {d.instagram ? 'Reconnect' : 'Connect'}
+                        </Button>
+                      </form>
+                    ) : (
+                      <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">Coming soon</span>
+                    )
                   }
                 />
               </div>

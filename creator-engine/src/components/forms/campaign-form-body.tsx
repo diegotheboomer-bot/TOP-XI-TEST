@@ -24,7 +24,8 @@ const MODELS: { id: PayoutModel; title: string; body: string; icon: React.Elemen
 const PLATFORMS: [Platform, string][] = [
   ['tiktok', 'TikTok'],
   ['youtube', 'YouTube Shorts'],
-  ['instagram', 'Instagram Reels'],
+  // Instagram view tracking needs the Meta app; until it's approved, campaigns can't pick Reels.
+  ...(process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? ([['instagram', 'Instagram Reels']] as [Platform, string][]) : []),
 ];
 
 const TYPE_ICON: Record<string, React.ElementType> = {
