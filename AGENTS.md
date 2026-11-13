@@ -13,7 +13,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Next.js 14 App Router (server components, server actions), TypeScript, Tailwind.
 - Supabase (Postgres + RLS + storage + auth). Project ref `ijpfxbnxfpbhfzrjhdmz`.
 - Stripe Connect Express (embedded onboarding, transfers). Discord bot + OAuth. Gemini support bot ("Nova").
-- Tests: vitest (`npm test`, 132 tests). Type check: `npx tsc --noEmit -p .`.
+- Tests: vitest (`npm test`, 142 tests). Type check: `npx tsc --noEmit -p .`.
 - Hosting: Render auto-deploys branch `claude/kind-galileo-egdt9r`.
 
 ## Workflow rules (agreed with the owner)
@@ -57,6 +57,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   almost no new likes/comments/shares, sudden speed-up, low engagement overall, too many likes, more comments than likes,
   no shares on TikTok, views dropping). Fraud (score ≥85) stays flagged; review (≥50) holds the clip for the business,
   approving clears the ratio checks (`engagement_cleared`) but not new jumps. Also duplicate clips (pHash) and deleted videos.
+  Limits are per platform (`BENCHMARKS` in `fraud.ts`, with the research sources in comments) and compare against the
+  clipper's own usual engagement on their other clips. Tune them from real held/flagged clips after launch.
 - Test data guard: fake clips have video ids starting `atlastest` and are never synced or paid (`src/lib/test-data.ts`).
 
 ## Current state (Nov 2026)

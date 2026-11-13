@@ -49,6 +49,28 @@ export function detectLowEngagement(s: { views: number; likes: number; comments:
 /** Prefix of the flag reason, so approving it can clear the check for that clip. */
 export const LOW_ENGAGEMENT_REASON = 'Low engagement';
 
+// ─── Real-engagement benchmarks (researched Nov 2026) ─────────────────────
+// TikTok, 460,483 public posts (buzzabout.ai, Jul 2026): (likes+comments+shares)/views
+//   p10 0.8%, p25 1.9%, median 4.0%, p75 7.0%, p90 11.1%, p99 22.5%. Overall split:
+//   likes ≈ 5.1%, shares ≈ 0.46%, comments ≈ 0.055% of views (comments ≈ 1% of likes).
+// YouTube Shorts (overseeros.com, 17,185 Shorts): likes/views median 2.08%, p90 5.38%;
+//   about 1.8 comments per 100 likes. Shorts views were redefined on 31 Mar 2025, which
+//   lowered ratios, so Shorts get a lower floor. YouTube shows no shares.
+// Instagram Reels: no clean per-view benchmark exists (sources disagree), so TikTok-like
+//   floors are used, a little lower. Instagram's API gives no shares here.
+// Within one creator, the best 10% of posts get ~2.6× the engagement of the worst 10%
+//   (buzzabout.ai), so a clip at a fifth of the clipper's own usual rate is unusual.
+// Fake views on YouTube are often removed later, which shows up as view counts going
+//   down (arxiv.org/abs/2210.01096: corrections touch ~61% of videos but are small,
+//   ~0.5% of views), so only a big drop counts.
+export type VideoPlatform = 'tiktok' | 'youtube' | 'instagram';
+export const BENCHMARKS: Record<VideoPlatform, { lowFloor: number; maxLikeRate: number; hasShares: boolean }> = {
+  // lowFloor: engagement per view under this (at 20K+ views) is far below the bottom 10% of real clips.
+  tiktok: { lowFloor: 0.003, maxLikeRate: 0.35, hasShares: true },
+  youtube: { lowFloor: 0.002, maxLikeRate: 0.3, hasShares: false },
+  instagram: { lowFloor: 0.0025, maxLikeRate: 0.35, hasShares: false },
+};
+
 // ─── View checks on every sync ─────────────────────────────────────────────
 // Real views bring likes, comments and shares along with them, and grow in a curve
 // (fast at first, then slower). Bought views arrive as a sudden step with almost no
@@ -75,9 +97,14 @@ const engagementOf = (s: StatsSample) => s.likes + s.comments + s.shares;
 /**
  * `history` is oldest → newest and ends with the sample just taken. `cleared` means the
  * business already looked at this clip and approved it, so ratios it accepted aren't
- * re-raised; new sudden jumps still are. `hasShares`: TikTok reports shares, others don't.
+ * re-raised; new sudden jumps still are. `creatorRate`: the clipper's usual engagement per view
+ * on their other clips (when they have a few), to compare against.
  */
-export function assessViews(history: StatsSample[], { cleared = false, hasShares = false } = {}): ViewCheck {
+export function assessViews(
+  history: StatsSample[],
+  { cleared = false, platform = 'tiktok', creatorRate }: { cleared?: boolean; platform?: VideoPlatform; creatorRate?: number } = {},
+): ViewCheck {
+  const bench = BENCHMARKS[platform];
   const curr = history[history.length - 1];
   const prev = history[history.length - 2];
   const before = history[history.length - 3];
@@ -123,24 +150,29 @@ export function assessViews(history: StatsSample[], { cleared = false, hasShares
   }
 
   if (!cleared) {
-    // 4. Low engagement overall (paid promotion or bought views).
-    const low = detectLowEngagement({ views: curr.views, likes: curr.likes, comments: curr.comments });
-    if (low.flagged) {
+    const rate = curr.views > 0 ? engagementOf(curr) / curr.views : 0;
+    // 4. Low engagement overall (bought views or paid promotion): far under the bottom 10% of real clips.
+    if (curr.views >= LOW_ENGAGEMENT_MIN_VIEWS && rate < bench.lowFloor) {
       score += 60;
-      reasons.push(`only ${pct(low.ratio)} likes and comments per view at ${num(curr.views)} views`);
+      reasons.push(`only ${pct(rate)} likes, comments and shares per view at ${num(curr.views)} views (real clips almost always get over ${pct(bench.lowFloor, 1)})`);
     }
-    // 5. Far too many likes for the views (bought likes).
-    if (curr.views >= 5_000 && curr.likes / curr.views > 0.35) {
+    // 5. Far too many likes for the views (bought likes): above even the top 1% of real clips.
+    if (curr.views >= 5_000 && curr.likes / curr.views > bench.maxLikeRate) {
       score += 50;
       reasons.push(`${pct(curr.likes / curr.views, 0)} of viewers liked it, far above normal`);
     }
-    // 6. More comments than likes (comment bots).
-    if (curr.comments >= 100 && curr.comments > curr.likes) {
+    // 6. Comment bots: comments are normally about 1–2% of likes; half or more is not normal.
+    if (curr.comments >= 200 && curr.comments >= curr.likes * 0.5) {
       score += 50;
-      reasons.push(`more comments (${num(curr.comments)}) than likes (${num(curr.likes)})`);
+      reasons.push(`${num(curr.comments)} comments for ${num(curr.likes)} likes (normally about 1–2 comments per 100 likes)`);
     }
-    // 7. Shares (TikTok only): almost nobody shared a big clip. Only adds weight to other signs.
-    if (hasShares && score > 0 && curr.views >= 50_000 && curr.shares / curr.views < 0.0002) {
+    // 7. Far below this clipper's own usual rate. Only adds weight to other signs.
+    if (creatorRate && curr.views >= 5_000 && rate < creatorRate / 5) {
+      score += 30;
+      reasons.push(`a fifth of this clipper’s usual ${pct(creatorRate)} engagement`);
+    }
+    // 8. Shares (TikTok): almost nobody shared a big clip. Only adds weight to other signs.
+    if (bench.hasShares && score > 0 && curr.views >= 50_000 && curr.shares / curr.views < 0.0002) {
       score += 15;
       reasons.push(`almost no shares (${num(curr.shares)})`);
     }

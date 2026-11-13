@@ -2,7 +2,7 @@ import { selectAll } from './fetch-all';
 import { isTestClip } from './test-data';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, poolShares, type PayoutTerms } from './payout';
-import { assessViews, hashSimilarity, DUPLICATE_THRESHOLD, REVIEW_REASON, type StatsSample } from './fraud';
+import { assessViews, hashSimilarity, DUPLICATE_THRESHOLD, REVIEW_REASON, type StatsSample, type VideoPlatform } from './fraud';
 import { perceptualHashFromUrl } from './phash';
 import { hasDisclosure } from './compliance';
 import { queryTikTokVideos, type VideoStats } from './platforms/tiktok';
@@ -207,7 +207,19 @@ async function applyStats(admin: SupabaseClient, sub: SubmissionWithCampaign, v:
     ...(recent ?? []).reverse().map((r) => ({ capturedAt: new Date(r.captured_at as string), views: Number(r.view_count), likes: Number(r.like_count), comments: Number(r.comment_count), shares: Number(r.share_count) })),
     { capturedAt: now, views: v.views, likes: v.likes, comments: v.comments, shares: v.shares },
   ];
-  const check = assessViews(history, { cleared: !!sub.engagement_cleared, hasShares: sub.platform === 'tiktok' });
+  // The clipper's usual engagement on their other clips on this platform (median, 3+ clips with 1K+ views).
+  const { data: others } = await admin
+    .from('submissions')
+    .select('current_view_count, current_like_count, current_comment_count')
+    .eq('creator_id', sub.creator_id)
+    .eq('platform', sub.platform)
+    .neq('id', sub.id)
+    .neq('status', 'flagged')
+    .gte('current_view_count', 1_000)
+    .limit(50);
+  const rates = (others ?? []).map((o) => (Number(o.current_like_count) + Number(o.current_comment_count)) / Number(o.current_view_count)).sort((a, b) => a - b);
+  const creatorRate = rates.length >= 3 ? rates[Math.floor(rates.length / 2)] : undefined;
+  const check = assessViews(history, { cleared: !!sub.engagement_cleared, platform: sub.platform as VideoPlatform, creatorRate });
   if (check.level !== 'ok') {
     // Earnings pause: payout_earned stays where it was. Fraud stays flagged; a review hold
     // waits for the business to look and approve.

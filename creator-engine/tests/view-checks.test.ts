@@ -6,7 +6,7 @@ const s = (hours: number, views: number, likes: number, comments: number, shares
 
 describe('assessViews', () => {
   it('lets organic growth through: views and engagement grow together, fast then slower', () => {
-    const r = assessViews([s(0, 2_000, 160, 12, 8), s(4, 40_000, 3_100, 240, 150), s(8, 70_000, 5_300, 410, 260), s(12, 85_000, 6_400, 500, 310)], { hasShares: true });
+    const r = assessViews([s(0, 2_000, 160, 12, 8), s(4, 40_000, 3_100, 240, 150), s(8, 70_000, 5_300, 410, 260), s(12, 85_000, 6_400, 500, 310)], { platform: 'tiktok' });
     expect(r.level).toBe('ok');
   });
 
@@ -35,6 +35,21 @@ describe('assessViews', () => {
 
   it('holds a clip whose views went down a lot (the platform removed fake views)', () => {
     expect(assessViews([s(0, 50_000, 3_000, 200), s(4, 30_000, 3_000, 200)]).level).toBe('review');
+  });
+
+  it('uses each platform’s own normal: low for a TikTok can be fine for a Short', () => {
+    expect(assessViews([s(0, 30_000, 70, 5)], { platform: 'tiktok' }).level).toBe('review');
+    expect(assessViews([s(0, 30_000, 70, 5)], { platform: 'youtube' }).level).toBe('ok');
+  });
+
+  it('a clip far below the clipper’s own usual rate only adds weight, it never holds a clip alone', () => {
+    expect(assessViews([s(0, 30_000, 300, 20)], { creatorRate: 0.08 }).level).toBe('ok');
+    expect(assessViews([s(0, 30_000, 60, 20)], { creatorRate: 0.08 }).score).toBeGreaterThan(assessViews([s(0, 30_000, 60, 20)]).score);
+  });
+
+  it('a giveaway-style comment pile is held, normal comments are not', () => {
+    expect(assessViews([s(0, 20_000, 1_200, 40)]).level).toBe('ok');
+    expect(assessViews([s(0, 20_000, 400, 250)]).level).toBe('review');
   });
 
   it('does not re-raise ratios the business already approved, but still catches new jumps', () => {
