@@ -8,10 +8,11 @@ import { compact, platformRates, rateParts, usd, usdCents, usdCompact } from '@/
 import { contentTypeLabel } from '@/lib/campaign-tags';
 import { PlatformIcon } from '@/components/platform-icon';
 import type { Platform } from '@/lib/types';
-import { claimMoment, connectInstagram, connectTikTok, joinCampaign } from '@/actions/creator';
+import { claimMoment, joinCampaign } from '@/actions/creator';
+import { PopupConnect } from '@/components/popup-connect';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { ActionButton } from '@/components/action-button';
 import { YouTubeVerify } from '@/components/forms/youtube-verify';
 import { youtubeGoogleEnabled } from '@/lib/platforms/youtube';
@@ -253,20 +254,20 @@ export default async function ClipperCampaignPage({ params }: { params: { id: st
                 (c.platforms.includes('tiktok') && !d.tiktokConnected) || (c.platforms.includes('youtube') && !d.youtubeVerified) || (c.platforms.includes('instagram') && !d.instagramConnected) ? (
                   <div className="space-y-2">
                     {c.platforms.includes('tiktok') && !d.tiktokConnected && (
-                      <form action={connectTikTok} className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+                      <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
                         <span>Posting on TikTok? Connect it first so we know the clips are yours.</span>
-                        <Button size="sm" variant="secondary">
+                        <PopupConnect href="/api/oauth/tiktok/start" className={buttonClass('secondary', 'sm', 'shrink-0')}>
                           Connect
-                        </Button>
-                      </form>
+                        </PopupConnect>
+                      </div>
                     )}
                     {c.platforms.includes('instagram') && !d.instagramConnected && (
-                      <form action={connectInstagram} className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+                      <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
                         <span>Posting Reels? Connect your Instagram (Creator or Business account) first.</span>
-                        <Button size="sm" variant="secondary">
+                        <PopupConnect href="/api/oauth/instagram/start" className={buttonClass('secondary', 'sm', 'shrink-0')}>
                           Connect
-                        </Button>
-                      </form>
+                        </PopupConnect>
+                      </div>
                     )}
                     {c.platforms.includes('youtube') && !d.youtubeVerified && (
                       <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">

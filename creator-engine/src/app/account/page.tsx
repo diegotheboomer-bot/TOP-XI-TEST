@@ -10,7 +10,7 @@ import { getCreatorDashboard } from '@/lib/data';
 import { AppLayout } from '@/components/app-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { ButtonLink } from '@/components/ui/button-link';
 import { ConnectionCard } from '@/components/views';
 import { PlatformIcon } from '@/components/platform-icon';
@@ -19,7 +19,7 @@ import { youtubeGoogleEnabled } from '@/lib/platforms/youtube';
 import { AccountSettingsForm } from '@/components/forms/account-settings-form';
 import { AccountSecurityForms } from '@/components/forms/account-security-forms';
 import { disconnectDiscord } from '@/actions/profile';
-import { connectInstagram, connectTikTok } from '@/actions/creator';
+import { PopupConnect } from '@/components/popup-connect';
 import { signOut } from '@/actions/account';
 import { cn } from '@/components/ui/cn';
 
@@ -121,11 +121,9 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                   connected={!!d.tiktok}
                   detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips'}
                   action={
-                    <form action={connectTikTok}>
-                      <Button size="sm" variant={d.tiktok ? 'ghost' : 'secondary'}>
-                        {d.tiktok ? 'Reconnect' : 'Connect'}
-                      </Button>
-                    </form>
+                    <PopupConnect href="/api/oauth/tiktok/start" className={buttonClass(d.tiktok ? 'ghost' : 'secondary', 'sm')}>
+                      {d.tiktok ? 'Reconnect' : 'Connect'}
+                    </PopupConnect>
                   }
                 />
                 <ConnectionCard
@@ -142,11 +140,9 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                   detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? 'Creator or Business account' : 'Reels tracking is coming soon'}
                   action={
                     process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? (
-                      <form action={connectInstagram}>
-                        <Button size="sm" variant={d.instagram ? 'ghost' : 'secondary'}>
-                          {d.instagram ? 'Reconnect' : 'Connect'}
-                        </Button>
-                      </form>
+                      <PopupConnect href="/api/oauth/instagram/start" className={buttonClass(d.instagram ? 'ghost' : 'secondary', 'sm')}>
+                        {d.instagram ? 'Reconnect' : 'Connect'}
+                      </PopupConnect>
                     ) : (
                       <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">Coming soon</span>
                     )
@@ -171,9 +167,9 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                         </Button>
                       </form>
                     ) : (
-                      <a href="/api/oauth/discord/start" className="inline-flex h-8 items-center rounded-lg px-3 text-sm font-semibold transition hover:brightness-110" style={{ backgroundColor: '#5865F2', color: '#fff' }}>
+                      <PopupConnect href="/api/oauth/discord/start" className="inline-flex h-8 items-center rounded-lg px-3 text-sm font-semibold transition hover:brightness-110" style={{ backgroundColor: '#5865F2', color: '#fff' }}>
                         Connect
-                      </a>
+                      </PopupConnect>
                     )
                   }
                 />

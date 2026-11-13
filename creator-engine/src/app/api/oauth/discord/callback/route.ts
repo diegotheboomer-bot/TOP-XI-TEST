@@ -4,9 +4,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { clipperTier } from '@/lib/clipper-records';
 import { exchangeDiscordCode, getDiscordUser, syncDiscordMember } from '@/lib/discord';
 import { appUrl } from '@/lib/env';
+import { finishOAuth } from '@/lib/oauth-popup';
 
 export async function GET(req: NextRequest) {
-  const back = (status: string) => NextResponse.redirect(`${appUrl()}/account?discord=${status}`);
+  const back = (status: string) => finishOAuth(req, `${appUrl()}/account?discord=${status}`);
   const { searchParams } = req.nextUrl;
   const code = searchParams.get('code');
   const state = searchParams.get('state');

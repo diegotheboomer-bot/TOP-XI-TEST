@@ -4,9 +4,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { exchangeInstagramCode, getInstagramUser, INSTAGRAM_SCOPES } from '@/lib/platforms/instagram';
 import { encryptSecret } from '@/lib/crypto';
 import { appUrl } from '@/lib/env';
+import { finishOAuth } from '@/lib/oauth-popup';
 
 export async function GET(req: NextRequest) {
-  const back = (status: string) => NextResponse.redirect(`${appUrl()}/clipper?instagram=${status}`);
+  const back = (status: string) => finishOAuth(req, `${appUrl()}/clipper?instagram=${status}`);
   const { searchParams } = req.nextUrl;
   const code = searchParams.get('code');
   const state = searchParams.get('state');

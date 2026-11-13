@@ -4,11 +4,12 @@ import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getConnectedYouTubeChannel } from '@/lib/platforms/youtube';
 import { appUrl } from '@/lib/env';
+import { finishOAuth } from '@/lib/oauth-popup';
 
 /** Google sends the clipper back here; we save the channel they signed in with. */
 export async function GET(req: NextRequest) {
   const back = (status: string) => {
-    const res = NextResponse.redirect(`${appUrl()}/account?tab=connections&youtube=${status}`);
+    const res = finishOAuth(req, `${appUrl()}/account?tab=connections&youtube=${status}`);
     res.cookies.delete({ name: 'youtube_oauth_state', path: '/api/oauth/youtube' });
     return res;
   };

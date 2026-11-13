@@ -4,9 +4,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { exchangeTikTokCode, getTikTokUser } from '@/lib/platforms/tiktok';
 import { encryptSecret } from '@/lib/crypto';
 import { appUrl } from '@/lib/env';
+import { finishOAuth } from '@/lib/oauth-popup';
 
 export async function GET(req: NextRequest) {
-  const back = (status: string) => NextResponse.redirect(`${appUrl()}/clipper?tiktok=${status}`);
+  const back = (status: string) => finishOAuth(req, `${appUrl()}/clipper?tiktok=${status}`);
   const { searchParams } = req.nextUrl;
   const code = searchParams.get('code');
   const state = searchParams.get('state');

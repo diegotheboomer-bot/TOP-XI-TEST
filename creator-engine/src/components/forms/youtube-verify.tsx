@@ -11,6 +11,7 @@ import { Button } from '../ui/button';
 import { Dialog } from '../ui/dialog';
 import { Input } from '../ui/field';
 import { cn } from '../ui/cn';
+import { PopupConnect } from '../popup-connect';
 
 /**
  * Connect a YouTube channel: with Google when it's set up (`google`), otherwise once with
@@ -21,12 +22,12 @@ export function YouTubeVerify({ code, verified, google = false }: { code: string
   const [state, action] = useFormState(verifyYouTubeChannel, undefined);
   if (google) {
     return (
-      <a
+      <PopupConnect
         href="/api/oauth/youtube/start"
         className={cn('inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition', verified ? 'text-zinc-600 hover:bg-zinc-100' : 'border border-zinc-200 hover:bg-zinc-50')}
       >
         <GoogleG /> {verified ? 'Reconnect' : 'Connect'}
-      </a>
+      </PopupConnect>
     );
   }
   return (
