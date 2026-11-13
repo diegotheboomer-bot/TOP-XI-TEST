@@ -488,7 +488,7 @@ export function ConnectionCard({ icon, title, connected, detail, action, status 
         <span className="relative shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={avatar} alt="" className="size-9 rounded-full object-cover ring-1 ring-zinc-200" />
-          <span className="platform-tile absolute -bottom-1 -right-1 grid size-[18px] place-items-center rounded-md bg-brand text-brand-ink ring-2 ring-white [&>svg]:size-2.5">{icon}</span>
+          <span className="absolute -bottom-1 -right-1 grid size-[18px] place-items-center overflow-hidden rounded-md bg-brand text-brand-ink ring-2 ring-white [&>svg]:size-2.5">{icon}</span>
         </span>
       ) : (
       <span className="relative shrink-0">
