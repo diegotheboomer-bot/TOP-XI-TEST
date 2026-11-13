@@ -6,6 +6,7 @@ import { MIN_CASHOUT } from '@/lib/payout-rules';
 import { TIER_PERKS } from '@/lib/tiers';
 import { usd, usdCents } from '@/lib/format';
 import { ShareLink } from '@/components/invite/share-link';
+import { InviteSteps, type Step } from '@/components/invite/steps';
 import { StreamerAvatar } from '@/components/views';
 import { cn } from '@/components/ui/cn';
 
@@ -13,11 +14,11 @@ export const dynamic = 'force-dynamic';
 
 const FEE = TIER_PERKS.silver.feePct;
 
-const STEPS = [
-  { icon: Share2, title: 'Share your link', body: 'Drop it in DMs, Discord, your bio, anywhere clippers hang out.' },
-  { icon: Link2, title: 'They sign up with it', body: 'Your friend opens your link, then makes their account. We remember the link for 30 days on the phone or computer they opened it on.' },
-  { icon: Gift, title: `You get their ${FEE}% fee`, body: `Every time they cash out in their first ${REFERRAL_DAYS} days, the ${FEE}% fee goes to you instead of Atlas. It costs them nothing extra.` },
-  { icon: Banknote, title: 'It lands in your account', body: `Sent to your payout account once it adds up to ${usd(MIN_CASHOUT)}. Stripe’s payout fee comes off, like any cash-out.` },
+const STEPS: Step[] = [
+  { icon: Share2, title: 'Share your link', short: 'DMs, Discord, your bio', more: 'Send it anywhere clippers hang out.' },
+  { icon: Link2, title: 'They sign up', short: 'Through your link', more: 'Your friend opens your link, then makes their account. We remember the link for 30 days on the phone or computer they opened it on. It doesn’t count on your own devices or connection.' },
+  { icon: Gift, title: `You get their ${FEE}%`, short: `For ${REFERRAL_DAYS} days, no limit`, more: `Every time they cash out in their first ${REFERRAL_DAYS} days, the ${FEE}% fee goes to you instead of Atlas. It costs them nothing extra.` },
+  { icon: Banknote, title: 'Paid to you', short: `From ${usd(MIN_CASHOUT)}`, more: `Sent to your payout account once it adds up to ${usd(MIN_CASHOUT)}. Stripe’s payout fee comes off, like any cash-out.` },
 ];
 
 const FAQ: [string, string][] = [
@@ -48,7 +49,7 @@ export default async function InvitePage({ searchParams }: { searchParams: { own
           Get paid every time <span className="text-brand">your friends get paid.</span>
         </h1>
         <p className="relative mt-3 max-w-xl text-zinc-500 sm:text-lg">
-          Passive money from one link. For each friend’s first {REFERRAL_DAYS} days, the {FEE}% fee on their cash-outs is yours. No cap on friends, no cap on earnings.
+          Passive money from one link: their {FEE}% fee is yours for {REFERRAL_DAYS} days. No limits.
         </p>
         <ShareLink link={r.link} className="relative mt-6" />
         <dl className="relative mt-6 grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -70,29 +71,14 @@ export default async function InvitePage({ searchParams }: { searchParams: { own
       {/* How it works + an example, one card */}
       <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-8">
         <h2 className="text-lg font-semibold tracking-tight">How it works</h2>
-        <ol className="relative mt-5 space-y-5">
-          <span aria-hidden className="absolute bottom-3 left-[19px] top-3 w-px bg-gradient-to-b from-brand-a/60 via-zinc-200 to-transparent" />
-          {STEPS.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <li key={s.title} className="relative flex gap-4">
-                <span className={cn('grid size-10 shrink-0 place-items-center rounded-xl ring-4 ring-white', i === 2 ? 'bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-600')}>
-                  <Icon className="size-[18px]" />
-                </span>
-                <span className="pt-0.5">
-                  <span className="block font-semibold tracking-tight">{s.title}</span>
-                  <span className="mt-0.5 block text-sm leading-relaxed text-zinc-500">{s.body}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="mt-4">
+          <InviteSteps steps={STEPS} highlight={2} />
+        </div>
         <div className="mt-6 rounded-2xl bg-brand-a/10 p-4 ring-1 ring-inset ring-brand-a/30 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[rgb(var(--brand-ta))]">Example</p>
           <p className="mt-1 text-sm leading-relaxed sm:text-base">
-            Invite <b>10 friends</b>. Each cashes out <b>$500</b> in their first {REFERRAL_DAYS} days. That’s <b className="text-brand">{usd(10 * 500 * FEE / 100)} for you</b>, from one link you shared once. Invite 50 and it’s {usd(50 * 500 * FEE / 100)}.
+            10 friends cash out $500 each → <b className="text-brand">{usd(10 * 500 * FEE / 100)} for you</b>. 50 friends → {usd(50 * 500 * FEE / 100)}.
           </p>
-          <p className="mt-1 text-xs text-zinc-500">An example of the math, not a promise: what you earn depends on what your friends cash out.</p>
         </div>
         {/* Questions, in the same card */}
         <div className="-mx-5 mt-6 border-t border-zinc-100 px-5 pt-2 sm:-mx-8 sm:px-8">

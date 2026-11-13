@@ -6,6 +6,7 @@ import { REFERRAL_DAYS } from '@/lib/referrals';
 import { TIER_PERKS } from '@/lib/tiers';
 import { usd, usdCents } from '@/lib/format';
 import { ShareLink } from '@/components/invite/share-link';
+import { InviteSteps, type Step } from '@/components/invite/steps';
 import { StreamerAvatar } from '@/components/views';
 import { cn } from '@/components/ui/cn';
 
@@ -13,10 +14,10 @@ export const dynamic = 'force-dynamic';
 
 const FEE = TIER_PERKS.silver.feePct;
 
-const STEPS = [
-  { icon: Megaphone, title: 'Share your link with your community', body: 'Pin it in Discord, put it in your panels or say it on stream. Your viewers know your content best, so they make the best clippers.' },
-  { icon: UserPlus, title: 'They join Atlas as clippers', body: 'They open your link and sign up. We remember it for 30 days on the phone or computer they opened it on.' },
-  { icon: PiggyBank, title: 'Their fee becomes your budget', body: `For each clipper’s first ${REFERRAL_DAYS} days, the ${FEE}% fee on their cash-outs is added to your campaign budget, on any campaign they clip for.` },
+const STEPS: Step[] = [
+  { icon: Megaphone, title: 'Share it', short: 'Discord, panels, on stream', more: 'Your viewers know your content best, so they make the best clippers.' },
+  { icon: UserPlus, title: 'They join', short: 'As clippers, via your link', more: 'They open your link and sign up. We remember it for 30 days on the phone or computer they opened it on.' },
+  { icon: PiggyBank, title: `${FEE}% → your budget`, short: `For ${REFERRAL_DAYS} days`, more: `For each clipper’s first ${REFERRAL_DAYS} days, the ${FEE}% fee on their cash-outs is added to your running campaign’s budget. It isn’t refunded to your card if you cancel.` },
 ];
 
 /** Business invite link: clippers who join through it add their cash-out fee to the business's campaign budget. */
@@ -39,7 +40,7 @@ export default async function BrandInvitePage({ searchParams }: { searchParams: 
           Turn your community into <span className="text-brand">your clippers.</span>
         </h1>
         <p className="relative mt-3 max-w-xl text-zinc-500 sm:text-lg">
-          Everyone who joins Atlas with your link adds the {FEE}% fee from their cash-outs to your campaign budget for {REFERRAL_DAYS} days. Your clips get cheaper the more your community clips.
+          Clippers who join with your link add their {FEE}% fee to your budget for {REFERRAL_DAYS} days.
         </p>
         {r.unlocked ? (
           <ShareLink link={r.link} className="relative mt-6" message="Clip my streams on Atlas and get paid per view. Join with my link:" />
@@ -75,29 +76,14 @@ export default async function BrandInvitePage({ searchParams }: { searchParams: 
 
       <section className="rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-card sm:p-8">
         <h2 className="text-lg font-semibold tracking-tight">How it works</h2>
-        <ol className="relative mt-5 space-y-5">
-          <span aria-hidden className="absolute bottom-3 left-[19px] top-3 w-px bg-gradient-to-b from-brand-a/60 via-zinc-200 to-transparent" />
-          {STEPS.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <li key={s.title} className="relative flex gap-4">
-                <span className={cn('grid size-10 shrink-0 place-items-center rounded-xl ring-4 ring-white', i === 2 ? 'bg-brand text-brand-ink' : 'bg-zinc-100 text-zinc-600')}>
-                  <Icon className="size-[18px]" />
-                </span>
-                <span className="pt-0.5">
-                  <span className="block font-semibold tracking-tight">{s.title}</span>
-                  <span className="mt-0.5 block text-sm leading-relaxed text-zinc-500">{s.body}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="mt-4">
+          <InviteSteps steps={STEPS} highlight={2} />
+        </div>
         <div className="mt-6 rounded-2xl bg-brand-a/10 p-4 ring-1 ring-inset ring-brand-a/30 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[rgb(var(--brand-ta))]">Example</p>
           <p className="mt-1 text-sm leading-relaxed sm:text-base">
-            20 of your viewers join with your link and each cashes out $200 in their first {REFERRAL_DAYS} days. That adds <b className="text-brand">{usd((20 * 200 * FEE) / 100)}</b> to your campaign budget, free.
+            20 viewers cash out $200 each → <b className="text-brand">{usd((20 * 200 * FEE) / 100)}</b> free budget.
           </p>
-          <p className="mt-1 text-xs text-zinc-500">An example of the math, not a promise. The credit goes to a campaign of yours that’s running; it isn’t refunded to your card if you cancel.</p>
         </div>
       </section>
 
