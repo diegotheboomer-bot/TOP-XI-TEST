@@ -8,6 +8,6 @@ export async function insertCreator(admin: SupabaseClient, userId: string, name:
   const ip = signupFingerprint(headers().get('x-forwarded-for') ?? headers().get('x-real-ip'));
   const device = deviceHash(cookies().get(DEVICE_COOKIE)?.value);
   const invite = await referralFields(admin, cookies().get(REFERRAL_COOKIE)?.value, { ip, device });
-  await recordDevice(admin, userId, device);
+  await recordDevice(admin, userId, device, ip);
   return admin.from('creators').insert({ user_id: userId, display_name: name, signup_fingerprint: ip, ...invite });
 }

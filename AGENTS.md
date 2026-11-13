@@ -46,7 +46,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   and rewards are blocked (`referral_earnings.blocked_reason`) when both accounts pay out to the same bank or PayPal.
   Devices (migration 0026): the middleware gives each browser a random `atlas_device` cookie; `src/lib/device.ts` stores its hash
   per account (`user_devices`, recorded in AppLayout and at sign-up). `/r/CODE` checks `isSelfInvite` when the link is opened
-  (signed in as the inviter, a device the inviter used, or the inviter's sign-up network) and doesn't remember the invite.
+  (signed in as the inviter, a device the inviter used, a connection the inviter used in the last 14 days (`net:` rows,
+  catches in-app browsers from Instagram/Discord), or the inviter's sign-up network) and doesn't remember the invite.
 - Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper
   (`src/lib/payout-costs.ts`: 0.25% + $0.15, plus $2.40 on the first Stripe payout of the month, covering Stripe's
   €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.

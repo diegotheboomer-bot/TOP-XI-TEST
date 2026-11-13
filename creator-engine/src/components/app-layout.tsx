@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { ArrowLeftRight, Compass, House, LayoutList, LogOut, Plus, RotateCcw, Wallet, Clapperboard, ChartColumn, CircleUser, FolderOpen, LifeBuoy, Settings, Telescope, Users, Gift } from 'lucide-react';
 import { isDemo } from '@/lib/env';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { signupFingerprint } from '@/lib/referrals';
 import { getViewer } from '@/lib/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { DEVICE_COOKIE, deviceHash, recordDevice } from '@/lib/device';
@@ -76,7 +77,7 @@ const footerItem = 'flex items-center gap-2 rounded-lg p-2 text-sm lg:w-full lg:
 export async function AppLayout({ role, children }: { role: Role; children: React.ReactNode }) {
   const [tier, me, viewer] = await Promise.all([role === 'clipper' ? getMyTier() : null, getAccountSummary(), getViewer()]);
   // Remember this device for the account (invite anti-fraud).
-  if (viewer && !isDemo) await recordDevice(createAdminClient(), viewer.userId, deviceHash(cookies().get(DEVICE_COOKIE)?.value));
+  if (viewer && !isDemo) await recordDevice(createAdminClient(), viewer.userId, deviceHash(cookies().get(DEVICE_COOKIE)?.value), signupFingerprint(headers().get('x-forwarded-for') ?? headers().get('x-real-ip')));
   const sections: NavSection[] = SECTIONS[role].map((sec) => ({
     ...sec,
     items: sec.items.map((i) => (tier && i.href === '/clipper/profile' ? { ...i, badge: <TierBadge tier={tier} /> } : i)),

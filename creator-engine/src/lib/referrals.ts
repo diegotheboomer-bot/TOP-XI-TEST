@@ -8,7 +8,7 @@
 import { createHmac } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { requireEnv } from './env';
-import { usedDevice } from './device';
+import { usedDevice, usedNetworkRecently } from './device';
 import { stripe } from './stripe';
 import { MIN_CASHOUT } from './payout-rules';
 import { stripePayoutCost } from './payout-costs';
@@ -63,6 +63,7 @@ export async function isSelfInvite(admin: SupabaseClient, code: string, ctx: { i
   if (!inviter) return false;
   if (ctx.viewerUserId && ctx.viewerUserId === inviter.userId) return true;
   if (await usedDevice(admin, inviter.userId, ctx.device)) return true;
+  if (await usedNetworkRecently(admin, inviter.userId, ctx.ip)) return true;
   return !!inviter.creatorId && !!ctx.ip && inviter.signupFingerprint === ctx.ip;
 }
 
