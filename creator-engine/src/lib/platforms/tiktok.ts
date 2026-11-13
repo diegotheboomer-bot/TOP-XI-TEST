@@ -13,6 +13,8 @@ export function tiktokAuthorizeUrl(state: string): string {
     scope: TIKTOK_SCOPES.join(','),
     response_type: 'code',
     redirect_uri: tiktokRedirectUri(),
+    // Always show TikTok's screen, so someone can switch accounts.
+    disable_auto_auth: '1',
     state,
   });
   return `${AUTH_URL}?${params}`;

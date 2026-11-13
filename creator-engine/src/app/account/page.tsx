@@ -20,6 +20,8 @@ import { AccountSettingsForm } from '@/components/forms/account-settings-form';
 import { AccountSecurityForms } from '@/components/forms/account-security-forms';
 import { disconnectDiscord } from '@/actions/profile';
 import { PopupConnect } from '@/components/popup-connect';
+import { ConfirmButton } from '@/components/confirm-button';
+import { deleteAccount, disconnectPlatform } from '@/actions/connections';
 import { signOut } from '@/actions/account';
 import { cn } from '@/components/ui/cn';
 
@@ -40,6 +42,8 @@ const YOUTUBE_NOTE: Record<string, [string, boolean]> = {
   cancelled: ['YouTube connection cancelled.', false],
   error: ['Couldn’t connect YouTube. Try again.', false],
 };
+
+const DISCONNECT_NOTE = 'Clips you posted from this account stop updating their views until you connect it again. You can connect a different account after.';
 
 const DiscordLogo = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -106,6 +110,24 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                 </form>
               </div>
             </Card>
+            <Card>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold tracking-tight">Delete account</p>
+                  <p className="text-sm text-zinc-500">Removes your login, profile and connected accounts. This can’t be undone.</p>
+                </div>
+                <ConfirmButton
+                  label="Delete account"
+                  variant="danger"
+                  title="Delete your Atlas account?"
+                  description="Your login, profile and connected accounts are removed. Records of past clips and payments are kept, without your name, because businesses and payment law need them. Any balance under $5 is lost."
+                  confirmLabel="Delete forever"
+                  typeToConfirm="DELETE"
+                  action={deleteAccount}
+                  redirectTo="/"
+                />
+              </div>
+            </Card>
           </div>
         )}
 
@@ -122,9 +144,13 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                   connected={!!d.tiktok}
                   detail={d.tiktok ? `@${d.tiktok.username ?? 'connected'} · ${compact(d.tiktok.followers ?? 0)} followers` : 'Needed for TikTok clips'}
                   action={
-                    <PopupConnect href="/api/oauth/tiktok/start" className={buttonClass(d.tiktok ? 'ghost' : 'secondary', 'sm')}>
-                      {d.tiktok ? 'Reconnect' : 'Connect'}
-                    </PopupConnect>
+                    d.tiktok ? (
+                      <ConfirmButton label="Disconnect" title="Disconnect TikTok?" description={DISCONNECT_NOTE} confirmLabel="Disconnect" action={disconnectPlatform.bind(null, 'tiktok')} />
+                    ) : (
+                      <PopupConnect href="/api/oauth/tiktok/start" className={buttonClass('secondary', 'sm')}>
+                        Connect
+                      </PopupConnect>
+                    )
                   }
                 />
                 <ConnectionCard
@@ -133,7 +159,13 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                   title="YouTube Shorts"
                   connected={!!d.youtube}
                   detail={d.youtube ? `${d.youtube.channel ?? 'Channel'}${d.youtube.subscribers != null ? ` · ${compact(d.youtube.subscribers)} subscribers` : ''}` : 'Verify your channel once to submit Shorts'}
-                  action={<YouTubeVerify code={d.youtubeCode} verified={!!d.youtube} google={youtubeGoogleEnabled()} />}
+                  action={
+                    d.youtube ? (
+                      <ConfirmButton label="Disconnect" title="Disconnect YouTube?" description={DISCONNECT_NOTE} confirmLabel="Disconnect" action={disconnectPlatform.bind(null, 'youtube')} />
+                    ) : (
+                      <YouTubeVerify code={d.youtubeCode} verified={false} google={youtubeGoogleEnabled()} />
+                    )
+                  }
                 />
                 <ConnectionCard
                   icon={<PlatformIcon platform="instagram" />}
@@ -143,9 +175,13 @@ export default async function AccountPage({ searchParams }: { searchParams: { ta
                   detail={d.instagram ? `@${d.instagram.username ?? 'connected'}${d.instagram.followers != null ? ` · ${compact(d.instagram.followers)} followers` : ''}` : process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? 'Creator or Business account' : 'Reels tracking is coming soon'}
                   action={
                     process.env.NEXT_PUBLIC_INSTAGRAM_ENABLED === 'true' ? (
-                      <PopupConnect href="/api/oauth/instagram/start" className={buttonClass(d.instagram ? 'ghost' : 'secondary', 'sm')}>
-                        {d.instagram ? 'Reconnect' : 'Connect'}
-                      </PopupConnect>
+                      d.instagram ? (
+                        <ConfirmButton label="Disconnect" title="Disconnect Instagram?" description={DISCONNECT_NOTE} confirmLabel="Disconnect" action={disconnectPlatform.bind(null, 'instagram')} />
+                      ) : (
+                        <PopupConnect href="/api/oauth/instagram/start" className={buttonClass('secondary', 'sm')}>
+                          Connect
+                        </PopupConnect>
+                      )
                     ) : (
                       <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">Coming soon</span>
                     )

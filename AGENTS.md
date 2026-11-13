@@ -72,6 +72,11 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   `/admin/test-data` (load/remove fake @atlas.test data).
 - YouTube: "Connect with Google" (`/api/oauth/youtube/*`, `youtube.readonly`, channels.list mine=true; no token kept, stats use `YOUTUBE_API_KEY`).
   Shows when `YOUTUBE_CLIENT_ID`/`YOUTUBE_CLIENT_SECRET` are set; otherwise the old code-in-description dialog.
+- Connections (`src/actions/connections.ts`): Settings shows Disconnect for connected platforms (TikTok token is revoked).
+  Sign-in screens always show (TikTok `disable_auto_auth=1`, Google `select_account`, Meta `prompt=login`, Discord `prompt=consent`)
+  so people can switch accounts; Connect buttons open them in a popup (`components/popup-connect.tsx`, `/oauth/done`).
+  Delete account (Settings → Email & password): blocked while $5+ is owed or a campaign holds budget; anonymises the
+  creator/brand row, removes connections/devices/payout handle, and soft-deletes the auth user so money records stay.
 - Discord: `src/lib/discord.ts` (role sync), `src/app/api/discord/interactions` (#verify button flow),
   `src/app/api/oauth/discord/*` (Connect Discord in Settings).
 - View checks on every sync: `assessViews` in `src/lib/fraud.ts` (5-minute bot burst, hollow jump = many new views with

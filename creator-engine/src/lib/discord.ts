@@ -14,7 +14,7 @@ export const discordConfigured = () => !!(env('DISCORD_CLIENT_ID') && env('DISCO
 const redirectUri = () => `${appUrl()}/api/oauth/discord/callback`;
 
 export function discordAuthorizeUrl(state: string): string {
-  const q = new URLSearchParams({ client_id: env('DISCORD_CLIENT_ID'), response_type: 'code', redirect_uri: redirectUri(), scope: 'identify guilds.join', state, prompt: 'none' });
+  const q = new URLSearchParams({ client_id: env('DISCORD_CLIENT_ID'), response_type: 'code', redirect_uri: redirectUri(), scope: 'identify guilds.join', state, prompt: 'consent' });
   return `https://discord.com/oauth2/authorize?${q}`;
 }
 
