@@ -13,6 +13,7 @@ const KIND: Record<MoneyEntry['kind'], { label: string; icon: React.ElementType;
   payout: { label: 'Paid to a clipper', icon: ArrowUpRight, sign: '−', tone: 'text-zinc-900' },
   refund: { label: 'Refunded to you', icon: RotateCcw, sign: '−', tone: 'text-zinc-900' },
   fee: { label: 'Card processing', icon: Receipt, sign: '', tone: 'text-zinc-500' },
+  credit: { label: 'Invite credit', icon: ArrowDownLeft, sign: '+', tone: 'text-[rgb(var(--brand-ta))]' },
 };
 
 export default async function MoneyPage() {

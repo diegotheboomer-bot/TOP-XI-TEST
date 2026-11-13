@@ -26,6 +26,7 @@ const SECTIONS: Record<Role, NavSection[]> = {
       items: [
         { href: '/streamer/stats', label: 'Stats', icon: <ChartColumn /> },
         { href: '/streamer/money', label: 'Money', icon: <Wallet /> },
+        { href: '/streamer/invite', label: 'Invite & earn', icon: <Gift /> },
       ],
     },
     {

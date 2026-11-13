@@ -13,12 +13,12 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Next.js 14 App Router (server components, server actions), TypeScript, Tailwind.
 - Supabase (Postgres + RLS + storage + auth). Project ref `ijpfxbnxfpbhfzrjhdmz`.
 - Stripe Connect Express (embedded onboarding, transfers). Discord bot + OAuth. Gemini support bot ("Nova").
-- Tests: vitest (`npm test`, 142 tests). Type check: `npx tsc --noEmit -p .`.
+- Tests: vitest (`npm test`, 144 tests). Type check: `npx tsc --noEmit -p .`.
 - Hosting: Render auto-deploys branch `claude/kind-galileo-egdt9r`.
 
 ## Workflow rules (agreed with the owner)
 - Develop and push on branch `claude/kind-galileo-egdt9r`. No pull requests unless asked.
-- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0025_…`).
+- **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0026_…`).
   The owner runs the SQL in the Supabase SQL Editor. **Don't push code that needs a new column
   until the owner confirms the SQL ran**, or the live site breaks.
 - Never commit secrets. Env vars live in Render (Stripe, Supabase, Discord, Gemini, TikTok, YouTube).
@@ -39,6 +39,11 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Referrals (`src/lib/referrals.ts`, migration 0024): invite link `/r/CODE`. Page `/clipper/invite` (Invite & earn: pitch,
   how it works, who joined with Active/days left, no per-person money); Earnings strip and one-time home popup (`components/invite/*`). For an invited clipper's first 90 days
   their 5% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
+- Streamer invite links (migration 0025): businesses get a code starting `BR` on `/streamer/invite`. Clippers who join with it
+  (`creators.referred_by_brand`) add their 5% fee for 90 days to that business's running campaign as a `referral_credit`
+  ledger row (counts as budget, never refunded to a card). Invite anti-fraud: a hash of the sign-up network
+  (`creators.signup_fingerprint`, set in `src/lib/creator-signup.ts`) blocks clipper invites from the inviter's own network,
+  and rewards are blocked (`referral_earnings.blocked_reason`) when both accounts pay out to the same bank or PayPal.
 - Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper
   (`src/lib/payout-costs.ts`: 0.25% + $0.15, plus $2.40 on the first Stripe payout of the month, covering Stripe's
   €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.

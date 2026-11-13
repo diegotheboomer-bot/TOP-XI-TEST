@@ -7,7 +7,7 @@ import { cn } from '../ui/cn';
 const MESSAGE = 'I clip on Atlas and get paid per view. Join with my link:';
 
 /** The invite link with a big Copy button and the phone's share sheet where there is one. */
-export function ShareLink({ link, className }: { link: string; className?: string }) {
+export function ShareLink({ link, className, message = MESSAGE }: { link: string; className?: string; message?: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () =>
     navigator.clipboard.writeText(link).then(
@@ -18,7 +18,7 @@ export function ShareLink({ link, className }: { link: string; className?: strin
       () => window.prompt('Copy your link', link),
     );
   const share = () => {
-    if (navigator.share) navigator.share({ title: 'Atlas Clips', text: MESSAGE, url: link }).catch(() => {});
+    if (navigator.share) navigator.share({ title: 'Atlas Clips', text: message, url: link }).catch(() => {});
     else copy();
   };
   return (

@@ -324,7 +324,7 @@ async function loadBudgets(campaigns: Campaign[]): Promise<Map<string, BudgetSta
   if (!ids.length) return out;
   const admin = createAdminClient();
   const [{ data: ledger }, { data: subs }] = await Promise.all([
-    selectAllIn(ids, (chunk) => admin.from('escrow_ledger').select('campaign_id, entry_type, amount').in('entry_type', ['deposit', 'refund']).in('campaign_id', chunk).order('id')),
+    selectAllIn(ids, (chunk) => admin.from('escrow_ledger').select('campaign_id, entry_type, amount').in('entry_type', ['deposit', 'refund', 'referral_credit']).in('campaign_id', chunk).order('id')),
     selectAllIn(ids, (chunk) => admin.from('submissions').select('campaign_id, status, payout_earned, payout_transferred').in('campaign_id', chunk).order('id')),
   ]);
   for (const c of campaigns) {
@@ -437,11 +437,11 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail | nu
     campaign: c,
     shopDomain: (conversion_pixels as { shop_domain: string | null } | null)?.shop_domain ?? null,
     submissions: rows,
-    deposited: sum('deposit') - sum('refund'),
+    deposited: sum('deposit') + sum('referral_credit') - sum('refund'),
     refunded: sum('refund'),
     paidOut: sum('creator_payout'),
     fees: sum('platform_fee'),
-    budget: budgetStats({ deposited: sum('deposit') - sum('refund'), escrow: c.escrow_balance, owed, createdAt: c.created_at }),
+    budget: budgetStats({ deposited: sum('deposit') + sum('referral_credit') - sum('refund'), escrow: c.escrow_balance, owed, createdAt: c.created_at }),
     moments: await loadMoments(c.id),
   };
 }
@@ -678,7 +678,7 @@ export async function getClipperProfileForBrand(creatorId: string): Promise<Clip
 
 export interface MoneyEntry {
   id: string;
-  kind: 'deposit' | 'payout' | 'refund' | 'fee';
+  kind: 'deposit' | 'payout' | 'refund' | 'fee' | 'credit';
   amount: number;
   campaignId: string;
   campaignTitle: string;
@@ -710,7 +710,7 @@ export async function getBrandMoney(): Promise<BrandMoney> {
   const rows = ledger
     .filter((l) => !(l.entry_type === 'platform_fee' && l.submission_id)) // clipper-side fees aren't the owner's money
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  const kindOf = (t: string): MoneyEntry['kind'] => (t === 'deposit' ? 'deposit' : t === 'creator_payout' ? 'payout' : t === 'refund' ? 'refund' : 'fee');
+  const kindOf = (t: string): MoneyEntry['kind'] => (t === 'deposit' ? 'deposit' : t === 'referral_credit' ? 'credit' : t === 'creator_payout' ? 'payout' : t === 'refund' ? 'refund' : 'fee');
   const entries = rows.map((l) => ({
     id: l.id as string,
     kind: kindOf(l.entry_type as string),
@@ -1077,7 +1077,7 @@ export async function getReferralSummary(): Promise<ReferralSummary | null> {
   const [{ data: me }, { data: invited }, { data: earnings }] = await Promise.all([
     admin.from('creators').select('referral_code').eq('id', creatorId).single(),
     selectAll(() => admin.from('creators').select('id, display_name, avatar_url, created_at').eq('referred_by', creatorId).order('id')),
-    selectAll(() => admin.from('referral_earnings').select('id, amount, paid_at').eq('referrer_id', creatorId).order('id')),
+    selectAll(() => admin.from('referral_earnings').select('id, amount, paid_at, transfer_id').eq('referrer_id', creatorId).or('transfer_id.is.null,transfer_id.neq.blocked').order('id')),
   ]);
   if (!me?.referral_code) return null;
   const sum = (rows: { amount: unknown }[]) => Math.round(rows.reduce((n, r) => n + Number(r.amount), 0) * 100) / 100;
@@ -1094,6 +1094,44 @@ export async function getReferralSummary(): Promise<ReferralSummary | null> {
     active: people.filter((x) => x.active).length,
     earned: sum(earnings),
     paid: sum(earnings.filter((e) => e.paid_at)),
+    people,
+  };
+}
+
+export interface BrandReferralSummary {
+  link: string;
+  invited: number;
+  active: number;
+  /** Budget added to your campaigns from invited clippers' fees. */
+  credited: number;
+  people: ReferralPerson[];
+}
+
+/** The business's invite link, who joined with it and the budget it has added. */
+export async function getBrandReferralSummary(): Promise<BrandReferralSummary | null> {
+  if (isDemo) return null;
+  const brandId = await requireRole('brand');
+  const admin = createAdminClient();
+  const [{ data: me }, { data: invited }, { data: camps }] = await Promise.all([
+    admin.from('brands').select('referral_code').eq('id', brandId).single(),
+    selectAll(() => admin.from('creators').select('id, display_name, avatar_url, created_at').eq('referred_by_brand', brandId).order('id')),
+    admin.from('campaigns').select('id').eq('brand_id', brandId),
+  ]);
+  if (!me?.referral_code) return null;
+  const ids = (camps ?? []).map((c) => c.id as string);
+  const { data: credits } = await selectAllIn(ids, (chunk) => admin.from('escrow_ledger').select('amount').eq('entry_type', 'referral_credit').in('campaign_id', chunk).order('id'));
+  const people: ReferralPerson[] = invited
+    .map((c) => {
+      const joinedAt = c.created_at as string;
+      const left = Math.ceil((new Date(joinedAt).getTime() + REFERRAL_DAYS * 86_400_000 - Date.now()) / 86_400_000);
+      return { id: c.id as string, name: (c.display_name as string) ?? 'Clipper', avatar: (c.avatar_url as string | null) ?? null, joinedAt, active: inReferralWindow(joinedAt), daysLeft: Math.max(0, left) };
+    })
+    .sort((a, b) => Number(b.active) - Number(a.active) || b.joinedAt.localeCompare(a.joinedAt));
+  return {
+    link: `${appUrl().replace(/\/$/, '')}/r/${me.referral_code}`,
+    invited: invited.length,
+    active: people.filter((x) => x.active).length,
+    credited: Math.round((credits ?? []).reduce((n, r) => n + Number(r.amount), 0) * 100) / 100,
     people,
   };
 }

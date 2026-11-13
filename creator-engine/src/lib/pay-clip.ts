@@ -94,7 +94,7 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   // Kept by the platform: the 5% fee plus Stripe's payout charge, which the platform pays Stripe.
   if (fee + stripeCost > 0) await admin.from('escrow_ledger').insert({ campaign_id: sub.campaign_id, submission_id: sub.id, entry_type: 'platform_fee', amount: Math.round((fee + stripeCost) * 100) / 100, stripe_object_id: externalId });
   // Invited in the last 90 days: the fee goes to whoever invited them.
-  await creditReferral(admin, { creatorId: sub.creator_id as string, submissionId: sub.id as string, fee, sourceRef: externalId });
+  await creditReferral(admin, { creatorId: sub.creator_id as string, submissionId: sub.id as string, campaignId: sub.campaign_id as string, fee, sourceRef: externalId });
   if (after >= Number((sub.campaigns as unknown as { cpm_cap: number }).cpm_cap)) {
     await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
   }
