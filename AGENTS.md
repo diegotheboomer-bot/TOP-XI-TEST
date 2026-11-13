@@ -40,7 +40,7 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
   how it works, who joined with Active/days left, no per-person money); Earnings strip and one-time home popup (`components/invite/*`). For an invited clipper's first 90 days
   their 5% fee goes to the inviter (`referral_earnings`, paid by Stripe transfer; sync retries unpaid ones).
 - Streamer invite links (migration 0025): businesses get a code starting `BR` on `/streamer/invite`. Clippers who join with it
-  (`creators.referred_by_brand`) add their 5% fee for 90 days to that business's running campaign as a `referral_credit`
+  (`creators.referred_by_brand`, only once the business has funded a campaign: `brandCanInvite`) add their 5% fee for 90 days to that business's running campaign as a `referral_credit`
   ledger row (counts as budget, never refunded to a card). Invite anti-fraud: a hash of the sign-up network
   (`creators.signup_fingerprint`, set in `src/lib/creator-signup.ts`) blocks clipper invites from the inviter's own network,
   and rewards are blocked (`referral_earnings.blocked_reason`) when both accounts pay out to the same bank or PayPal.

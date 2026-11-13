@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Gift, Megaphone, PiggyBank, UserPlus, Users } from 'lucide-react';
+import { Gift, Lock, Megaphone, PiggyBank, UserPlus, Users } from 'lucide-react';
 import { getBrandReferralSummary } from '@/lib/data';
 import { REFERRAL_DAYS } from '@/lib/referrals';
 import { TIER_PERKS } from '@/lib/tiers';
@@ -35,7 +36,22 @@ export default async function BrandInvitePage() {
         <p className="relative mt-3 max-w-xl text-zinc-500 sm:text-lg">
           Everyone who joins Atlas with your link adds the {FEE}% fee from their cash-outs to your campaign budget for {REFERRAL_DAYS} days. Your clips get cheaper the more your community clips.
         </p>
-        <ShareLink link={r.link} className="relative mt-6" message="Clip my streams on Atlas and get paid per view. Join with my link:" />
+        {r.unlocked ? (
+          <ShareLink link={r.link} className="relative mt-6" message="Clip my streams on Atlas and get paid per view. Join with my link:" />
+        ) : (
+          <div className="relative mt-6 flex flex-col gap-3 rounded-2xl bg-zinc-100/60 p-4 ring-1 ring-inset ring-zinc-200/60 sm:flex-row sm:items-center">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-zinc-200/70 text-zinc-500">
+              <Lock className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1 text-sm">
+              <span className="block font-semibold">Unlocks with your first funded campaign</span>
+              <span className="block text-zinc-500">Set up a campaign and add a budget, then your invite link appears here.</span>
+            </span>
+            <Link href="/streamer/campaigns/new" className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-ink hover:brightness-110">
+              Create a campaign
+            </Link>
+          </div>
+        )}
         <dl className="relative mt-6 grid grid-cols-3 gap-1.5 sm:gap-2">
           {(
             [

@@ -5,7 +5,7 @@ import { clipperRecords as loadRecords } from './clipper-records';
 import { selectAll, selectAllIn } from './fetch-all';
 import { approvalRate, isTrusted, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
 import { appUrl, isDemo } from './env';
-import { REFERRAL_DAYS, inReferralWindow } from './referrals';
+import { REFERRAL_DAYS, brandCanInvite, inReferralWindow } from './referrals';
 import { getViewer } from './session';
 import { createClient } from './supabase/server';
 import { createAdminClient } from './supabase/admin';
@@ -1099,6 +1099,8 @@ export async function getReferralSummary(): Promise<ReferralSummary | null> {
 }
 
 export interface BrandReferralSummary {
+  /** Unlocked once the business has funded a campaign. */
+  unlocked: boolean;
   link: string;
   invited: number;
   active: number;
@@ -1128,6 +1130,7 @@ export async function getBrandReferralSummary(): Promise<BrandReferralSummary | 
     })
     .sort((a, b) => Number(b.active) - Number(a.active) || b.joinedAt.localeCompare(a.joinedAt));
   return {
+    unlocked: await brandCanInvite(admin, brandId),
     link: `${appUrl().replace(/\/$/, '')}/r/${me.referral_code}`,
     invited: invited.length,
     active: people.filter((x) => x.active).length,

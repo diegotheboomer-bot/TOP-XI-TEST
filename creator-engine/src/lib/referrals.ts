@@ -21,6 +21,15 @@ export const validCode = (code: string | undefined | null) => !!code && /^[A-Z0-
 /** True while the referred clipper is inside the inviter's 90 days. */
 export const inReferralWindow = (joinedAt: string, now = Date.now()) => now - new Date(joinedAt).getTime() < REFERRAL_DAYS * 86_400_000;
 
+/** A business can use its invite link only once it has funded a campaign (a real deposit). */
+export async function brandCanInvite(admin: SupabaseClient, brandId: string): Promise<boolean> {
+  const { data: camps } = await admin.from('campaigns').select('id').eq('brand_id', brandId);
+  const ids = (camps ?? []).map((c) => c.id as string);
+  if (!ids.length) return false;
+  const { count } = await admin.from('escrow_ledger').select('id', { count: 'exact', head: true }).eq('entry_type', 'deposit').in('campaign_id', ids);
+  return (count ?? 0) > 0;
+}
+
 /** Business invite codes start with BR; clipper codes are 8 hex characters. */
 export const isBrandCode = (code: string) => code.startsWith('BR');
 
@@ -40,7 +49,8 @@ export async function referralFields(admin: SupabaseClient, code: string | undef
   if (!validCode(c)) return {};
   if (isBrandCode(c!)) {
     const { data } = await admin.from('brands').select('id').eq('referral_code', c).maybeSingle();
-    return data?.id ? { referred_by_brand: data.id as string } : {};
+    // Only businesses that have funded a campaign can bring in clippers this way.
+    return data?.id && (await brandCanInvite(admin, data.id as string)) ? { referred_by_brand: data.id as string } : {};
   }
   const { data } = await admin.from('creators').select('id, signup_fingerprint').eq('referral_code', c).maybeSingle();
   if (!data?.id) return {};
@@ -87,7 +97,7 @@ export async function creditReferral(admin: SupabaseClient, input: { creatorId: 
  * running, Atlas keeps the fee.
  */
 async function creditBrand(admin: SupabaseClient, brandId: string, input: { campaignId?: string; fee: number; sourceRef: string }): Promise<void> {
-  const { data: camps } = await admin.from('campaigns').select('id, status').eq('brand_id', brandId).in('status', ['active', 'paused', 'draft']).order('created_at', { ascending: false });
+  const { data: camps } = await admin.from('campaigns').select('id, status').eq('brand_id', brandId).in('status', ['active', 'paused']).order('created_at', { ascending: false });
   const open = camps ?? [];
   const target = open.find((x) => x.id === input.campaignId) ?? open.find((x) => x.status === 'active') ?? open[0];
   if (!target) return;
