@@ -33,12 +33,61 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Tests: vitest (`npm test`, 144 tests). Type check: `npx tsc --noEmit -p .`.
 - Hosting: Render auto-deploys branch `claude/kind-galileo-egdt9r`.
 
+## Hosting, accounts and settings (where everything lives)
+- **Live site: Render** (atlasclipping.com). Render auto-deploys branch `claude/kind-galileo-egdt9r`. All env vars are set in
+  Render → the Atlas web service → Environment. Changing an env var needs a redeploy (Manual Deploy → Deploy latest commit),
+  because some pages are built ahead of time. `vercel.json` is left over from an earlier Vercel setup; Vercel is not used.
+- **Database / auth / storage: Supabase**, project ref `ijpfxbnxfpbhfzrjhdmz` (URL `https://ijpfxbnxfpbhfzrjhdmz.supabase.co`).
+  - SQL migrations: `creator-engine/supabase/migrations/`, run by the owner in the Supabase SQL Editor.
+  - Auth → URL Configuration: Site URL `https://atlasclipping.com`, redirect `https://atlasclipping.com/auth/callback**`.
+  - Auth → Providers: Email, **Google** (client from Google Cloud), **Apple** (Services ID `com.atlasclipping.web`;
+    the secret expires every 6 months, renew with `tools/apple-secret.html`; last made Nov 2026, renew by mid-May 2027).
+  - OAuth callback for Google/Apple: `https://ijpfxbnxfpbhfzrjhdmz.supabase.co/auth/v1/callback`.
+  - Storage buckets: `avatars` (profile + connected-account pictures), `campaign-thumbnails`, `campaign-references`.
+- **Payments: Stripe** (platform account in Portugal, Connect Express). Webhook → `https://atlasclipping.com/api/webhooks/stripe`.
+- **Google Cloud**: YouTube Data API key (`YOUTUBE_API_KEY`), the "Connect with Google" OAuth client for YouTube
+  (redirect `https://atlasclipping.com/api/oauth/youtube/callback`, scope `youtube.readonly`, needs Google verification for
+  more than 100 users), and the Google sign-in client used by Supabase.
+- **Apple Developer** (Top XI team, account holder Fernando Salgado): App ID `com.atlasclipping.app`, Services ID
+  `com.atlasclipping.web`, key "Atlas Sign in".
+- **Meta (Instagram)**: app "Atlas clipping" (App ID `1718613933026143`), Unified login configuration `29535809842723584`,
+  redirect `https://atlasclipping.com/api/oauth/instagram/callback`. In development mode until App Review.
+- **TikTok for Developers**: Login Kit app, redirect `https://atlasclipping.com/api/oauth/tiktok/callback`.
+- **Discord**: Atlas server + bot (needs Server Members Intent), redirect `https://atlasclipping.com/api/oauth/discord/callback`,
+  interactions endpoint `https://atlasclipping.com/api/discord/interactions`.
+- **View sync**: `/api/cron/sync` (protected by `CRON_SECRET`) must be called on a schedule. Check that a Render cron job or
+  an external scheduler calls it every few hours; not confirmed.
+
+## Environment variables (names only; values are in Render, never in the repo or chat)
+Required:
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`: Supabase (without the first two the app runs as a demo).
+- `NEXT_PUBLIC_APP_URL`: `https://atlasclipping.com`.
+- `TOKEN_ENCRYPTION_KEY`: encrypts stored platform tokens and makes verify codes. Changing it breaks connected accounts.
+- `CRON_SECRET`: protects `/api/cron/sync`.
+- `ADMIN_EMAILS`: owner emails that can open `/admin/*`.
+- `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`: Stripe.
+- `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`: TikTok connect.
+- `YOUTUBE_API_KEY`: YouTube view counts.
+- `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_PUBLIC_KEY`: Discord linking, roles, #verify.
+- `GEMINI_API_KEY` (optional `GEMINI_MODEL`): Nova support bot.
+Switches and optional:
+- `AUTH_GOOGLE=true`, `AUTH_APPLE=true`: show Google / Apple sign-in buttons.
+- `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`: YouTube "Connect with Google" (otherwise the description-code dialog).
+- `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` (the Meta app's ID and secret), `INSTAGRAM_CONFIG_ID` (defaults to `29535809842723584`),
+  `NEXT_PUBLIC_INSTAGRAM_ENABLED=true` to show Instagram.
+- `NO_SERVICE_FEE=true`: businesses pay only Stripe's card cost. `STRIPE_FX_PERCENT` (1 with USD settlement on).
+  `STRIPE_OWNED_PRICING=false` turns off Stripe-owned pricing for new payout accounts. `STRIPE_ACH_ENABLED`, `PLATFORM_FEE_PERCENT`: older options.
+- `SCOUT_ENABLED=true`: shows Scout.
+- `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_ENV`, `PAYPAL_WEBHOOK_ID`: PayPal payouts (not live yet).
+- `SHOPIFY_WEBHOOK_SECRET`: old attribution feature.
+- `LOCAL_TEST_ACCOUNTS`, `LOCAL_TEST_PASSWORD`: local testing only, never on Render.
+
 ## Workflow rules (agreed with the owner)
 - Develop and push on branch `claude/kind-galileo-egdt9r`. No pull requests unless asked.
 - **Database changes**: add a numbered file in `creator-engine/supabase/migrations/` (next is `0029_…`).
   The owner runs the SQL in the Supabase SQL Editor. **Don't push code that needs a new column
   until the owner confirms the SQL ran**, or the live site breaks.
-- Never commit secrets. Env vars live in Render (Stripe, Supabase, Discord, Gemini, TikTok, YouTube).
+- Never commit secrets. Env vars live in Render (full list above).
 - Before pushing: `npx tsc --noEmit -p .` and `npm test` must pass.
 - After UI changes: `npm run build:demo` then copy `demo-site/index.html` to `public/demo/index.html`.
 - Check pages on a phone width (390px) and desktop. Owner wants clean, minimal, modern, dark,
