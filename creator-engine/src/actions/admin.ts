@@ -42,3 +42,16 @@ export async function removeTestData(): Promise<ActionState> {
     return { error: `Couldn’t finish: ${e instanceof Error ? e.message : 'unknown error'}. Tap Remove again.` };
   }
 }
+
+/** Atlas team only: everyone in the Discord right now gets Verified, skipping #verify. */
+export async function verifyDiscordMembers(): Promise<ActionState> {
+  if (!(await isSupportAdmin())) return { error: 'Not allowed.' };
+  const { discordConfigured, verifyCurrentMembers } = await import('@/lib/discord');
+  if (!discordConfigured()) return { error: 'Discord isn’t set up.' };
+  try {
+    const { given, already } = await verifyCurrentMembers();
+    return { success: `Done: ${given} members let in, ${already} were already verified.` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Discord failed. Try again.' };
+  }
+}

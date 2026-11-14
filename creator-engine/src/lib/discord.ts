@@ -99,3 +99,33 @@ export async function syncAllDiscordRoles(admin: SupabaseClient): Promise<number
   }
   return done;
 }
+
+/**
+ * Gives the Verified role to everyone in the server right now (bots skipped), so current members
+ * skip #verify. New joiners still verify. Listing members needs the bot's Server Members intent.
+ */
+export async function verifyCurrentMembers(): Promise<{ given: number; already: number }> {
+  const guild = env('DISCORD_GUILD_ID');
+  const verified = (await roleIds()).get('Verified');
+  if (!verified) throw new Error('There is no role called “Verified” in the server.');
+  let after = '0';
+  let given = 0;
+  let already = 0;
+  for (;;) {
+    const res = await bot('GET', `/guilds/${guild}/members?limit=1000&after=${after}`);
+    if (!res.ok) throw new Error(res.status === 403 ? 'Turn on “Server Members Intent” for the bot in the Discord Developer Portal (Bot tab).' : `Discord member list failed (${res.status})`);
+    const page = (await res.json()) as { user: { id: string; bot?: boolean }; roles: string[] }[];
+    for (const m of page) {
+      if (m.user.bot) continue;
+      if (m.roles.includes(verified)) {
+        already++;
+        continue;
+      }
+      const r = await bot('PUT', `/guilds/${guild}/members/${m.user.id}/roles/${verified}`);
+      if (r.ok) given++;
+    }
+    if (page.length < 1000) break;
+    after = page[page.length - 1].user.id;
+  }
+  return { given, already };
+}

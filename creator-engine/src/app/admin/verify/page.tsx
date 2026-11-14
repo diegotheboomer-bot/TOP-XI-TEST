@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isSupportAdmin } from '@/actions/support';
-import { setVerified } from '@/actions/admin';
+import { setVerified, verifyDiscordMembers } from '@/actions/admin';
 import { ActionButton } from '@/components/action-button';
 import { StreamerAvatar, VerifiedMark } from '@/components/views';
 
@@ -31,6 +31,13 @@ export default async function VerifyPage({ searchParams }: { searchParams: { q?:
     <main className="gutter mx-auto max-w-3xl py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Verify accounts</h1>
       <p className="mt-1 text-sm text-zinc-500">Verified accounts get a check next to their name everywhere. Give it to real businesses and clippers you trust.</p>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white p-4">
+        <span className="text-sm">
+          <b className="block">Discord: let current members in</b>
+          <span className="text-zinc-500">Everyone in the server now gets Verified. New joiners still use #verify.</span>
+        </span>
+        <ActionButton action={verifyDiscordMembers}>Let them in</ActionButton>
+      </div>
       <form className="mt-5">
         <input name="q" defaultValue={q} placeholder="Search by name" className="h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm" />
       </form>
