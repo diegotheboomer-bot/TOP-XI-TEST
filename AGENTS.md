@@ -9,6 +9,23 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - Clippers are paid for **verified views** (per 1K views, per clip, or a pool split by views).
 - The business approves every clip. Payouts after approval are automatic.
 
+## How to work (read before every task)
+- **Check before claiming.** Read the code and the official docs before saying something works or exists.
+  If you're not sure, say "I don't know" or "not verified" instead of guessing. Never invent fees, limits or API behaviour;
+  link the official doc you used.
+- **Look at what you change.** After any UI change, run the app and take screenshots at 390px (phone) and desktop, and look
+  at them before you push. Fix anything cut off, overlapping or unreadable.
+- **Keep it small.** Change only what was asked. No extra features, no big refactors, no new libraries unless needed.
+  Match the existing code style and the volt-green dark design.
+- **Ask when unclear.** If the owner's message can mean two different things, ask one short question before building.
+- **Database safety.** New columns: add a numbered migration, give the owner the SQL in a copy-paste block, and do not push
+  code that needs it until the owner replies "ran".
+- **Before pushing:** `npx tsc --noEmit -p .` and `npm test` pass, then push to `claude/kind-galileo-egdt9r`. Update this file
+  when you add something important.
+- **How to reply to the owner (Diego):** short, plain English, no jargon. Lead with what changed and whether it's live,
+  then what you tested, then what Diego must do (numbered steps, exact button names, env var names in code blocks).
+  Say honestly what you could not test.
+
 ## Stack
 - Next.js 14 App Router (server components, server actions), TypeScript, Tailwind.
 - Supabase (Postgres + RLS + storage + auth). Project ref `ijpfxbnxfpbhfzrjhdmz`.
