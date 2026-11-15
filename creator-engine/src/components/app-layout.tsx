@@ -55,8 +55,7 @@ const SECTIONS: Record<Role, NavSection[]> = {
     {
       title: 'Money',
       items: [
-        { href: '/clipper/earnings', label: 'Earnings', icon: <ChartColumn /> },
-        { href: '/clipper/payouts', label: 'Payouts', icon: <Wallet /> },
+        { href: '/clipper/earnings', label: 'Earnings', icon: <ChartColumn />, also: ['/clipper/payouts'] },
         { href: '/clipper/invite', label: 'Invite & earn', icon: <Gift /> },
       ],
     },

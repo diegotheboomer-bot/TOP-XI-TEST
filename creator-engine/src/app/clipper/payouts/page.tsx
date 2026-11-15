@@ -13,6 +13,7 @@ import { PayoutsView } from '@/components/payouts/payouts-view';
 import { rowsOf } from '@/components/clipper-stats';
 import { usdCents } from '@/lib/format';
 import { AppPayoutForm } from '@/components/payouts/app-payouts';
+import { MoneyTabs } from '@/components/money-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,7 @@ export default async function PayoutsPage() {
         description="Where your money goes, and every payout you’ve received."
         actions={isDemo ? <CreatorSwitcher creators={demoCreators()} current={currentCreatorId()} /> : undefined}
       />
+      <MoneyTabs current="payouts" />
       <PayoutSteps
         methodReady={d.payoutsEnabled}
         methodLabel={d.payout.method === 'stripe' ? 'Bank account' : PAYOUT_METHOD_LABEL[d.payout.method]}

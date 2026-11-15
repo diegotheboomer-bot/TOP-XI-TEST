@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { youtubeVerifyCode } from './youtube-verify';
 import { clipperRecords as loadRecords } from './clipper-records';
 import { selectAll, selectAllIn } from './fetch-all';
-import { approvalRate, isTrusted, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
+import { TIER_PERKS, approvalRate, isTrusted, recordFrom, tierFor, tierRank, type ClipperRecord, type Tier } from './tiers';
+import { MIN_CASHOUT } from './payout-rules';
 import { appUrl, isDemo } from './env';
 import { REFERRAL_DAYS, brandCanInvite, inReferralWindow } from './referrals';
 import { getViewer } from './session';
@@ -1148,4 +1149,36 @@ export async function getBrandReferralSummary(): Promise<BrandReferralSummary | 
     campaigns: (camps ?? []).filter((c) => c.status !== 'completed').map((c) => ({ id: c.id as string, title: c.title as string, status: c.status as string })).sort((a, b) => ['active', 'paused', 'draft'].indexOf(a.status) - ['active', 'paused', 'draft'].indexOf(b.status)),
     people,
   };
+}
+
+/** For the banner on every clipper page: money waiting for a bank account, or ready to cash out. */
+export async function getMoneyAlert(): Promise<{ kind: 'connect' | 'ready'; amount: number } | null> {
+  if (isDemo) return null;
+  const viewer = await getViewer();
+  if (!viewer?.creatorId) return null;
+  const admin = createAdminClient();
+  const { data: subs } = await admin
+    .from('submissions')
+    .select('status, approved_at, payout_earned, payout_transferred, social_platform_video_id, campaigns(payout_model, status)')
+    .eq('creator_id', viewer.creatorId)
+    .eq('status', 'live_tracking');
+  const rows = (subs ?? []).map((x) => ({ ...x, owed: Math.round((Number(x.payout_earned) - Number(x.payout_transferred)) * 100) / 100 })).filter((x) => x.owed > 0);
+  if (!rows.length) return null;
+  const owed = Math.round(rows.reduce((n, x) => n + x.owed, 0) * 100) / 100;
+  const { data: creator } = await admin.from('creators').select('payouts_enabled').eq('id', viewer.creatorId).single();
+  const ready = await loadPayoutSetup(viewer.creatorId, creator?.payouts_enabled ?? false).then(payoutReady);
+  if (!ready) return { kind: 'connect', amount: owed };
+  const tier = tierFor((await clipperRecords([viewer.creatorId])).get(viewer.creatorId)!);
+  const hold = TIER_PERKS[tier].holdHours;
+  const now = Date.now();
+  const cashable = rows
+    .filter((x) => {
+      const c = x.campaigns as unknown as { payout_model: string; status: string } | null;
+      const openPool = c?.payout_model === 'pool' && c.status !== 'completed';
+      return !openPool && !!x.approved_at && now - new Date(x.approved_at as string).getTime() >= hold * 3_600_000;
+    })
+    .reduce((n, x) => n + x.owed, 0);
+  const amount = Math.round(cashable * 100) / 100;
+  const allTest = rows.every((x) => String(x.social_platform_video_id ?? '').startsWith('atlasmoney'));
+  return amount >= (allTest ? 1 : MIN_CASHOUT) ? { kind: 'ready', amount } : null;
 }

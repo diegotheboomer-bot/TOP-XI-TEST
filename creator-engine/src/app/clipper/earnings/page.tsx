@@ -6,6 +6,7 @@ import { stripeCostFor, minCashoutFor } from '@/lib/cash-out';
 import { PageHeader } from '@/components/ui/page-header';
 import { EarningsView } from '@/components/clipper-stats';
 import { ReferralPanel } from '@/components/referral-panel';
+import { MoneyTabs } from '@/components/money-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function EarningsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Earnings" description="What you’ve earned, what’s been paid and what’s on the way." />
+      <MoneyTabs current="earnings" />
       <EarningsView d={d} payout={payout} extra={referral && <ReferralPanel r={referral} />} />
     </div>
   );
