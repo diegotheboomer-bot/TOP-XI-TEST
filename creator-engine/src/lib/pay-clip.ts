@@ -117,24 +117,39 @@ async function transferFromDeposits(
   params: { amount: number; currency: string; destination: string; metadata: Record<string, string> },
 ) {
   const { data: deposits } = await admin.from('escrow_ledger').select('stripe_object_id').eq('campaign_id', campaignId).eq('entry_type', 'deposit').like('stripe_object_id', 'pi_%').order('created_at', { ascending: false }).limit(10);
+  const reasons: string[] = deposits?.length ? [] : ['no card deposit found for this campaign'];
   for (const d of deposits ?? []) {
     try {
       const intent = await stripe().paymentIntents.retrieve(d.stripe_object_id as string, { expand: ['latest_charge.balance_transaction'] });
       const charge = intent.latest_charge as Stripe.Charge | null;
-      if (!charge || typeof charge === 'string') continue;
+      if (!charge || typeof charge === 'string') {
+        reasons.push(`${d.stripe_object_id}: no charge`);
+        continue;
+      }
       // Stripe requires the transfer in the currency the deposit settled in (EUR unless USD settlement is on).
       // Convert at the deposit's own rate, so the clipper gets the same value.
       const bt = charge.balance_transaction as Stripe.BalanceTransaction | null;
       const currency = bt && typeof bt !== 'string' ? bt.currency : charge.currency;
       const amount = currency === params.currency || !bt || typeof bt === 'string' ? params.amount : Math.floor((params.amount * bt.amount) / charge.amount);
-      if (amount < 1) continue;
+      if (amount < 1) {
+        reasons.push(`${charge.id}: amount too small`);
+        continue;
+      }
       return await stripe().transfers.create({ ...params, amount, currency, source_transaction: charge.id }, { idempotencyKey: `${key}_${charge.id}_${currency}` });
     } catch (err) {
-      console.warn('Transfer from deposit refused:', err instanceof Error ? err.message : err);
+      const msg = err instanceof Error ? err.message : String(err);
+      reasons.push(msg);
+      console.warn('Transfer from deposit refused:', msg);
       // Only a refused request (too big for this deposit, a currency mismatch, a refunded charge) moves on.
       // Anything else (a network error) stops, so a transfer can never be sent twice.
       if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') throw err;
     }
   }
-  return stripe().transfers.create({ ...params, transfer_group: `campaign_${campaignId}` }, { idempotencyKey: key });
+  try {
+    return await stripe().transfers.create({ ...params, transfer_group: `campaign_${campaignId}` }, { idempotencyKey: key });
+  } catch (err) {
+    // Say why the deposit-linked transfer didn't work too, so it can be fixed.
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(reasons.length ? `${msg} (deposit link: ${reasons.join('; ')})` : msg);
+  }
 }
