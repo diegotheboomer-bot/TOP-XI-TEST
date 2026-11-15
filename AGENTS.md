@@ -55,8 +55,8 @@ Atlas Clipping (atlasclipping.com, app name "Atlas Clips") is a clipping marketp
 - **TikTok for Developers**: Login Kit app, redirect `https://atlasclipping.com/api/oauth/tiktok/callback`.
 - **Discord**: Atlas server + bot (needs Server Members Intent), redirect `https://atlasclipping.com/api/oauth/discord/callback`,
   interactions endpoint `https://atlasclipping.com/api/discord/interactions`.
-- **View sync**: `/api/cron/sync` (protected by `CRON_SECRET`) must be called on a schedule. Check that a Render cron job or
-  an external scheduler calls it every few hours; not confirmed.
+- **View sync**: cron-job.org job "atlas sync" calls `/api/cron/sync` every 4 hours with `Authorization: Bearer <CRON_SECRET>`
+  (confirmed working Nov 2026). `vercel.json`'s cron does nothing on Render.
 
 ## Environment variables (names only; values are in Render, never in the repo or chat)
 Required:
