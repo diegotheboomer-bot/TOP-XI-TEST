@@ -41,3 +41,6 @@
     color: transparent;
   }
 }
+
+/* Full-bleed backgrounds use 100vw; never let them add a sideways scroll. */
+body { overflow-x: clip; }

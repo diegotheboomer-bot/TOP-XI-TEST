@@ -52,7 +52,8 @@ export function Landing({
     <main className="gutter mx-auto max-w-6xl">
       {/* Hero */}
       <section className="relative isolate grid grid-cols-1 items-center gap-10 pb-16 pt-10 sm:pb-20 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:pb-16 lg:pt-12">
-        <div className="hero-grid pointer-events-none absolute inset-x-0 -top-16 bottom-0 -z-10" aria-hidden />
+        {/* Full screen width, not just the content column, so the grid and glow have no hard edges. */}
+        <div className="hero-grid pointer-events-none absolute -top-16 bottom-0 left-1/2 -z-10 w-screen -translate-x-1/2" aria-hidden />
         <Spotlight />
         <div className="text-center lg:text-left">
           <p className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-600 backdrop-blur">

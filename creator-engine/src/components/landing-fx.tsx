@@ -33,13 +33,14 @@ export function Spotlight() {
     const parent = el?.parentElement;
     if (!el || !parent || window.matchMedia('(pointer: coarse)').matches) return;
     const move = (e: PointerEvent) => {
-      const r = parent.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
       el.style.background = `radial-gradient(500px circle at ${e.clientX - r.left}px ${e.clientY - r.top}px, rgb(var(--brand-a) / 0.10), transparent 60%)`;
     };
     parent.addEventListener('pointermove', move);
     return () => parent.removeEventListener('pointermove', move);
   }, []);
-  return <div ref={ref} aria-hidden className="pointer-events-none absolute inset-0 -z-10" />;
+  // Spans the whole screen width, so the glow never stops at the content column's edge.
+  return <div ref={ref} aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2" />;
 }
 
 // Example activity (illustrative, not real users), so the page feels alive.
