@@ -118,8 +118,8 @@ Switches and optional:
   On `/streamer/invite` the business adds it to a campaign as budget (`applyAffiliateBalance`) or cashes out
   (`cashOutAffiliate`, needs a business payout account from `/streamer/payouts`, `createBrandAccount` in stripe.ts).
 - Trust: public `/trust` page ("Is Atlas safe?", linked in the footer and checkout); deposits send a Stripe receipt (`receipt_email`).
-- Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's payout charge is passed to the clipper
-  (`src/lib/payout-costs.ts`: 0.25% + $0.15, plus $2.40 on the first Stripe payout of the month, covering Stripe's
+- Cash-outs: minimum $5 (`MIN_CASHOUT` in `src/lib/payout-rules.ts`). Stripe's per-payout charge is passed to the clipper
+  (`src/lib/payout-costs.ts`: 0.25% + $0.15, Atlas pays Stripe's €2 per active account per month itself (`STRIPE_MONTHLY = 0`), covering Stripe's
   €0.10 + 0.25% per payout and €2 per active account). All payouts go through `sendCashOut` in `src/lib/cash-out.ts`.
 - Google / Apple sign-in: Supabase OAuth (`oauthSignIn` in `src/actions/account.ts`, `components/forms/oauth-buttons.tsx`).
   Buttons show only with `AUTH_GOOGLE=true` / `AUTH_APPLE=true` on Render, after the provider is set up in Supabase.

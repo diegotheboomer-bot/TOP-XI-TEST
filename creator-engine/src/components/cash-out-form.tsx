@@ -72,7 +72,7 @@ export function CashOutForm({ balance, feePct, payout }: { balance: number; feeP
           <div className="flex justify-between gap-2">
             <dt className="text-zinc-500">
               Stripe payout fee
-              {payout.firstThisMonth && <span className="block text-[11px]">Includes {cents(STRIPE_MONTHLY)} monthly fee, first cash-out this month</span>}
+              {payout.firstThisMonth && STRIPE_MONTHLY > 0 && <span className="block text-[11px]">Includes {cents(STRIPE_MONTHLY)} monthly fee, first cash-out this month</span>}
             </dt>
             <dd className="shrink-0 whitespace-nowrap tabular-nums">−{cents(stripeFee)}</dd>
           </div>
@@ -193,7 +193,7 @@ export function OneTapCashOut({
           <div className="flex justify-between gap-2">
             <dt className="text-zinc-500">
               Stripe payout fee
-              {payout.firstThisMonth && <span className="block text-[11px]">Includes {cents(STRIPE_MONTHLY)} monthly fee, first cash-out this month</span>}
+              {payout.firstThisMonth && STRIPE_MONTHLY > 0 && <span className="block text-[11px]">Includes {cents(STRIPE_MONTHLY)} monthly fee, first cash-out this month</span>}
             </dt>
             <dd className="shrink-0 whitespace-nowrap tabular-nums">−{cents(stripeFee)}</dd>
           </div>
