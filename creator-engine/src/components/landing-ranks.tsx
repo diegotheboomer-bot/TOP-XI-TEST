@@ -11,63 +11,111 @@ const LOOK: Record<Tier, { light: string; mid: string; dark: string; glow: strin
   majesty: { light: '#fef3c7', mid: '#fbbf24', dark: '#a16207', glow: 'rgba(52,211,153,0.28)', text: '#fcd34d' },
 };
 
-/** A small metal emblem per rank: shield, star, medal, diamond, crown. */
+/** Star facets: each spike split into a lit half and a shaded half, which reads as a bevelled 3D star. */
+function starFacets(cx: number, cy: number, outer: number, inner: number) {
+  const pts = Array.from({ length: 10 }, (_, i) => {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const r = i % 2 ? inner : outer;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)] as const;
+  });
+  return pts.map((p, i) => {
+    const q = pts[(i + 1) % 10];
+    return { d: `M${cx} ${cy}L${p[0].toFixed(2)} ${p[1].toFixed(2)}L${q[0].toFixed(2)} ${q[1].toFixed(2)}Z`, lit: i % 2 === 0 };
+  });
+}
+
+/** A metal emblem per rank: shield, star, medal, diamond, crown. Bevelled faces, a rim and a gloss. */
 function Emblem({ tier }: { tier: Tier }) {
   const c = LOOK[tier];
   const id = `rank-${tier}`;
-  const fill = `url(#${id})`;
-  const shine = `url(#${id}-shine)`;
-  const shape: Record<Tier, React.ReactNode> = {
-    silver: <path d="M32 5 54 13v17c0 15-9.5 25-22 29C19.5 55 10 45 10 30V13Z" />,
-    gold: <path d="M32 5l8.2 16.9 18.6 2.6-13.5 13 3.3 18.5L32 47.2 15.4 56l3.3-18.5-13.5-13 18.6-2.6Z" />,
-    platinum: (
+  const light = `url(#${id}-l)`;
+  const dark = `url(#${id}-d)`;
+  const edge = { stroke: c.dark, strokeWidth: 1.2, strokeLinejoin: 'round' as const };
+  const gloss = <ellipse cx="30" cy="22" rx="9" ry="4" fill="#fff" opacity="0.45" transform="rotate(-25 30 22)" />;
+  const art: Record<Tier, React.ReactNode> = {
+    silver: (
       <>
-        <path d="M20 4h10l6 16h-10zM44 4H34l-6 16h10z" fill={c.dark} stroke="none" />
-        <circle cx="32" cy="40" r="19" />
+        <path d="M40 5 69 15v23c0 20-12.5 33-29 39C23.5 71 11 58 11 38V15Z" fill={dark} {...edge} />
+        <path d="M40 13 20 20v18c0 15 9 25 20 31Z" fill={light} />
+        <path d="M40 13 60 20v18c0 15-9 25-20 31Z" fill={c.mid} />
+        <path d="M40 13v56" stroke={c.dark} strokeOpacity="0.35" strokeWidth="1" />
+        {gloss}
       </>
     ),
-    diamond: <path d="M15 22 23 10h18l8 12-17 32Z" />,
-    majesty: <path d="M8 48 11 18l12 13 9-19 9 19 12-13 3 30Z" />,
-  };
-  const detail: Partial<Record<Tier, React.ReactNode>> = {
-    platinum: <circle cx="32" cy="40" r="12" fill="none" stroke={c.dark} strokeOpacity="0.45" strokeWidth="2" />,
-    diamond: <path d="M15 22h34M23 10l9 12 9-12M32 22v32" fill="none" stroke={c.dark} strokeOpacity="0.45" strokeWidth="1.5" />,
+    gold: (
+      <>
+        {starFacets(40, 42, 36, 15).map((f, i) => (
+          <path key={i} d={f.d} fill={f.lit ? light : dark} stroke={c.dark} strokeWidth="0.6" strokeLinejoin="round" />
+        ))}
+      </>
+    ),
+    platinum: (
+      <>
+        <path d="M24 4h12l8 22H32Z" fill="#0f766e" />
+        <path d="M56 4H44l-8 22h12Z" fill="#14b8a6" />
+        <circle cx="40" cy="50" r="25" fill={dark} {...edge} />
+        <circle cx="40" cy="50" r="19" fill={light} />
+        {starFacets(40, 51, 11, 4.6).map((f, i) => (
+          <path key={i} d={f.d} fill={f.lit ? '#f0fdfa' : c.dark} opacity="0.8" />
+        ))}
+        <path d="M22 44a19 19 0 0 1 13-12" stroke="#fff" strokeOpacity="0.6" strokeWidth="2" fill="none" strokeLinecap="round" />
+      </>
+    ),
+    diamond: (
+      <>
+        <path d="M10 30 25 15h30l15 15L40 74Z" fill={c.mid} {...edge} />
+        <path d="M25 15h30l-8 15H33Z" fill={c.light} />
+        <path d="M10 30 25 15l8 15Z" fill={light} />
+        <path d="M70 30 55 15l-8 15Z" fill={dark} />
+        <path d="M10 30h23l7 44Z" fill={light} />
+        <path d="M33 30h14l-7 44Z" fill={c.light} opacity="0.9" />
+        <path d="M47 30h23L40 74Z" fill={dark} />
+        <path d="M18 8l1.5 4 4 1.5-4 1.5L18 19l-1.5-4-4-1.5 4-1.5Z" fill="#fff" />
+      </>
+    ),
     majesty: (
       <>
-        <rect x="8" y="46" width="48" height="7" rx="2" fill="#34d399" stroke="#047857" strokeWidth="1.5" />
-        <circle cx="11" cy="17" r="3" fill={c.light} />
-        <circle cx="32" cy="11" r="3" fill={c.light} />
-        <circle cx="53" cy="17" r="3" fill={c.light} />
+        <path d="M12 56 9 22l17 16 14-24 14 24 17-16-3 34Z" fill={light} {...edge} />
+        <path d="M40 14 54 38l17-16-3 34H40Z" fill={dark} opacity="0.55" />
+        <rect x="11" y="55" width="58" height="12" rx="3" fill="#10b981" stroke="#047857" strokeWidth="1.2" />
+        <rect x="11" y="55" width="58" height="4" rx="2" fill="#6ee7b7" opacity="0.6" />
+        {[22, 40, 58].map((x) => (
+          <g key={x}>
+            <circle cx={x} cy="61" r="3.6" fill="#fde68a" stroke="#a16207" strokeWidth="0.8" />
+            <circle cx={x - 1} cy="60" r="1.1" fill="#fff" />
+          </g>
+        ))}
+        {[
+          [9, 21],
+          [40, 12],
+          [71, 21],
+        ].map(([x, y]) => (
+          <circle key={x} cx={x} cy={y} r="4" fill="#fef3c7" stroke={c.dark} strokeWidth="1" />
+        ))}
       </>
     ),
   };
   return (
-    <svg viewBox="0 0 64 64" className="size-20 drop-shadow-[0_10px_14px_rgba(0,0,0,0.55)]" aria-hidden>
+    <svg viewBox="0 0 80 80" className="size-20 drop-shadow-[0_12px_16px_rgba(0,0,0,0.55)]" aria-hidden>
       <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0.6" y2="1">
+        <linearGradient id={`${id}-l`} x1="0" y1="0" x2="0.4" y2="1">
           <stop offset="0" stopColor={c.light} />
-          <stop offset="0.55" stopColor={c.mid} />
+          <stop offset="1" stopColor={c.mid} />
+        </linearGradient>
+        <linearGradient id={`${id}-d`} x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0" stopColor={c.mid} />
           <stop offset="1" stopColor={c.dark} />
         </linearGradient>
-        <linearGradient id={`${id}-shine`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
-          <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
       </defs>
-      <g fill={fill} stroke={c.dark} strokeWidth="1.5" strokeLinejoin="round">
-        {shape[tier]}
-      </g>
-      {/* A soft highlight on the upper half gives the metal its depth. */}
-      <g fill={shine} stroke="none">{shape[tier]}</g>
-      {detail[tier]}
+      {art[tier]}
     </svg>
   );
 }
 
-function Line({ children, accent }: { children: React.ReactNode; accent?: string }) {
+function Line({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2 text-sm">
-      <Check className="mt-0.5 size-4 shrink-0" style={{ color: accent ?? 'rgb(var(--brand-ta))' }} strokeWidth={2.5} />
+      <Check className="mt-0.5 size-4 shrink-0" style={{ color: 'rgb(var(--brand-ta))' }} strokeWidth={2.5} />
       <span>{children}</span>
     </li>
   );
@@ -117,9 +165,9 @@ export function LandingRanks() {
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">You get</p>
                   <ul className="mt-1.5 space-y-1">
-                    <Line accent={c.text}>Paid {holdLabel(perks.holdHours)} after approval</Line>
-                    <Line accent={c.text}>{perks.cashoutsPerWeek === Infinity ? 'Unlimited cash-outs' : `${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} a week`}</Line>
-                    {tierRank(t) >= tierRank(TRUSTED_FROM) && <Line accent={c.text}>Trusted badge for businesses</Line>}
+                    <Line>Paid {holdLabel(perks.holdHours)} after approval</Line>
+                    <Line>{perks.cashoutsPerWeek === Infinity ? 'Unlimited cash-outs' : `${perks.cashoutsPerWeek} cash-out${perks.cashoutsPerWeek === 1 ? '' : 's'} a week`}</Line>
+                    {tierRank(t) >= tierRank(TRUSTED_FROM) && <Line>Trusted badge for businesses</Line>}
                   </ul>
                 </div>
               </div>
