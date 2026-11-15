@@ -6,6 +6,7 @@ import { BadgeCheck, Gamepad2, Megaphone, Music, Percent, Radio, ShieldCheck } f
 import { Features } from './features';
 import { ClipperPitch } from './clipper-pitch';
 import { Faq } from './faq';
+import { LandingRanks } from './landing-ranks';
 import { LogoMark } from './logo';
 import { buttonClass } from './ui/button';
 import { ActivityTicker, Reveal, Spotlight } from './landing-fx';
@@ -168,6 +169,10 @@ export function Landing({
 
       <Reveal>
       <ClipperPitch link={Link} href={clipperStartHref} />
+      </Reveal>
+
+      <Reveal>
+      <LandingRanks />
       </Reveal>
 
       <Reveal>
