@@ -1,3 +1,4 @@
+import type Stripe from 'stripe';
 import { clipperTier } from './clipper-records';
 import { payoutFee } from './tiers';
 import { isTestClip } from './test-data';
@@ -118,11 +119,18 @@ async function transferFromDeposits(
   const { data: deposits } = await admin.from('escrow_ledger').select('stripe_object_id').eq('campaign_id', campaignId).eq('entry_type', 'deposit').like('stripe_object_id', 'pi_%').order('created_at', { ascending: false }).limit(10);
   for (const d of deposits ?? []) {
     try {
-      const intent = await stripe().paymentIntents.retrieve(d.stripe_object_id as string);
-      const charge = typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id;
-      if (!charge) continue;
-      return await stripe().transfers.create({ ...params, source_transaction: charge }, { idempotencyKey: `${key}_${charge}` });
+      const intent = await stripe().paymentIntents.retrieve(d.stripe_object_id as string, { expand: ['latest_charge.balance_transaction'] });
+      const charge = intent.latest_charge as Stripe.Charge | null;
+      if (!charge || typeof charge === 'string') continue;
+      // Stripe requires the transfer in the currency the deposit settled in (EUR unless USD settlement is on).
+      // Convert at the deposit's own rate, so the clipper gets the same value.
+      const bt = charge.balance_transaction as Stripe.BalanceTransaction | null;
+      const currency = bt && typeof bt !== 'string' ? bt.currency : charge.currency;
+      const amount = currency === params.currency || !bt || typeof bt === 'string' ? params.amount : Math.floor((params.amount * bt.amount) / charge.amount);
+      if (amount < 1) continue;
+      return await stripe().transfers.create({ ...params, amount, currency, source_transaction: charge.id }, { idempotencyKey: `${key}_${charge.id}_${currency}` });
     } catch (err) {
+      console.warn('Transfer from deposit refused:', err instanceof Error ? err.message : err);
       // Only a refused request (too big for this deposit, a currency mismatch, a refunded charge) moves on.
       // Anything else (a network error) stops, so a transfer can never be sent twice.
       if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') throw err;
