@@ -64,6 +64,7 @@ export async function createBrandAccount(brandId: string): Promise<Stripe.Accoun
 async function createPayoutAccount(extra: Omit<Stripe.AccountCreateParams, 'controller' | 'capabilities'>): Promise<Stripe.Account> {
   const base = { capabilities: { transfers: { requested: true } }, ...extra };
   if (process.env.STRIPE_OWNED_PRICING?.trim() !== 'false') {
+    // Stripe bills the account itself, so Atlas pays no Connect fees (no €2 per active account, no payout fee).
     const params = { ...base, controller: { fees: { payer: 'account' as const }, losses: { payments: 'stripe' as const }, stripe_dashboard: { type: 'express' as const } } };
     for (const apiVersion of [undefined, '2026-06-24.preview']) {
       try {
@@ -71,6 +72,13 @@ async function createPayoutAccount(extra: Omit<Stripe.AccountCreateParams, 'cont
       } catch (err) {
         console.warn(`Stripe-owned pricing account refused${apiVersion ? ` (${apiVersion})` : ''}:`, err instanceof Error ? err.message : err);
       }
+    }
+    // Next best: the same pricing with the full Stripe Dashboard (a Standard-style account), which Stripe documents
+    // as a supported combination. https://docs.stripe.com/connect/migrate-to-controller-properties
+    try {
+      return await stripe().accounts.create({ ...base, controller: { fees: { payer: 'account' }, losses: { payments: 'stripe' }, stripe_dashboard: { type: 'full' } } });
+    } catch (err) {
+      console.warn('Full-dashboard account refused:', err instanceof Error ? err.message : err);
     }
   }
   return stripe().accounts.create({ ...base, controller: { fees: { payer: 'application' }, losses: { payments: 'application' }, stripe_dashboard: { type: 'express' } } });

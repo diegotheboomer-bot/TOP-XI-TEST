@@ -1,11 +1,11 @@
 // Stripe's charges for paying a clipper, passed on to the clipper at cash-out.
 // Stripe (Portugal, "you handle pricing"): €0.10 + 0.25% per payout to a bank, and €2 for
 // each connected account paid in a month. Shown in dollars with a little room for the
-// exchange rate. The €2 monthly fee is paid by Atlas out of its 5% (owner's choice, Nov 2026):
-// on small cash-outs it took up to half the money. Set STRIPE_MONTHLY back to 2.4 to pass it on again.
+// exchange rate, so Atlas doesn't pay them out of its 5%. Accounts on Stripe-owned pricing
+// (the default for new payout accounts, see createPayoutAccount) pay none of this.
 export const STRIPE_PAYOUT_PCT = 0.25;
 export const STRIPE_PAYOUT_FIXED = 0.15;
-export const STRIPE_MONTHLY = 0;
+export const STRIPE_MONTHLY = 2.4;
 
 /** Stripe's cost for one cash-out of `amount`; `firstThisMonth` adds the monthly account fee. */
 export function stripePayoutCost(amount: number, firstThisMonth: boolean): number {
