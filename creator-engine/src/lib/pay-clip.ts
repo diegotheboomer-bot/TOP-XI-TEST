@@ -71,10 +71,12 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
   let externalId: string;
   try {
     if (setup.method === 'stripe') {
-      const transfer = await stripe().transfers.create(
-        { amount: Math.round(sent * 100), currency: 'usd', destination: creator.stripe_account_id!, transfer_group: `campaign_${sub.campaign_id}`, metadata: { submission_id: sub.id, platform_fee: String(fee), stripe_cost: String(stripeCost), tier } },
-        { idempotencyKey: `payout_${sub.id}_${before}` },
-      );
+      const transfer = await transferFromDeposits(admin, sub.campaign_id as string, `payout_${sub.id}_${before}`, {
+        amount: Math.round(sent * 100),
+        currency: 'usd',
+        destination: creator.stripe_account_id!,
+        metadata: { submission_id: sub.id, platform_fee: String(fee), stripe_cost: String(stripeCost), tier },
+      });
       externalId = transfer.id;
     } else {
       // Unique per payout; PayPal echoes it in webhooks so a returned payout can be undone.
@@ -99,4 +101,32 @@ export async function payClip(admin: SupabaseClient, submissionId: string, minim
     await admin.from('submissions').update({ status: 'paid' }).eq('id', sub.id);
   }
   return { ok: true, gross: sent, via: setup.method === 'stripe' ? 'their bank' : PAYOUT_METHOD_LABEL[setup.method], campaignId: sub.campaign_id };
+}
+
+/**
+ * Sends a transfer tied to one of the campaign's card deposits (`source_transaction`), so it works even while
+ * that deposit is still pending in Stripe: Stripe holds the money until the deposit clears, then releases it.
+ * Tries the newest deposits first; if none fits (amount or currency), falls back to the platform's available balance.
+ * https://docs.stripe.com/connect/separate-charges-and-transfers#transfer-availability
+ */
+async function transferFromDeposits(
+  admin: SupabaseClient,
+  campaignId: string,
+  key: string,
+  params: { amount: number; currency: string; destination: string; metadata: Record<string, string> },
+) {
+  const { data: deposits } = await admin.from('escrow_ledger').select('stripe_object_id').eq('campaign_id', campaignId).eq('entry_type', 'deposit').like('stripe_object_id', 'pi_%').order('created_at', { ascending: false }).limit(10);
+  for (const d of deposits ?? []) {
+    try {
+      const intent = await stripe().paymentIntents.retrieve(d.stripe_object_id as string);
+      const charge = typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id;
+      if (!charge) continue;
+      return await stripe().transfers.create({ ...params, source_transaction: charge }, { idempotencyKey: `${key}_${charge}` });
+    } catch (err) {
+      // Only a refused request (too big for this deposit, a currency mismatch, a refunded charge) moves on.
+      // Anything else (a network error) stops, so a transfer can never be sent twice.
+      if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') throw err;
+    }
+  }
+  return stripe().transfers.create({ ...params, transfer_group: `campaign_${campaignId}` }, { idempotencyKey: key });
 }
