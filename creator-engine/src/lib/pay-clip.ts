@@ -116,9 +116,15 @@ async function transferFromDeposits(
   key: string,
   params: { amount: number; currency: string; destination: string; metadata: Record<string, string> },
 ) {
-  const { data: deposits } = await admin.from('escrow_ledger').select('stripe_object_id').eq('campaign_id', campaignId).eq('entry_type', 'deposit').like('stripe_object_id', 'pi_%').order('created_at', { ascending: false }).limit(10);
-  const reasons: string[] = deposits?.length ? [] : ['no card deposit found for this campaign'];
-  for (const d of deposits ?? []) {
+  // This campaign's card deposits first, then the business's other campaigns' (budget moved here as Atlas credit
+  // or invite earnings still comes from one of the business's own card payments).
+  const { data: camp } = await admin.from('campaigns').select('brand_id').eq('id', campaignId).maybeSingle();
+  const { data: siblings } = await admin.from('campaigns').select('id').eq('brand_id', camp?.brand_id ?? '');
+  const ids = [campaignId, ...(siblings ?? []).map((c) => c.id as string).filter((id) => id !== campaignId)];
+  const { data: rows } = await admin.from('escrow_ledger').select('campaign_id, stripe_object_id, created_at').in('campaign_id', ids).eq('entry_type', 'deposit').like('stripe_object_id', 'pi_%').order('created_at', { ascending: false }).limit(20);
+  const deposits = (rows ?? []).sort((a, b) => Number(b.campaign_id === campaignId) - Number(a.campaign_id === campaignId));
+  const reasons: string[] = deposits.length ? [] : ['no card deposit found for this business'];
+  for (const d of deposits) {
     try {
       const intent = await stripe().paymentIntents.retrieve(d.stripe_object_id as string, { expand: ['latest_charge.balance_transaction'] });
       const charge = intent.latest_charge as Stripe.Charge | null;
