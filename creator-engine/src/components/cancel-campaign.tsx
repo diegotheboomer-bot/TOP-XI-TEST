@@ -24,7 +24,7 @@ export interface CancelSummary {
  * On an ended campaign (`ended`) it offers to refund budget freed up since,
  * and renders nothing when there's none.
  */
-export function CancelCampaign({ summary, ended: endedNow, onConfirm }: { summary: CancelSummary; ended: boolean; onConfirm: () => Promise<ActionState> | ActionState }) {
+export function CancelCampaign({ summary, ended: endedNow, onConfirm, onKeepCredit }: { summary: CancelSummary; ended: boolean; onConfirm: () => Promise<ActionState> | ActionState; onKeepCredit?: () => Promise<ActionState> | ActionState }) {
   const [open, setOpen] = useState(false);
   // The page re-renders as ended once cancelling succeeds; keep the wording of the step that was opened.
   const [ended, setEnded] = useState(endedNow);
@@ -32,9 +32,9 @@ export function CancelCampaign({ summary, ended: endedNow, onConfirm }: { summar
   const [result, setResult] = useState<ActionState>();
   const { refund, reserved, fees, feePercent, pending } = summary;
 
-  async function confirm() {
+  async function confirm(keep = false) {
     setBusy(true);
-    setResult(await onConfirm());
+    setResult(await (keep && onKeepCredit ? onKeepCredit() : onConfirm()));
     setBusy(false);
   }
 
@@ -90,6 +90,7 @@ export function CancelCampaign({ summary, ended: endedNow, onConfirm }: { summar
             </dl>
             <ul className="list-disc space-y-1.5 pl-5 text-xs text-zinc-500">
               <li>Refunds go back to the card you paid with and usually show up in 5–10 business days.</li>
+              {onKeepCredit && refund > 0 && <li>Or keep it on Atlas as credit for your next campaign. Nothing is lost.</li>}
               {reserved > 0 && <li>Clippers keep what approved clips have already earned. Pay them from the clips table.</li>}
               {!ended && pending > 0 && (
                 <li className="text-amber-700">
@@ -103,7 +104,12 @@ export function CancelCampaign({ summary, ended: endedNow, onConfirm }: { summar
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 {ended ? 'Not now' : 'Keep campaign'}
               </Button>
-              <Button variant={ended ? 'primary' : 'danger'} onClick={confirm} disabled={busy}>
+              {onKeepCredit && refund > 0 && (
+                <Button variant="secondary" onClick={() => confirm(true)} disabled={busy}>
+                  Keep {usdCents(refund)} as credit
+                </Button>
+              )}
+              <Button variant={ended ? 'primary' : 'danger'} onClick={() => confirm()} disabled={busy}>
                 {busy ? 'Working…' : ended ? `Refund ${usdCents(refund)}` : refund > 0 ? `Cancel and refund ${usdCents(refund)}` : 'Cancel campaign'}
               </Button>
             </div>

@@ -37,6 +37,7 @@ export async function applyAffiliateBalance(campaignId: string): Promise<ActionS
     .update({ status: 'applied', campaign_id: camp.id, used_at: now })
     .eq('brand_id', brandId)
     .eq('status', 'available')
+    .not('source_ref', 'like', 'credit:%')
     .select('amount');
   const total = round((rows ?? []).reduce((n, r) => n + Number(r.amount), 0));
   if (!(total > 0)) return { error: 'There’s nothing in your affiliate balance yet.' };
@@ -53,12 +54,12 @@ export async function cashOutAffiliate(): Promise<ActionState> {
   const admin = createAdminClient();
   const { data: brand } = await admin.from('brands').select('stripe_account_id, payouts_enabled').eq('id', brandId).single();
   if (!brand?.stripe_account_id || !brand.payouts_enabled) return { error: 'Set up your payout account first.' };
-  const { data: avail } = await admin.from('brand_affiliate_earnings').select('amount').eq('brand_id', brandId).eq('status', 'available');
+  const { data: avail } = await admin.from('brand_affiliate_earnings').select('amount').eq('brand_id', brandId).eq('status', 'available').not('source_ref', 'like', 'credit:%');
   const total = round((avail ?? []).reduce((n, r) => n + Number(r.amount), 0));
   if (total < MIN_CASHOUT) return { error: `You can cash out from ${usdCents(MIN_CASHOUT)}. You have ${usdCents(total)}.` };
 
   const claim = `claim:${randomUUID()}`;
-  const { data: rows } = await admin.from('brand_affiliate_earnings').update({ status: 'paid', transfer_id: claim, used_at: new Date().toISOString() }).eq('brand_id', brandId).eq('status', 'available').select('amount');
+  const { data: rows } = await admin.from('brand_affiliate_earnings').update({ status: 'paid', transfer_id: claim, used_at: new Date().toISOString() }).eq('brand_id', brandId).eq('status', 'available').not('source_ref', 'like', 'credit:%').select('amount');
   const amount = round((rows ?? []).reduce((n, r) => n + Number(r.amount), 0));
   const account = brand.stripe_account_id as string;
   try {

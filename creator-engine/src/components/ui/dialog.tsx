@@ -61,7 +61,7 @@ export function Dialog({
       {open && (
         <div className="p-5 sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-4">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 id="dialog-title" className="text-lg font-semibold tracking-tight">
                 {title}
               </h2>

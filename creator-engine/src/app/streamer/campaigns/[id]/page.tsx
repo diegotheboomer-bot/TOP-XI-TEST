@@ -4,11 +4,11 @@ import { ArrowLeft, Check, CheckCheck, Lock, Pencil, Rocket, Send, Users } from 
 import { cn } from '@/components/ui/cn';
 import { TIER_PERKS } from '@/lib/tiers';
 import { getCampaignDetail, getCampaignInvites, type SubmissionRow } from '@/lib/data';
-import { compact, rateParts, usd, usdCompact } from '@/lib/format';
+import { compact, rateParts, usd, usdCents, usdCompact } from '@/lib/format';
 import { isDemo } from '@/lib/env';
 import { achEnabled, feeFor } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { approveAllPending, cancelCampaign, createDepositIntent, quoteDeposit, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSync } from '@/actions/brand';
+import { approveAllPending, cancelCampaign, useAtlasCredit, createDepositIntent, quoteDeposit, payDemoDeposit, releasePayout, reviewSubmission, setCampaignStatus, simulateSync } from '@/actions/brand';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatGrid } from '@/components/ui/stat';
 import { Empty } from '@/components/ui/empty';
@@ -22,6 +22,7 @@ import type { Campaign } from '@/lib/types';
 import { privateLink } from '@/lib/private-link';
 import { CopyField } from '@/components/copy-button';
 import { isSupportAdmin } from '@/actions/support';
+import { creditBalance } from '@/lib/atlas-credit';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,15 +33,18 @@ export default async function CampaignPage({ params, searchParams }: { params: {
   const r = rateParts(c);
   // The Atlas team can fund from $1 to test real payments.
   const minDeposit = !isDemo && (await isSupportAdmin()) ? 1 : 50;
+  const credit = isDemo || c.status === 'completed' ? 0 : await creditBalance(createAdminClient(), c.brand_id);
   const ended = c.status === 'completed';
   const { data: brandRow } = isDemo ? { data: null } : await createAdminClient().from('brands').select('early_partner').eq('id', c.brand_id).single();
   const plan = feeFor(!!brandRow?.early_partner);
   const sent = await getCampaignInvites(c.id);
   const invites = sent.length;
   const feePercent = plan.percent;
+  // What approved clips have earned and not been sent yet stays for the clippers (pools included).
+  const owedToClippers = submissions.filter((s) => s.status === 'live_tracking').reduce((n, s) => n + Math.max(0, s.payout_earned - s.payout_transferred), 0);
   const cancel: CancelSummary = {
-    refund: budget.available,
-    reserved: Math.max(0, c.escrow_balance - budget.available),
+    refund: Math.max(0, Math.round((c.escrow_balance - owedToClippers) * 100) / 100),
+    reserved: Math.min(c.escrow_balance, Math.round(owedToClippers * 100) / 100),
     fees,
     feePercent,
     pending: submissions.filter((s) => s.status === 'pending_review').length,
@@ -87,7 +91,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
             </Link>
           )}
           <StatusActions campaign={c} />
-          {c.status !== 'draft' || c.escrow_balance > 0 ? <CancelCampaign summary={cancel} ended={ended} onConfirm={cancelCampaign.bind(null, c.id)} /> : null}
+          {c.status !== 'draft' || c.escrow_balance > 0 ? <CancelCampaign summary={cancel} ended={ended} onConfirm={cancelCampaign.bind(null, c.id, false)} onKeepCredit={isDemo ? undefined : cancelCampaign.bind(null, c.id, true)} /> : null}
         </div>
       </section>
 
@@ -217,6 +221,12 @@ export default async function CampaignPage({ params, searchParams }: { params: {
                     payDemo={payDemoDeposit}
                     initialAmount={fund >= 50 && !searchParams.funded ? fund : undefined}
                   />
+                  {credit > 0 && (
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-brand-a/10 px-3 py-2.5 ring-1 ring-inset ring-brand-a/30">
+                      <span className="text-sm">You have <b>{usdCents(credit)}</b> Atlas credit</span>
+                      <ActionButton action={useAtlasCredit.bind(null, c.id)}>Add to this campaign</ActionButton>
+                    </div>
+                  )}
                   <p className="mt-2 text-xs text-zinc-500">
                     {plan.early ? 'No service fee: you pay only Stripe’s processing for your card, and the campaign gets the full budget. Unspent budget is refunded if you cancel.' : `${feePercent}% service fee on top. Unspent budget is refunded if you cancel; the fee isn’t.`}
                   </p>

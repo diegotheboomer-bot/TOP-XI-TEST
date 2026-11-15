@@ -1123,7 +1123,7 @@ export async function getBrandReferralSummary(): Promise<BrandReferralSummary | 
     admin.from('brands').select('referral_code, payouts_enabled').eq('id', brandId).single(),
     selectAll(() => admin.from('creators').select('id, display_name, avatar_url, created_at').eq('referred_by_brand', brandId).order('id')),
     admin.from('campaigns').select('id, title, status').eq('brand_id', brandId).order('created_at', { ascending: false }),
-    admin.from('brand_affiliate_earnings').select('amount, status').eq('brand_id', brandId),
+    admin.from('brand_affiliate_earnings').select('amount, status').eq('brand_id', brandId).not('source_ref', 'like', 'credit:%'),
   ]);
   if (!me?.referral_code) return null;
   const ids = (camps ?? []).map((c) => c.id as string);

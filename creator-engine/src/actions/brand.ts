@@ -10,6 +10,7 @@ import { stripe, platformFeePercent, achEnabled, feeFor } from '@/lib/stripe';
 import { streamerCharge } from '@/lib/payout';
 import { depositRate, grossUp } from '@/lib/card-fees';
 import { planRefunds } from '@/lib/refunds';
+import { CREDIT_PREFIX, keepAsCredit } from '@/lib/atlas-credit';
 import { isSupportAdmin as isAtlasAdmin } from './support';
 import { payClip } from '@/lib/pay-clip';
 import { HOLD_HOURS, streamerCanFlag } from '@/lib/payout-rules';
@@ -217,9 +218,9 @@ export async function payDemoDeposit(campaignId: string, amount: number): Promis
  * (e.g. a flagged clip). Order: debit escrow (atomic) → Stripe refunds per
  * deposit → ledger rows; anything Stripe doesn't take goes back to escrow.
  */
-export async function cancelCampaign(campaignId: string): Promise<ActionState> {
+export async function cancelCampaign(campaignId: string, keepCredit = false): Promise<ActionState> {
   if (isDemo) return done(demo.cancelCampaign(campaignId), campaignId);
-  const { admin, campaign } = await requireOwnCampaign(campaignId);
+  const { admin, campaign, brandId } = await requireOwnCampaign(campaignId);
   const wasLive = campaign.status !== 'completed';
   if (wasLive) await admin.from('campaigns').update({ status: 'completed' }).eq('id', campaignId);
 
@@ -233,6 +234,16 @@ export async function cancelCampaign(campaignId: string): Promise<ActionState> {
 
   const { data: debited } = await admin.rpc('escrow_debit', { p_campaign: campaignId, p_amount: refundCents / 100 });
   if (!debited) return done({ error: `${ended}The budget changed while refunding. Try again.` }, campaignId);
+
+  // Kept on Atlas for another campaign instead of going back to the card.
+  if (keepCredit) {
+    if (await keepAsCredit(admin, brandId, campaignId, refundCents)) {
+      revalidatePath('/streamer', 'layout');
+      return done({ success: `${ended}${usdCents(refundCents / 100)} is kept as Atlas credit. Use it on any campaign.` }, campaignId);
+    }
+    await admin.rpc('escrow_credit', { p_campaign: campaignId, p_amount: refundCents / 100 });
+    return done({ error: `${ended}Couldn’t save the credit. Try again.` }, campaignId);
+  }
 
   // Deposits made through the in-app checkout, newest first.
   const { data: deposits } = await admin
@@ -259,13 +270,18 @@ export async function cancelCampaign(campaignId: string): Promise<ActionState> {
   } catch (err) {
     failure = err instanceof Error ? err.message : 'Stripe refund failed.';
   }
-  // Whatever wasn't refunded stays in the campaign.
-  if (refunded < refundCents) await admin.rpc('escrow_credit', { p_campaign: campaignId, p_amount: (refundCents - refunded) / 100 });
+  // Budget that didn't come from a card here (Atlas credit, invite earnings) can't go to a card: it becomes Atlas credit.
+  const leftover = refundCents - refunded;
+  let credited = 0;
+  if (leftover > 0 && !failure && (await keepAsCredit(admin, brandId, campaignId, leftover))) credited = leftover;
+  // Whatever wasn't refunded or kept as credit stays in the campaign.
+  if (refunded + credited < refundCents) await admin.rpc('escrow_credit', { p_campaign: campaignId, p_amount: (refundCents - refunded - credited) / 100 });
 
   const back = refunded ? `${usdCents(refunded / 100)} is on its way back to your card (5–10 business days). ` : '';
   if (failure) return done({ error: `${ended}${back}The rest couldn’t be refunded: ${failure}` }, campaignId);
-  if (refunded < refundCents) return done({ error: `${ended}${back}${usdCents((refundCents - refunded) / 100)} couldn’t be matched to a card payment. Contact support.` }, campaignId);
-  return done({ success: `${ended}${back.trim()}` }, campaignId);
+  if (refunded + credited < refundCents) return done({ error: `${ended}${back}${usdCents((refundCents - refunded - credited) / 100)} couldn’t be matched to a card payment. Contact support.` }, campaignId);
+  const kept = credited ? `${usdCents(credited / 100)} is kept as Atlas credit.` : '';
+  return done({ success: `${ended}${back}${kept}`.trim() }, campaignId);
 }
 
 export async function connectStore(_prev: ActionState, form: FormData): Promise<ActionState> {
@@ -419,4 +435,23 @@ export async function inviteMany(creatorIds: string[], campaignId: string, messa
   revalidatePath(`/streamer/campaigns/${campaignId}`);
   const skipped = ids.length - rows.length;
   return { success: `Invited ${rows.length} clippers.${skipped ? ` ${skipped} were already in or invited.` : ''}${campaign.status === 'draft' ? ' They’ll see it once you launch.' : ''}` };
+}
+
+/** Adds all of the business's Atlas credit to this campaign's budget. */
+export async function useAtlasCredit(campaignId: string): Promise<ActionState> {
+  if (isDemo) return { error: 'Not available in the demo.' };
+  const { admin, campaign, brandId } = await requireOwnCampaign(campaignId);
+  if (campaign.status === 'completed') return { error: 'This campaign has ended.' };
+  const { data: rows } = await admin
+    .from('brand_affiliate_earnings')
+    .update({ status: 'applied', campaign_id: campaignId, used_at: new Date().toISOString() })
+    .eq('brand_id', brandId)
+    .eq('status', 'available')
+    .like('source_ref', `${CREDIT_PREFIX}%`)
+    .select('amount');
+  const total = Math.round((rows ?? []).reduce((n, r) => n + Number(r.amount), 0) * 100) / 100;
+  if (!(total > 0)) return { error: 'You have no Atlas credit.' };
+  await admin.from('escrow_ledger').insert({ campaign_id: campaignId, entry_type: 'referral_credit', amount: total, stripe_object_id: `atlascredit:${crypto.randomUUID()}` });
+  await admin.rpc('escrow_credit', { p_campaign: campaignId, p_amount: total });
+  return done({ success: `${usdCents(total)} of Atlas credit added to the budget.` }, campaignId);
 }
