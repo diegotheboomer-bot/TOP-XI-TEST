@@ -152,6 +152,8 @@ Switches and optional:
   Limits are per platform (`BENCHMARKS` in `fraud.ts`, with the research sources in comments) and compare against the
   clipper's own usual engagement on their other clips. Tune them from real held/flagged clips after launch.
 - Test data guard: fake clips have video ids starting `atlastest` and are never synced or paid (`src/lib/test-data.ts`).
+- Real-money test (owner only): admins can deposit from $1 (`ADMIN_MIN_DEPOSIT`), and /admin/test-data → "Real money test" gives a
+  clipper an approved balance from a funded campaign (`creditTestEarning`, video id `atlasmoney…`: not synced, paid like a clip).
 
 ## Current state (Nov 2026)
 Done and live: campaigns (per 1K / per clip / pool, invite-only, tier gates), approve + approve-all,

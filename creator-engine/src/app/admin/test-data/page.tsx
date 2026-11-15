@@ -6,6 +6,7 @@ import { isSupportAdmin } from '@/actions/support';
 import { loadTestData, removeTestData } from '@/actions/admin';
 import { hasTestData, TEST_PASSWORD } from '@/lib/test-seed';
 import { ActionButton } from '@/components/action-button';
+import { MoneyTestForm } from '@/components/money-test-form';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -23,13 +24,24 @@ const LOGINS: [string, string][] = [
 /** Atlas team only: load or remove fake test data on this site. */
 export default async function TestDataPage() {
   if (process.env.LOCAL_TEST_ACCOUNTS !== '1' && !(await isSupportAdmin())) notFound();
-  const accounts = await hasTestData(createAdminClient());
+  const admin = createAdminClient();
+  const accounts = await hasTestData(admin);
+  const { data: funded } = await admin.from('campaigns').select('id, title, escrow_balance, status').gt('escrow_balance', 0).neq('status', 'completed').order('created_at', { ascending: false }).limit(50);
+  const campaigns = (funded ?? []).map((c) => ({ id: c.id as string, title: c.title as string, balance: Number(c.escrow_balance) }));
   return (
     <main className="gutter mx-auto max-w-2xl py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Test data</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Fake businesses, clippers, campaigns and clips for trying every screen. Every account is an @atlas.test email. Test clips are never synced with TikTok, YouTube or Instagram and never paid out.
       </p>
+
+      <section className="mt-6 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card">
+        <h2 className="font-semibold tracking-tight">Real money test</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          1. Fund one of your campaigns (you can deposit from $1). 2. Give your test clipper a balance from it here (cash-outs start at $5). 3. Sign in as that clipper and cash out. To get the rest back, cancel the campaign.
+        </p>
+        <MoneyTestForm campaigns={campaigns} />
+      </section>
 
       <section className="mt-6 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-card">
         <p className="text-sm font-medium">{accounts ? `Loaded: ${accounts} test accounts on the site.` : 'No test data on the site.'}</p>

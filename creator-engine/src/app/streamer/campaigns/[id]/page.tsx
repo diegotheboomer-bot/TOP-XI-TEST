@@ -21,6 +21,7 @@ import { CancelCampaign, type CancelSummary } from '@/components/cancel-campaign
 import type { Campaign } from '@/lib/types';
 import { privateLink } from '@/lib/private-link';
 import { CopyField } from '@/components/copy-button';
+import { isSupportAdmin } from '@/actions/support';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,8 @@ export default async function CampaignPage({ params, searchParams }: { params: {
   if (!detail) notFound();
   const { campaign: c, submissions, deposited, refunded, paidOut, fees, budget } = detail;
   const r = rateParts(c);
+  // The Atlas team can fund from $1 to test real payments.
+  const minDeposit = !isDemo && (await isSupportAdmin()) ? 1 : 50;
   const ended = c.status === 'completed';
   const { data: brandRow } = isDemo ? { data: null } : await createAdminClient().from('brands').select('early_partner').eq('id', c.brand_id).single();
   const plan = feeFor(!!brandRow?.early_partner);
@@ -104,6 +107,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
           addBudget={
             publishableKey === '' ? null : (
               <AppAddBudget
+                minDeposit={minDeposit}
                 bankTransfer={achEnabled()}
                 campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate, status: c.status }}
                 feePercent={feePercent}
@@ -201,6 +205,7 @@ export default async function CampaignPage({ params, searchParams }: { params: {
               ) : (
                 <>
                   <AppAddBudget
+                minDeposit={minDeposit}
                     bankTransfer={achEnabled()}
                     campaign={{ id: c.id, title: c.title, payout_model: c.payout_model, cpm_rate: c.cpm_rate, status: c.status }}
                     feePercent={feePercent}

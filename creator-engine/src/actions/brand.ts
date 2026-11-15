@@ -10,11 +10,12 @@ import { stripe, platformFeePercent, achEnabled, feeFor } from '@/lib/stripe';
 import { streamerCharge } from '@/lib/payout';
 import { depositRate, grossUp } from '@/lib/card-fees';
 import { planRefunds } from '@/lib/refunds';
+import { isSupportAdmin as isAtlasAdmin } from './support';
 import { payClip } from '@/lib/pay-clip';
 import { HOLD_HOURS, streamerCanFlag } from '@/lib/payout-rules';
 import type Stripe from 'stripe';
 import { usdCents } from '@/lib/format';
-import { CampaignSchema, DepositSchema, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError, CampaignEditSchema } from '@/lib/schemas';
+import { CampaignSchema, DepositSchema, depositSchema, ADMIN_MIN_DEPOSIT, MomentSchema, ShopDomainSchema, campaignInput, thumbnailError, CampaignEditSchema } from '@/lib/schemas';
 import * as demo from '@/lib/demo';
 import { REF_MAX_BYTES } from '@/lib/references';
 import { LOW_ENGAGEMENT_REASON, REVIEW_REASON } from '@/lib/fraud';
@@ -154,7 +155,7 @@ async function priceDeposit(brandEarly: boolean, budget: number, tokenId: string
 
 /** Step 1 of paying: the exact total for the card the business entered, shown before they pay. */
 export async function quoteDeposit(campaignId: string, amount: number, tokenId: string): Promise<DepositQuote | { error: string }> {
-  const parsed = DepositSchema.safeParse(amount);
+  const parsed = (await isAtlasAdmin() ? depositSchema(ADMIN_MIN_DEPOSIT) : DepositSchema).safeParse(amount);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (isDemo) return { error: 'Stripe is off in demo mode.' };
   const { admin, brandId } = await requireOwnCampaign(campaignId);
@@ -172,7 +173,7 @@ export async function quoteDeposit(campaignId: string, amount: number, tokenId: 
  * (payment_intent.succeeded) credits only the budget to the campaign.
  */
 export async function createDepositIntent(campaignId: string, amount: number, tokenId: string): Promise<DepositIntentResult> {
-  const parsed = DepositSchema.safeParse(amount);
+  const parsed = (await isAtlasAdmin() ? depositSchema(ADMIN_MIN_DEPOSIT) : DepositSchema).safeParse(amount);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (isDemo) return { error: 'Stripe is off in demo mode.' };
   const { campaign, admin, brandId } = await requireOwnCampaign(campaignId);

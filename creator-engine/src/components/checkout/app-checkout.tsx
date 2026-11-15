@@ -19,8 +19,10 @@ export function AppAddBudget({
   payDemo,
   bankTransfer = false,
   initialAmount,
+  minDeposit,
 }: {
   initialAmount?: number;
+  minDeposit?: number;
   bankTransfer?: boolean;
   campaign: CheckoutCampaign;
   feePercent: number;
@@ -41,6 +43,7 @@ export function AppAddBudget({
       early={early}
       className="w-full"
       initialAmount={initialAmount}
+      minDeposit={minDeposit}
       // Stripe confirms the deposit by webhook, so the balance can lag a moment behind.
       onDone={() => router.refresh()}
       note={publishableKey ? <>Payments are processed by Stripe and you get a receipt by email. Card details never touch our servers. <a href="/trust" className="underline">Is Atlas safe?</a></> : 'Demo mode: mock money only.'}

@@ -98,7 +98,11 @@ export const ShopDomainSchema = z
   .toLowerCase()
   .regex(/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/, 'Use your store’s myshopify.com domain');
 
-export const DepositSchema = z.coerce.number().min(50, 'Deposit between $50 and $1,000,000.').max(1_000_000, 'Deposit between $50 and $1,000,000.');
+/** Deposits are $50 to $1,000,000. The Atlas team can go down to $1 for real-money tests. */
+export const depositSchema = (min = 50) =>
+  z.coerce.number().min(min, `Deposit between $${min} and $1,000,000.`).max(1_000_000, `Deposit between $${min} and $1,000,000.`);
+export const DepositSchema = depositSchema();
+export const ADMIN_MIN_DEPOSIT = 1;
 
 export const THUMBNAIL_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;

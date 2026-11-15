@@ -1,5 +1,5 @@
 import { selectAll } from './fetch-all';
-import { isTestClip } from './test-data';
+import { isMoneyTest, isTestClip } from './test-data';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePayout, poolShares, type PayoutTerms } from './payout';
 import { assessViews, hashSimilarity, DUPLICATE_THRESHOLD, REVIEW_REASON, type StatsSample, type VideoPlatform } from './fraud';
@@ -44,7 +44,7 @@ export async function performMetricSyncing(admin: SupabaseClient): Promise<SyncR
   if (error) throw new Error(`Database fetch failed: ${error.message}`);
 
   const report: SyncReport = { synced: 0, flagged: 0, paid: 0, failed: [] };
-  const all = ((data ?? []) as SubmissionWithCampaign[]).filter((s) => !isTestClip(s));
+  const all = ((data ?? []) as SubmissionWithCampaign[]).filter((s) => !isTestClip(s) && !isMoneyTest(s));
   const byCreator = new Map<string, SubmissionWithCampaign[]>();
   const igByCreator = new Map<string, SubmissionWithCampaign[]>();
   for (const s of all) {

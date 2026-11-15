@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Check, Lock, Plus } from 'lucide-react';
 import { streamerCharge } from '@/lib/payout';
 import { grossUp } from '@/lib/card-fees';
-import { DepositSchema } from '@/lib/schemas';
+import { depositSchema } from '@/lib/schemas';
 import { compact, usd, usdCents } from '@/lib/format';
 import type { Campaign } from '@/lib/types';
 import { cn } from '../ui/cn';
@@ -41,7 +41,10 @@ export function AddBudget({
   onDone,
   className,
   initialAmount,
+  minDeposit = 50,
 }: {
+  /** Smallest deposit allowed (the Atlas team can test with $1). */
+  minDeposit?: number;
   /** Pre-fills the amount and opens the dialog straight away (after campaign setup). */
   initialAmount?: number;
   campaign: CheckoutCampaign;
@@ -88,6 +91,7 @@ export function AddBudget({
             payment={payment}
             note={note}
             initialAmount={initialAmount}
+            minDeposit={minDeposit}
             onPaid={(q, isPending) => {
               setPending(!!isPending);
               setPaid(q);
@@ -108,8 +112,10 @@ function Checkout({
   note,
   onPaid,
   initialAmount,
+  minDeposit = 50,
 }: {
   initialAmount?: number;
+  minDeposit?: number;
   campaign: CheckoutCampaign;
   feePercent: number;
   feeFixed: number;
@@ -119,7 +125,7 @@ function Checkout({
   onPaid: (quote: Quote, pending?: boolean) => void;
 }) {
   const [value, setValue] = useState(String(initialAmount ?? 1000));
-  const parsed = DepositSchema.safeParse(value);
+  const parsed = depositSchema(minDeposit).safeParse(value);
   const quote: Quote | null = parsed.success ? toQuote(parsed.data, feePercent, feeFixed, early) : null;
   const error = value.trim() && !parsed.success ? parsed.error.issues[0].message : undefined;
   const views = quote && campaign.payout_model !== 'cps_performance' && campaign.cpm_rate > 0 ? (quote.amount / campaign.cpm_rate) * 1000 : null;
@@ -148,7 +154,7 @@ function Checkout({
         />
       </div>
       <p id="budget-help" className={cn('mt-1.5 text-xs', error ? 'text-rose-600' : 'text-zinc-500')}>
-        {error ?? (views ? `Pays for up to ${compact(views)} views at ${usdCents(campaign.cpm_rate)} per 1K.` : 'Between $50 and $1,000,000.')}
+        {error ?? (views ? `Pays for up to ${compact(views)} views at ${usdCents(campaign.cpm_rate)} per 1K.` : `Between $${minDeposit} and $1,000,000.`)}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Quick amounts">
