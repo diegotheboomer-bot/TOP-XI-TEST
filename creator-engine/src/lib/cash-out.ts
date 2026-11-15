@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { selectAll } from './fetch-all';
 import { payClip } from './pay-clip';
 import { MIN_CASHOUT, cashoutReady } from './payout-rules';
+import { MONEY_TEST_MIN_CASHOUT, isMoneyTest } from './test-data';
 import { stripePayoutCost } from './payout-costs';
 import { paidThisMonth, stripeOwnsPricing } from './stripe';
 import { TIER_PERKS, type Tier } from './tiers';
@@ -36,7 +37,7 @@ export async function sendCashOut(
 ): Promise<CashOutResult | { error: string }> {
   const perks = TIER_PERKS[tier];
   const { data: subs } = await selectAll(() =>
-    admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred, campaigns(payout_model, status)').eq('creator_id', creatorId).order('id'),
+    admin.from('submissions').select('id, status, approved_at, payout_earned, payout_transferred, social_platform_video_id, campaigns(payout_model, status)').eq('creator_id', creatorId).order('id'),
   );
   const ready = (subs ?? [])
     .map((s) => ({ ...s, owed: Math.round((Number(s.payout_earned) - Number(s.payout_transferred)) * 100) / 100 }))
@@ -51,7 +52,8 @@ export async function sendCashOut(
   const balance = Math.round(ready.reduce((n, s) => n + s.owed, 0) * 100) / 100;
   let remaining = opts.amount == null ? balance : Math.min(balance, Math.floor(Number(opts.amount) * 100) / 100);
   if (!(remaining >= 0.01)) return { error: 'Enter an amount to cash out.' };
-  if (remaining < MIN_CASHOUT) return { error: `The smallest cash-out is $${MIN_CASHOUT}. You have $${balance.toFixed(2)} ready.` };
+  const minimum = ready.every((s) => isMoneyTest(s)) ? MONEY_TEST_MIN_CASHOUT : MIN_CASHOUT;
+  if (remaining < minimum) return { error: `The smallest cash-out is $${minimum}. You have $${balance.toFixed(2)} ready.` };
 
   const { viaStripe, firstThisMonth } = await stripeCostFor(admin, creatorId);
   const charged = viaStripe ? stripePayoutCost(remaining, firstThisMonth) : 0;
@@ -75,4 +77,11 @@ export async function sendCashOut(
   const round = (n: number) => Math.round(n * 100) / 100;
   const stripeCost = round(charged - cost); // what was actually taken
   return { sent: round(sent), gross: round(gross), fee: round(gross - sent - stripeCost), stripeCost, errors };
+}
+
+/** Smallest cash-out for this clipper: $1 when all their unpaid money is from real-money tests, else MIN_CASHOUT. */
+export async function minCashoutFor(admin: SupabaseClient, creatorId: string): Promise<number> {
+  const { data } = await admin.from('submissions').select('social_platform_video_id, payout_earned, payout_transferred').eq('creator_id', creatorId).eq('status', 'live_tracking');
+  const owed = (data ?? []).filter((s) => Number(s.payout_earned) > Number(s.payout_transferred));
+  return owed.length && owed.every((s) => isMoneyTest(s)) ? MONEY_TEST_MIN_CASHOUT : MIN_CASHOUT;
 }

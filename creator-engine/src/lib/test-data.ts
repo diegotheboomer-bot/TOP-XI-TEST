@@ -7,3 +7,5 @@ export const isTestClip = (s: { social_platform_video_id?: string | null }) => !
 // to try a real cash-out. Never synced with the platforms (there is no video), but paid out like any clip.
 export const MONEY_TEST_PREFIX = 'atlasmoney';
 export const isMoneyTest = (s: { social_platform_video_id?: string | null }) => !!s.social_platform_video_id?.startsWith(MONEY_TEST_PREFIX);
+/** A balance that only comes from real-money tests can be cashed out from $1, to test with small amounts. */
+export const MONEY_TEST_MIN_CASHOUT = 1;
