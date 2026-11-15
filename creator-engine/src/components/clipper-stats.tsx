@@ -11,6 +11,8 @@ import { clipRef, compact, usd, usdCents } from '@/lib/format';
 import { PlatformTile } from './platform-icon';
 import { SubmissionBadge } from './status';
 import { cn } from './ui/cn';
+import { ConfirmButton } from './confirm-button';
+import { removeMyClip } from '@/actions/creator';
 
 type Row = { sub: Submission; campaignTitle: string; brandName: string; cap: number; campaignId: string; openPool: boolean };
 
@@ -122,6 +124,17 @@ export function ClipsView({ d, tab, history }: { d: CreatorDashboard; tab: strin
                   <p className="shrink-0 text-sm font-semibold tabular-nums text-brand">{usdCents(sub.payout_earned)}</p>
                 </div>
               </a>
+              {sub.payout_earned === 0 && sub.payout_transferred === 0 && (
+                <div className="mt-1 px-0.5">
+                  <ConfirmButton
+                    label="Remove clip"
+                    title="Remove this clip?"
+                    description="It hasn’t earned anything yet. Removing it lets you submit a different clip to this campaign. The video stays on your account."
+                    confirmLabel="Remove"
+                    action={removeMyClip.bind(null, sub.id)}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>

@@ -437,3 +437,17 @@ export async function respondInvite(inviteId: string, accept: boolean): Promise<
   revalidatePath('/clipper');
   return { success: accept ? 'Joined. Open the campaign to post your first clip.' : 'Invite declined.' };
 }
+
+/** A clipper takes back a clip that hasn't earned anything yet, so they can submit another one. */
+export async function removeMyClip(submissionId: string): Promise<ActionState> {
+  if (isDemo) return { error: 'Not available in the demo.' };
+  const creatorId = await requireCreator();
+  const admin = createAdminClient();
+  const { data: sub } = await admin.from('submissions').select('id, payout_earned, payout_transferred').eq('id', submissionId).eq('creator_id', creatorId).maybeSingle();
+  if (!sub) return { error: 'Clip not found.' };
+  if (Number(sub.payout_earned) > 0 || Number(sub.payout_transferred) > 0) return { error: 'This clip has already earned money, so it can’t be removed.' };
+  const { error } = await admin.from('submissions').delete().eq('id', submissionId).eq('creator_id', creatorId).eq('payout_earned', 0).eq('payout_transferred', 0);
+  if (error) return { error: 'Couldn’t remove the clip. Try again.' };
+  revalidatePath('/clipper', 'layout');
+  return { success: 'Clip removed.' };
+}
