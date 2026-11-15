@@ -314,8 +314,14 @@ export async function refreshPayoutStatus(): Promise<ActionState> {
 export async function openPayoutDashboard(): Promise<void> {
   if (isDemo) redirect('/clipper/payouts');
   const account = await payoutAccount(await requireCreator());
-  const link = await stripe().accounts.createLoginLink(account);
-  redirect(link.url);
+  // Login links only exist for Express accounts. Accounts with the full Stripe Dashboard sign in on stripe.com.
+  let url = 'https://dashboard.stripe.com/';
+  try {
+    url = (await stripe().accounts.createLoginLink(account)).url;
+  } catch (err) {
+    console.warn('Stripe login link refused, sending to dashboard.stripe.com:', err instanceof Error ? err.message : err);
+  }
+  redirect(url);
 }
 
 /**
