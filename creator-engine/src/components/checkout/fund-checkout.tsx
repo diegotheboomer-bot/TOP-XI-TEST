@@ -10,6 +10,7 @@ import type { Campaign } from '@/lib/types';
 import { cn } from '../ui/cn';
 import { Button, buttonClass } from '../ui/button';
 import { Dialog } from '../ui/dialog';
+import { FeeGuide } from './fee-guide';
 
 export interface Quote {
   /** Budget the streamer adds; all of it goes to clippers. */
@@ -175,6 +176,8 @@ function Checkout({
       </div>
 
       <Breakdown quote={quote} feePercent={feePercent} feeFixed={feeFixed} early={early} className="mt-5" />
+      {/* Early-partner pricing is Stripe's card cost: its estimate is the "other cards" rate plus conversion. */}
+      {early && <FeeGuide amount={quote?.amount ?? null} fx={Math.max(0, Math.round((feePercent - 3.15) * 100) / 100)} />}
       <p className="mt-2.5 text-xs text-zinc-500">
         {early
           ? 'No service fee. You pay only what Stripe charges for your card, so the campaign gets the full budget. Stripe’s processing isn’t refundable; unspent budget is refunded if you cancel.'
