@@ -76,6 +76,8 @@ const menu = (custom_id: string, placeholder: string, options: [string, string, 
 });
 const reply = (content: string, components: object[] = []) => NextResponse.json({ type: 4, data: { content, components, flags: EPHEMERAL } });
 const update = (content: string, components: object[] = []) => NextResponse.json({ type: 7, data: { content, components } });
+const link = (label: string, url: string, emoji: string) => ({ type: 2, style: 5, label, url, emoji: { name: emoji } });
+const SITE = 'https://atlasclipping.com';
 const labels = (list: [string, string, string][], values: string[]) => list.filter(([v]) => values.includes(v)).map(([, l]) => l);
 
 export async function POST(req: Request) {
@@ -94,8 +96,9 @@ export async function POST(req: Request) {
 
   switch (id) {
     case 'verify:start':
-      return reply('### 👋 Welcome to Atlas\n**What brings you here?**', [
+      return reply('### 👋 Welcome to Atlas\nAtlas pays you for real views on clips you post, and gets businesses clips that pay off. Pick one to unlock the server, or jump straight to the site.\n**What brings you here?**', [
         row(button('verify:clipper', 'I want to clip and get paid', '🎬', 1), button('verify:business', 'I want clips for my content or brand', '📈', 2)),
+        row(link('Open atlasclipping.com', SITE, '🌐')),
       ]);
     case 'verify:clipper':
       return update('### 🎬 Clipper\n**Where do you post?** Pick all that apply.', [row(menu('verify:platforms', 'Choose your platforms', PLATFORMS))]);
@@ -106,7 +109,7 @@ export async function POST(req: Request) {
       await give(guild, user, ['Verified', 'Clipper', ...labels(NICHES, values)]);
       return update(
         '### ✅ You\'re in!\nThe whole server is unlocked. Next: **sign up on Atlas**, join a campaign and start earning. Link your Discord in Atlas Settings to get your tier role.',
-        [row({ type: 2, style: 5, label: 'Open Atlas', url: 'https://atlasclipping.com/signup?role=creator', emoji: { name: '🚀' } })],
+        [row(link('Sign up and start earning', `${SITE}/signup?role=creator`, '🚀'), link('See open campaigns', `${SITE}/clipper/discover`, '🔎'))],
       );
     case 'verify:business':
       return update('### 📈 Business\n**What are you promoting?**', [row(menu('verify:promoting', 'Choose what you promote', PROMOTING))]);
@@ -114,7 +117,7 @@ export async function POST(req: Request) {
       await give(guild, user, ['Verified', 'Business']);
       return update(
         `### ✅ You're in!\nPromoting: **${labels(PROMOTING, values).join(', ')}**. Read **#start-a-campaign** for the steps, or post in **#campaign-requests** and the team will help you launch.`,
-        [row({ type: 2, style: 5, label: 'Launch a campaign', url: 'https://atlasclipping.com/start', emoji: { name: '🚀' } })],
+        [row(link('Launch a campaign', `${SITE}/start`, '🚀'), link('Is Atlas safe?', `${SITE}/trust`, '🛡️'))],
       );
     default:
       return reply('That button has expired. Tap ✅ Verify in #verify again.');
