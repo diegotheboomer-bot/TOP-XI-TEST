@@ -214,6 +214,8 @@
     </div>
     <div class="drawer-body" id="cartItems"></div>
     <div class="drawer-foot">
+      <label class="note-label" for="orderNote">Gift note <small>(optional)</small></label>
+      <textarea id="orderNote" rows="2" maxlength="160" placeholder="Happy birthday, little one!"></textarea>
       <div class="summary-total">
         <span>Subtotal</span>
         <strong id="cartTotal">€0.00</strong>
@@ -224,6 +226,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

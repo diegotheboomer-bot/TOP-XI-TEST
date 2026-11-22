@@ -469,3 +469,5 @@ textarea:focus, .news-form input:focus { outline: none; border-color: var(--sage
   *, *::before, *::after { animation: none !important; transition: none !important; }
   html { scroll-behavior: auto; }
 }
+.drawer-foot { padding-top: 1rem; }
+.drawer-foot textarea { margin-bottom: .2rem; }

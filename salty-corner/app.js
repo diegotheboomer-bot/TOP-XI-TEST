@@ -2,6 +2,10 @@
 
 const fmt = (n) => "€" + n.toFixed(2);
 
+/* Live mode turns on when config.js has Supabase keys. Without them the site stays a demo. */
+const CFG = window.SC_CONFIG || {};
+const LIVE = Boolean(CFG.supabaseUrl && CFG.supabaseAnonKey);
+
 /* ---------- Illustrations ---------- */
 
 // A gift box drawn in the logo's palette. stack=true draws two boxes.
@@ -45,7 +49,7 @@ const icon = (k) => `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"
 
 const PRODUCTS = [
   {
-    id: "sunshine", name: "The Sunshine Box", badge: "New",
+    id: "sunshine", name: "The Sunshine Box", badge: "New", live: true,
     desc: 'A magical, curated crate for little dreamers! Built around the lovely storybook "Lilly\'s Dream" and a sweet music box playing "You Are My Sunshine".',
     contents: ['Storybook "Lilly\'s Dream"', 'Music box ("You Are My Sunshine")', "Heart-shaped jewellery box", "Colouring book & coloured pencils", "Pen & magnetic bookmark", "Thumb push puppet"],
     price: 50,
@@ -95,7 +99,7 @@ const store = {
 /* ---------- Shop grid ---------- */
 
 const priceLabel = (p) => (p.price == null ? "Price soon" : fmt(p.price));
-const buyButton = (p, cls = "add-btn") => p.price == null
+const buyButton = (p, cls = "add-btn") => p.price == null || (LIVE && !p.live)
   ? `<button class="btn btn-primary ${cls}" disabled>Coming soon</button>`
   : `<button class="btn btn-primary ${cls}" data-add="${p.id}">Add to basket</button>`;
 
@@ -166,7 +170,8 @@ function renderBuilder() {
 
   const total = build.size.price + chosen.reduce((s, i) => s + i.price, 0);
   $("#buildTotal").textContent = fmt(chosen.length ? total : 0);
-  $("#addCustom").disabled = chosen.length === 0;
+  $("#addCustom").disabled = chosen.length === 0 || LIVE;
+  if (LIVE) $("#addCustom").textContent = "Coming soon";
 }
 
 $("#sizes").addEventListener("click", (e) => {
@@ -265,12 +270,47 @@ $("#cartClose").addEventListener("click", () => openCart(false));
 $("#overlay").addEventListener("click", () => openCart(false));
 document.addEventListener("keydown", (e) => e.key === "Escape" && openCart(false));
 
-$("#checkout").addEventListener("click", () => toast("Demo: checkout not connected"));
+$("#checkout").addEventListener("click", async () => {
+  if (!LIVE) return toast("Demo: checkout not connected");
+  const btn = $("#checkout");
+  btn.disabled = true;
+  btn.textContent = "One moment...";
+  try {
+    const res = await fetch(`${CFG.supabaseUrl}/functions/v1/create-checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: CFG.supabaseAnonKey },
+      body: JSON.stringify({
+        items: cart.map((l) => ({ id: l.key, qty: l.qty })),
+        note: $("#orderNote").value.trim().slice(0, 160),
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) throw new Error(data.error || "Checkout failed");
+    window.location.href = data.url;
+  } catch (err) {
+    toast(err.message || "Something went wrong. Please try again.");
+    btn.disabled = false;
+    btn.textContent = "Checkout";
+  }
+});
 
-$("#newsletter").addEventListener("submit", (e) => {
+$("#newsletter").addEventListener("submit", async (e) => {
   e.preventDefault();
-  e.target.reset();
-  toast("Thanks for subscribing (demo)");
+  const form = e.target;
+  if (!LIVE) { form.reset(); return toast("Thanks for subscribing (demo)"); }
+  try {
+    const res = await fetch(`${CFG.supabaseUrl}/rest/v1/subscribers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: CFG.supabaseAnonKey, Prefer: "return=minimal" },
+      body: JSON.stringify({ email: $("#email").value.trim().toLowerCase() }),
+    });
+    if (res.status === 409) toast("You are already subscribed");
+    else if (!res.ok) throw new Error();
+    else toast("Thanks for subscribing");
+    form.reset();
+  } catch {
+    toast("Could not subscribe. Please try again.");
+  }
 });
 
 /* ---------- Init ---------- */
@@ -278,3 +318,14 @@ $("#year").textContent = new Date().getFullYear();
 renderProducts();
 renderBuilder();
 renderCart();
+
+/* Back from Stripe */
+const params = new URLSearchParams(location.search);
+if (params.has("paid")) {
+  cart = [];
+  saveCart();
+  toast("Thank you! Your order is confirmed.");
+} else if (params.has("cancelled")) {
+  toast("Payment cancelled. Your basket is saved.");
+}
+if (params.has("paid") || params.has("cancelled")) history.replaceState(null, "", location.pathname);

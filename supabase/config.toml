@@ -1,0 +1,9 @@
+project_id = "the-salty-corner"
+
+# Both functions are called from outside Supabase (the website and Stripe),
+# so they cannot send a Supabase login token.
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: the-salty-corner
+    runtime: static
+    buildCommand: echo "static site, nothing to build"
+    staticPublishPath: ./salty-corner
