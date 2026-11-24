@@ -5,6 +5,8 @@ const fmt = (n) => "€" + n.toFixed(2);
 /* Live mode turns on when config.js has Supabase keys. Without them the site stays a demo. */
 const CFG = window.SC_CONFIG || {};
 const LIVE = Boolean(CFG.supabaseUrl && CFG.supabaseAnonKey);
+const SUNSHINE_PAYMENT_LINK = "https://buy.stripe.com/test_8x2eVd8Q1bkg8YD83ffAc00";
+const PAYMENT_LINK_MODE = Boolean(SUNSHINE_PAYMENT_LINK);
 
 /* ---------- Illustrations ---------- */
 
@@ -99,9 +101,16 @@ const store = {
 /* ---------- Shop grid ---------- */
 
 const priceLabel = (p) => (p.price == null ? "Price soon" : fmt(p.price));
-const buyButton = (p, cls = "add-btn") => p.price == null || (LIVE && !p.live)
-  ? `<button class="btn btn-primary ${cls}" disabled>Coming soon</button>`
-  : `<button class="btn btn-primary ${cls}" data-add="${p.id}">Add to basket</button>`;
+function buyButton(p, cls = "add-btn") {
+  if (PAYMENT_LINK_MODE && p.id === "sunshine") {
+    const label = SUNSHINE_PAYMENT_LINK.startsWith("https://buy.stripe.com/test_") ? "Test checkout" : "Buy now";
+    return `<a class="btn btn-primary ${cls}" href="${SUNSHINE_PAYMENT_LINK}">${label}</a>`;
+  }
+  if (p.price == null || PAYMENT_LINK_MODE || (LIVE && !p.live)) {
+    return `<button class="btn btn-primary ${cls}" disabled>Coming soon</button>`;
+  }
+  return `<button class="btn btn-primary ${cls}" data-add="${p.id}">Add to basket</button>`;
+}
 
 
 function renderProducts(filter = "all") {
@@ -170,8 +179,8 @@ function renderBuilder() {
 
   const total = build.size.price + chosen.reduce((s, i) => s + i.price, 0);
   $("#buildTotal").textContent = fmt(chosen.length ? total : 0);
-  $("#addCustom").disabled = chosen.length === 0 || LIVE;
-  if (LIVE) $("#addCustom").textContent = "Coming soon";
+  $("#addCustom").disabled = chosen.length === 0 || LIVE || PAYMENT_LINK_MODE;
+  if (LIVE || PAYMENT_LINK_MODE) $("#addCustom").textContent = "Coming soon";
 }
 
 $("#sizes").addEventListener("click", (e) => {
@@ -318,6 +327,7 @@ $("#year").textContent = new Date().getFullYear();
 renderProducts();
 renderBuilder();
 renderCart();
+if (PAYMENT_LINK_MODE) $("#cartOpen").remove();
 
 /* Back from Stripe */
 const params = new URLSearchParams(location.search);
