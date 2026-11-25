@@ -85,8 +85,8 @@ const PRODUCTS = [
       "Three illustrated Christmas bookmarks and a festive pen",
     ],
     shipping: "Curated in the Algarve, Portugal, and shipped via registered CTT mail.",
-    price: null,
-    tags: ["kids", "thanks"], art: { box: "#fbecd3", lid: "#7a9867", ribbon: "#c9805f" },
+    price: 50,
+    tags: ["christmas"], art: { box: "#fbecd3", lid: "#7a9867", ribbon: "#c9805f" },
   },
   {
     img: "assets/ChatGPT%20Image%20Nov%2025%2C%202026%2C%2006_02_48%20PM.png",
@@ -104,7 +104,7 @@ const PRODUCTS = [
       "Engraved brass-tone pocket compass",
       "Mechanical wind-up skeleton pocket watch with chain and keepsake box",
     ],
-    price: null,
+    price: 50,
     tags: ["birthday", "thanks"], art: { box: "#fbecd3", lid: "#cfa274", ribbon: "#557049" },
   },
   { id: "reader", name: "Little Reader", contents: ["Picture book", "Bookmark", "Mini blanket"], price: 34, tags: ["kids", "birthday"], art: { box: "#dfe8d2", lid: "#a9bf94", ribbon: "#c9805f" } },
@@ -163,16 +163,21 @@ function buyButton(p, cls = "add-btn") {
 
 
 function renderProducts(filter = "all") {
-  const list = PRODUCTS.filter((p) => filter === "all" || p.tags.includes(filter));
+  const list = PRODUCTS.filter((p) => p.img && (filter === "all" || p.tags.includes(filter)));
   $("#productGrid").innerHTML = list.map((p, i) => `
     <article class="card" style="animation-delay:${i * 60}ms">
-      <div class="card-art">
-        ${p.badge ? `<span class="tag">${p.badge}</span>` : ""}
-        ${p.img ? `<img src="${p.img}" alt="${p.alt}" loading="lazy" />` : boxSVG({ ...p.art, stack: p.stack })}
+      <div class="product-photos">
+        <button type="button" class="product-photo" data-product="${p.id}" aria-label="View ${p.name} details">
+          <img src="${p.img}" alt="${p.alt}" loading="lazy" />
+        </button>
+        <button type="button" class="product-photo product-photo-contents" data-product="${p.id}" aria-label="See what’s inside ${p.name}">
+          <img src="${p.contentsImg}" alt="${p.contentsAlt}" loading="lazy" />
+        </button>
       </div>
       <div class="card-body">
+        ${p.badge ? `<span class="product-edition">${p.badge}</span>` : ""}
         <h3>${p.name}</h3>
-          ${p.desc ? `<details><summary>What’s inside</summary>${p.contentsImg ? `<img src="${p.contentsImg}" alt="${p.contentsAlt}" loading="lazy" style="width:100%;height:auto" />` : ""}<p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul>${p.shipping ? `<p>${p.shipping}</p>` : ""}</details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
+        <button type="button" class="chip details-button" data-product="${p.id}">What’s inside</button>
         <div class="card-foot">
           <span class="price">${priceLabel(p)}</span>
           ${buyButton(p)}
@@ -184,7 +189,10 @@ function renderProducts(filter = "all") {
 $("#filters").addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
   if (!chip) return;
-  document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("is-active", c === chip));
+  document.querySelectorAll("#filters .chip").forEach((c) => {
+    c.classList.toggle("is-active", c === chip);
+    c.setAttribute("aria-pressed", String(c === chip));
+  });
   renderProducts(chip.dataset.filter);
 });
 
@@ -193,6 +201,26 @@ document.addEventListener("click", (e) => {
   if (!btn) return;
   const p = PRODUCTS.find((x) => x.id === btn.dataset.add);
   addToCart({ key: p.id, name: p.name, detail: p.contents.join(" · "), price: p.price, art: p.art, stack: p.stack, img: p.img });
+});
+
+const productDialog = $("#productDialog");
+$("#productGrid").addEventListener("click", (event) => {
+  const trigger = event.target.closest("[data-product]");
+  if (!trigger) return;
+  const product = PRODUCTS.find((p) => p.id === trigger.dataset.product);
+  $("#productTitle").textContent = product.name;
+  $("#productDetails").innerHTML = `
+    <div class="dialog-photos">
+      <img src="${product.img}" alt="${product.alt}" />
+      <img src="${product.contentsImg}" alt="${product.contentsAlt}" />
+    </div>
+    <p>${product.desc}</p>
+    <h3>What’s inside</h3>
+    <ul class="contents">${product.contents.map((item) => `<li>${item}</li>`).join("")}</ul>
+    ${product.shipping ? `<p>${product.shipping}</p>` : ""}
+    <div class="card-foot"><span class="price">${priceLabel(product)}</span>${buyButton(product)}</div>`;
+  productDialog.scrollTop = 0;
+  productDialog.showModal();
 });
 
 /* ---------- Build a box ---------- */

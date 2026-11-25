@@ -86,12 +86,11 @@
         <div class="section-head">
           <h2>Gift boxes</h2>
         </div>
-        <div class="chips" role="tablist" aria-label="Filter by occasion" id="filters">
-          <button class="chip is-active" data-filter="all">All</button>
-          <button class="chip" data-filter="birthday">Birthday</button>
-          <button class="chip" data-filter="baby">Baby</button>
-          <button class="chip" data-filter="kids">Kids</button>
-          <button class="chip" data-filter="thanks">Thank you</button>
+        <div class="chips" role="group" aria-label="Filter gift boxes" id="filters">
+          <button class="chip is-active" data-filter="all" aria-pressed="true">All boxes</button>
+          <button class="chip" data-filter="birthday" aria-pressed="false">Birthdays</button>
+          <button class="chip" data-filter="kids" aria-pressed="false">For kids</button>
+          <button class="chip" data-filter="christmas" aria-pressed="false">Christmas</button>
         </div>
         <div class="grid" id="productGrid"></div>
       </div>
@@ -226,6 +225,13 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <dialog id="productDialog" class="product-dialog" aria-labelledby="productTitle">
+    <form method="dialog" class="product-dialog-head">
+      <h2 id="productTitle"></h2>
+      <button class="chip" autofocus>Close</button>
+    </form>
+    <div id="productDetails"></div>
+  </dialog>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
