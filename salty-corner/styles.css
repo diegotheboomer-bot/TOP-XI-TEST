@@ -482,8 +482,7 @@ textarea:focus, .news-form input:focus { outline: none; border-color: var(--sage
   background: var(--cream); cursor: zoom-in;
 }
 .product-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.product-photo-contents { aspect-ratio: 16 / 9; }
-.product-photo-contents img { object-fit: contain; }
+.product-photo[data-product="santas-kitchen"] img { object-position: center bottom; }
 .product-edition {
   color: var(--sage-700); font-family: var(--caps);
   font-size: .72rem; letter-spacing: .07em; text-transform: uppercase;
