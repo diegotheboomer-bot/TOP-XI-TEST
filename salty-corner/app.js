@@ -63,10 +63,16 @@ const PRODUCTS = [
       "Two hot-air balloon magnetic bookmarks and two pastel heart page markers",
     ],
     price: 50,
-    tags: ["kids", "birthday"], img: "assets/sunshine-box.jpg",
-    alt: "The Sunshine Box open, with coloured pencils, a unicorn push puppet, a wooden music box and a pink heart-shaped box",
+    tags: ["kids", "birthday"], img: "assets/ChatGPT%20Image%20Nov%2025%2C%202026%2C%2006_02_58%20PM.png",
+    alt: "Packed Sunshine Box with a heart-patterned diary, unicorn, music box and pink keepsake box",
+    contentsImg: "assets/ChatGPT%20Image%20Nov%2025%2C%202026%2C%2006_02_55%20PM.png",
+    contentsAlt: "Sunshine Box contents laid out, including Lilly’s Dream, a colouring book, pencils and bookmarks",
   },
   {
+    img: "assets/ChatGPT%20Image%20Nov%2025%2C%202026%2C%2006_02_41%20PM.png",
+    alt: "Open Christmas crate packed with festive mugs, cocoa and a candy-cane rolling pin",
+    contentsImg: "assets/ChatGPT%20Image%20Nov%2025%2C%202026%2C%2006_02_45%20PM.png",
+    contentsAlt: "Christmas crate contents laid out, including the recipe book, mugs and gingerbread ornament",
     id: "santas-kitchen", name: "Santa’s Kitchen & Cocoa Crate", badge: "Limited Christmas Edition",
     desc: "Wrapped in festive gold tissue inside a custom-stamped crate, this limited edition is made for family afternoons baking cookies, sipping hot chocolate, and listening to Christmas melodies.",
     contents: [
@@ -83,6 +89,10 @@ const PRODUCTS = [
     tags: ["kids", "thanks"], art: { box: "#fbecd3", lid: "#7a9867", ribbon: "#c9805f" },
   },
   {
+    img: "assets/ChatGPT%20Image%20Nov%2025%2C%202026%2C%2006_02_48%20PM.png",
+    alt: "Packed Explorer’s Desk crate with air mail envelopes, leather bookmarks and a pocket watch",
+    contentsImg: "assets/ChatGPT%20Image%20Nov%2025%2C%202026%2C%2006_02_52%20PM.png",
+    contentsAlt: "Explorer’s Desk contents laid out, including journals, fountain pen, compass and pocket watch",
     id: "gentlemans-crate", name: "The Gentleman’s Crate", badge: "The Explorer’s Desk Edition",
     desc: "Wrapped in antique world-map tissue inside our signature crate, this gift set pairs warm leather, brass-tone details, and vintage stationery. Curated in the Algarve for birthdays, retirements, and Father’s Day.",
     contents: [
@@ -162,7 +172,7 @@ function renderProducts(filter = "all") {
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
-          ${p.desc ? `<details><summary>What’s inside</summary><p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul>${p.shipping ? `<p>${p.shipping}</p>` : ""}</details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
+          ${p.desc ? `<details><summary>What’s inside</summary>${p.contentsImg ? `<img src="${p.contentsImg}" alt="${p.contentsAlt}" loading="lazy" style="width:100%;height:auto" />` : ""}<p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul>${p.shipping ? `<p>${p.shipping}</p>` : ""}</details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
         <div class="card-foot">
           <span class="price">${priceLabel(p)}</span>
           ${buyButton(p)}
