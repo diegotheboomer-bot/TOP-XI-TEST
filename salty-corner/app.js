@@ -170,9 +170,6 @@ function renderProducts(filter = "all") {
         <button type="button" class="product-photo" data-product="${p.id}" aria-label="View ${p.name} details">
           <img src="${p.img}" alt="${p.alt}" loading="lazy" />
         </button>
-        <button type="button" class="product-photo product-photo-contents" data-product="${p.id}" aria-label="See what’s inside ${p.name}">
-          <img src="${p.contentsImg}" alt="${p.contentsAlt}" loading="lazy" />
-        </button>
       </div>
       <div class="card-body">
         ${p.badge ? `<span class="product-edition">${p.badge}</span>` : ""}
