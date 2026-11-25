@@ -58,6 +58,22 @@ const PRODUCTS = [
     tags: ["kids", "birthday"], img: "assets/sunshine-box.jpg",
     alt: "The Sunshine Box open, with coloured pencils, a unicorn push puppet, a wooden music box and a pink heart-shaped box",
   },
+  {
+    id: "santas-kitchen", name: "Santa’s Kitchen & Cocoa Crate", badge: "Limited Christmas Edition",
+    desc: "Wrapped in festive gold tissue inside a custom-stamped crate, this limited edition is made for family afternoons baking cookies, sipping hot chocolate, and listening to Christmas melodies.",
+    contents: [
+      "My Christmas Recipes keepsake book, an illustrated hardcover for treasured holiday recipes",
+      "Santa’s Hot Chocolate Café Set with cocoa powder, gold-wrapped chocolates, and mini marshmallows",
+      "Two ceramic mugs, forest green HO HO HO and festive red FALALALA",
+      "Wooden rolling pin patterned with candy canes",
+      "Hand-cranked Merry Christmas music box",
+      "Plush gingerbread ornament with a gingham bow",
+      "Three illustrated Christmas bookmarks and a festive pen",
+    ],
+    shipping: "Curated in the Algarve, Portugal, and shipped via registered CTT mail.",
+    price: null,
+    tags: ["kids", "thanks"], art: { box: "#fbecd3", lid: "#7a9867", ribbon: "#c9805f" },
+  },
   { id: "reader", name: "Little Reader", contents: ["Picture book", "Bookmark", "Mini blanket"], price: 34, tags: ["kids", "birthday"], art: { box: "#dfe8d2", lid: "#a9bf94", ribbon: "#c9805f" } },
   { id: "melody", name: "Melody Box", contents: ["Wooden music box", "Scented candle", "Hand-written card"], price: 48, tags: ["birthday", "thanks"], art: { box: "#fbecd3", lid: "#cfa274", ribbon: "#7a9867" } },
   { id: "baby", name: "Hello Baby", contents: ["Rag doll", "Soft blanket", "First book"], price: 56, tags: ["baby"], art: { box: "#f6e3df", lid: "#e8b4ad", ribbon: "#7a9867" }, badge: "Bestseller" },
@@ -123,7 +139,7 @@ function renderProducts(filter = "all") {
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
-        <ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>
+          ${p.shipping ? `<details><summary>What’s inside</summary><p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul><p>${p.shipping}</p></details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
         <div class="card-foot">
           <span class="price">${priceLabel(p)}</span>
           ${buyButton(p)}
