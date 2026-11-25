@@ -52,8 +52,16 @@ const icon = (k) => `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"
 const PRODUCTS = [
   {
     id: "sunshine", name: "The Sunshine Box", badge: "New", live: true,
-    desc: 'A magical, curated crate for little dreamers! Built around the lovely storybook "Lilly\'s Dream" and a sweet music box playing "You Are My Sunshine".',
-    contents: ['Storybook "Lilly\'s Dream"', 'Music box ("You Are My Sunshine")', "Heart-shaped jewellery box", "Colouring book & coloured pencils", "Pen & magnetic bookmark", "Thumb push puppet"],
+    desc: "A warm ray of Algarve sunshine for birthdays, special milestones, and creative afternoons. Keepsakes and creative treasures come wrapped in delicate floral tissue inside our signature crate.",
+    contents: [
+      "Lilly’s Dream illustrated storybook about dreams and adventure",
+      "Hand-cranked wooden You Are My Sunshine music box",
+      "Heart-patterned lockable diary with a gold heart-shaped padlock, keys, and pastel pen",
+      "Pink scalloped heart keepsake box",
+      "Painted wooden unicorn figurine on a pastel base",
+      "Mandala colouring book and pastel coloured pencils",
+      "Two hot-air balloon magnetic bookmarks and two pastel heart page markers",
+    ],
     price: 50,
     tags: ["kids", "birthday"], img: "assets/sunshine-box.jpg",
     alt: "The Sunshine Box open, with coloured pencils, a unicorn push puppet, a wooden music box and a pink heart-shaped box",
@@ -154,7 +162,7 @@ function renderProducts(filter = "all") {
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
-          ${p.desc && p.price == null ? `<details><summary>What’s inside</summary><p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul>${p.shipping ? `<p>${p.shipping}</p>` : ""}</details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
+          ${p.desc ? `<details><summary>What’s inside</summary><p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul>${p.shipping ? `<p>${p.shipping}</p>` : ""}</details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
         <div class="card-foot">
           <span class="price">${priceLabel(p)}</span>
           ${buyButton(p)}
