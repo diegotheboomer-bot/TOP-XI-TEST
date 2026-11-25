@@ -74,6 +74,21 @@ const PRODUCTS = [
     price: null,
     tags: ["kids", "thanks"], art: { box: "#fbecd3", lid: "#7a9867", ribbon: "#c9805f" },
   },
+  {
+    id: "gentlemans-crate", name: "The Gentleman’s Crate", badge: "The Explorer’s Desk Edition",
+    desc: "Wrapped in antique world-map tissue inside our signature crate, this gift set pairs warm leather, brass-tone details, and vintage stationery. Curated in the Algarve for birthdays, retirements, and Father’s Day.",
+    contents: [
+      "Stitched brown leather journal and planner with a snap closure",
+      "Vintage map-themed notebook inspired by classic exploration logs",
+      "Wooden fountain pen and glass ink bottle",
+      "Three retro air mail envelopes",
+      "Two stitched leather leaf corner bookmarks",
+      "Engraved brass-tone pocket compass",
+      "Mechanical wind-up skeleton pocket watch with chain and keepsake box",
+    ],
+    price: null,
+    tags: ["birthday", "thanks"], art: { box: "#fbecd3", lid: "#cfa274", ribbon: "#557049" },
+  },
   { id: "reader", name: "Little Reader", contents: ["Picture book", "Bookmark", "Mini blanket"], price: 34, tags: ["kids", "birthday"], art: { box: "#dfe8d2", lid: "#a9bf94", ribbon: "#c9805f" } },
   { id: "melody", name: "Melody Box", contents: ["Wooden music box", "Scented candle", "Hand-written card"], price: 48, tags: ["birthday", "thanks"], art: { box: "#fbecd3", lid: "#cfa274", ribbon: "#7a9867" } },
   { id: "baby", name: "Hello Baby", contents: ["Rag doll", "Soft blanket", "First book"], price: 56, tags: ["baby"], art: { box: "#f6e3df", lid: "#e8b4ad", ribbon: "#7a9867" }, badge: "Bestseller" },
@@ -139,7 +154,7 @@ function renderProducts(filter = "all") {
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
-          ${p.shipping ? `<details><summary>What’s inside</summary><p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul><p>${p.shipping}</p></details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
+          ${p.desc && p.price == null ? `<details><summary>What’s inside</summary><p>${p.desc}</p><ul class="contents">${p.contents.map((item) => `<li>${item}</li>`).join("")}</ul>${p.shipping ? `<p>${p.shipping}</p>` : ""}</details>` : `<ul class="contents">${p.contents.slice(0, 3).map((c) => `<li>${c}</li>`).join("")}${p.contents.length > 3 ? `<li>+${p.contents.length - 3} more</li>` : ""}</ul>`}
         <div class="card-foot">
           <span class="price">${priceLabel(p)}</span>
           ${buyButton(p)}
