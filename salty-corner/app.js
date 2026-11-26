@@ -6,7 +6,7 @@ const fmt = (n) => "€" + n.toFixed(2);
 const CFG = window.SC_CONFIG || {};
 const LIVE = Boolean(CFG.supabaseUrl && CFG.supabaseAnonKey);
 const PAYMENT_LINKS = {
-  sunshine: "https://buy.stripe.com/8x2eVd8Q1bkg8YD83ffAc00",
+  sunshine: "https://buy.stripe.com/4gM9AT0jvbkg1wbcjvfAc03",
   "santas-kitchen": "https://buy.stripe.com/5kQaEX2rDfAw8YDcjvfAc02",
   "gentlemans-crate": "https://buy.stripe.com/4gMdR96HTews3EjabnfAc01",
 };
