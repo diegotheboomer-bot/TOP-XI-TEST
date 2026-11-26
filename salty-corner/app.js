@@ -90,7 +90,7 @@ const PRODUCTS = [
       "Three illustrated Christmas bookmarks and a festive pen",
     ],
     shipping: "Curated in the Algarve, Portugal, and shipped via registered CTT mail.",
-    price: 78,
+    price: 79,
     shipping: "Free shipping across Portugal.",
     tags: ["christmas"], art: { box: "#fbecd3", lid: "#7a9867", ribbon: "#c9805f" },
   },
