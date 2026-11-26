@@ -5,8 +5,12 @@ const fmt = (n) => "€" + n.toFixed(2);
 /* Live mode turns on when config.js has Supabase keys. Without them the site stays a demo. */
 const CFG = window.SC_CONFIG || {};
 const LIVE = Boolean(CFG.supabaseUrl && CFG.supabaseAnonKey);
-const SUNSHINE_PAYMENT_LINK = "https://buy.stripe.com/8x2eVd8Q1bkg8YD83ffAc00";
-const PAYMENT_LINK_MODE = Boolean(SUNSHINE_PAYMENT_LINK);
+const PAYMENT_LINKS = {
+  sunshine: "https://buy.stripe.com/8x2eVd8Q1bkg8YD83ffAc00",
+  "santas-kitchen": "https://buy.stripe.com/5kQaEX2rDfAw8YDcjvfAc02",
+  "gentlemans-crate": "https://buy.stripe.com/4gMdR96HTews3EjabnfAc01",
+};
+const PAYMENT_LINK_MODE = true;
 
 /* ---------- Illustrations ---------- */
 
@@ -153,9 +157,8 @@ const store = {
 
 const priceLabel = (p) => (p.price == null ? "Price soon" : fmt(p.price));
 function buyButton(p, cls = "add-btn") {
-  if (PAYMENT_LINK_MODE && p.id === "sunshine") {
-    const label = SUNSHINE_PAYMENT_LINK.startsWith("https://buy.stripe.com/test_") ? "Test checkout" : "Buy now";
-    return `<a class="btn btn-primary ${cls}" href="${SUNSHINE_PAYMENT_LINK}">${label}</a>`;
+  if (PAYMENT_LINKS[p.id]) {
+    return `<a class="btn btn-primary ${cls}" href="${PAYMENT_LINKS[p.id]}">Buy now</a>`;
   }
   if (p.price == null || PAYMENT_LINK_MODE || (LIVE && !p.live)) {
     return `<button class="btn btn-primary ${cls}" disabled>Coming soon</button>`;
