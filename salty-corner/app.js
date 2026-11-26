@@ -5,7 +5,7 @@ const fmt = (n) => "€" + n.toFixed(2);
 /* Live mode turns on when config.js has Supabase keys. Without them the site stays a demo. */
 const CFG = window.SC_CONFIG || {};
 const LIVE = Boolean(CFG.supabaseUrl && CFG.supabaseAnonKey);
-const SUNSHINE_PAYMENT_LINK = "https://buy.stripe.com/test_8x2eVd8Q1bkg8YD83ffAc00";
+const SUNSHINE_PAYMENT_LINK = "https://buy.stripe.com/8x2eVd8Q1bkg8YD83ffAc00";
 const PAYMENT_LINK_MODE = Boolean(SUNSHINE_PAYMENT_LINK);
 
 /* ---------- Illustrations ---------- */
